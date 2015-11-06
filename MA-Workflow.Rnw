@@ -1,6 +1,6 @@
 
 % To compile this document
-% graphics.off();rm(list=ls());library('knitr');knitr::knit2pdf('MA-Workflow.Rnw');
+% graphics.off();rm(list=ls());knitr::knit2pdf('MA-Workflow.Rnw');
 
 
 
@@ -72,6 +72,7 @@ BiocStyle::latex()
 
 
 <<options, include=FALSE>>=
+library(knitr)
 options(digits=3, width=100)
 opts_chunk$set(echo=TRUE,tidy=FALSE,include=TRUE,
                dev='png', fig.width = 6, fig.height = 3.5, comment = '  ', dpi = 300,
