@@ -1001,7 +1001,7 @@ variables:
 
 We transform car into a factor so that R performs the necessary parameterization
 of the contrasts automatically.
-<<toycars boxplot >>=
+<<toycars_boxplot >>=
 toycars$car = as.factor(toycars$car)
 qplot(car, distance, data = toycars, geom="boxplot") + geom_point()
 @
@@ -1012,7 +1012,7 @@ distance as the dependent variable and car and angle as the predictors. As we
 can see from the linear model output, the treatment contrast parameterization
 was used, with car 1 being the base level.
 
-<<toycars linear model >>=
+<<toycars_linear_model >>=
 lm.car <- lm(distance~angle+car, data = toycars)
 summary(lm.car)
 @
