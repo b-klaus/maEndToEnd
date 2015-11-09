@@ -90,7 +90,7 @@ high throughput data}
 \usepackage{soul}
 \usepackage{cases}
 \setlength{\parindent}{0cm}
-\usepackage{xhfill}
+%\usepackage{xhfill}
 \usepackage[labelformat=empty]{caption}
 
 \author{Bernd Klaus$^1$ \\[1em]European Molecular Biology Laboratory (EMBL),\\ Heidelberg, Germany\\
@@ -1467,7 +1467,7 @@ C.noI
 summary(glht(lm.car.noI, C.noI), test = adjusted(type ="none"))
 @
 
-\xhrulefill{BiocBlue}{1pt}
+%\xhrulefill{BiocBlue}{1pt}
 
 \subsubsection*{Exercise: Filtering based on variance}
 In this exercise we filter the expression data based on the row--mad (mean
@@ -1510,7 +1510,7 @@ table( idx.thresh.mad )
 prop.table(table(idx.thresh.mad , idx.thresh.median ))
 @
 
-\xhrulefill{BiocBlue}{1pt}
+%\xhrulefill{BiocBlue}{1pt}
 
 
 
