@@ -131,7 +131,7 @@ library(DAAG)
 library(multcomp)
 library(limma)
 library(EnrichmentBrowser)
-#library(xlsx)
+library(xlsx)
 
 rawDataDir <- file.path(getwd(), "rawDataMAWorkflow")
 @
@@ -1239,11 +1239,11 @@ of 0.001.
 
 
 <<compareDEgenes, dependson="extractResults">>=
-#download.file("http://links.lww.com/IBD/A795", destfile = "PalmieriDERes.xls")
-#PalmieriDERes <- sapply(1:4, function(i) read.xlsx(colIndex = 1,
-#"PalmieriDERes.xls", sheetIndex = i, startRow = 4))
+download.file("http://links.lww.com/IBD/A795", destfile = "PalmieriDERes.xls")
+PalmieriDERes <- sapply(1:4, function(i) read.xlsx(colIndex = 1,
+"PalmieriDERes.xls", sheetIndex = i, startRow = 4))
 
-load(file.path("dataMAWorkflow", "PalmieriDERes.RData"))
+#load(file.path("dataMAWorkflow", "PalmieriDERes.RData"))
 
 names(PalmieriDERes) <- c("CD_UP", "CD_DOWN", "UC_UP", "UC_DOWN")
 PalmieriDERes <- lapply(PalmieriDERes, as.character)
