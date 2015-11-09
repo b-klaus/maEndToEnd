@@ -109,6 +109,7 @@ high throughput data}
 
 %
 <<required packages and data, echo = TRUE>>=
+library(BiocStyle)
 library(oligo)
 library(geneplotter)
 library(ggplot2)
