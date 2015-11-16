@@ -1225,7 +1225,7 @@ is very similar to web tools like DAVID. Here we focus on the  CD data.
 For every differentially expressed gene, we try to find 5 genes with similar
 expresssion. We then
 
-```{r GOAnalysisCreateBackgrounds, eval=FALSE, dependson="extractResults", warning=FALSE}
+```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson="extractResults", warning=FALSE}
 DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
 backGIdx <- genefinder(PalmieriFinal, DEgenesCD,  5,
@@ -1262,7 +1262,7 @@ for illustration.
 We first create a factor `allG` which indicates for every gene in
 our background / universe, whether it is differentially expressed or not.
 
-```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=FALSE}
+```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=TRUE}
 
 geneIDs <- rownames(tableC)
 inUniverse <- geneIDs %in% c(DEgenesCD,  backG)
@@ -1277,7 +1277,7 @@ in the annotation data base for the chip we are using. The `nodeSize`
 parameter specifies a minimum size of a GO category we want to use: i.e. here
 categories with less than 10 genes are not included in the testing.
 
-```{r createTopGODataSet, eval=FALSE, dependson="createFactorOfInterestingGenes" }
+```{r createTopGODataSet, dependson="createFactorOfInterestingGenes", eval=TRUE }
 ont <- "BP"
 
 tgd <- new( "topGOdata", ontology=ont, allGenes = allG,
@@ -1300,7 +1300,7 @@ for every gene.
 
 The tests uses a 0.01 p--value cutoff by default.
 
-```{r runtopGOTests, results='hide', eval=FALSE, dependson = "createTopGODataSet"}
+```{r runtopGOTests, results='hide', eval=TRUE, dependson = "createTopGODataSet"}
 resultTopGOElim <- runTest(tgd, algorithm = "elim", statistic = "Fisher" )
 resultTopGOClassic <- runTest(tgd, algorithm = "classic", statistic = "Fisher" )
 ```
@@ -1310,7 +1310,7 @@ to the ``Fisher elim" algorithm. The function \Rfunction{GenTable} produces
 a table of significant GO categories, the function \Rfunction{printGenes}
 gives significant genes annotated to them.
 
-```{r processtopGOResults, eval=FALSE, dependson="runtopGOTests"}
+```{r processtopGOResults, eval=TRUE, dependson="runtopGOTests"}
 tab <- GenTable( tgd, Fisher.elim = resultTopGOElim,
 		Fisher.classic = resultTopGOClassic,
 		orderBy = "Fisher.elim" , topNodes = 100)
@@ -1329,7 +1329,7 @@ A graph of the results can also be produced. Here we visualize the 5 most
 significant nodes according to the Fisher elim algorithm in the context of
 the GO hierarchy.
 
-```{r  graph of results, eval=FALSE}
+```{r  graph of results, eval=TRUE}
 pdf("visualizationOfGOResults.pdf", width = 7, height = 7,
     pointsize = 30)
 showSigOfNodes(tgd, score(resultTopGOElim), firstSigNodes = 5,
