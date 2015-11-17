@@ -1226,15 +1226,15 @@ backGIdx <- sapply(backGIdx, function(x)x$indices)
 backGIdx <- backGIdx[is.finite(backGIdx)]
 
 backG <-featureNames(PalmieriFinal)[backGIdx]
-backG <- setdiff(backG, DEgenesCD)
-length(backG)
-
-  multidensity( list(
-       all=  tableC[,"AveExpr"] ,
-       fore= tableC[DEgenesCD, "AveExpr"],
-       back= tableC[rownames(tableC) %in% backG, "AveExpr"]),
-     xlab="mean expression",
-  main = "DE genes for CD - Background - Matching")
+# backG <- setdiff(backG, DEgenesCD)
+# length(backG)
+# 
+#   multidensity( list(
+#        all=  tableC[,"AveExpr"] ,
+#        fore= tableC[DEgenesCD, "AveExpr"],
+#        back= tableC[rownames(tableC) %in% backG, "AveExpr"]),
+#      xlab="mean expression",
+#   main = "DE genes for CD - Background - Matching")
 ```
 
 We can see that the matching returned a sensible result, we can now
@@ -1257,7 +1257,7 @@ for illustration.
 We first create a factor `allG` which indicates for every gene in
 our background / universe, whether it is differentially expressed or not.
 
-```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=TRUE}
+```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=FALSE}
 
 geneIDs <- rownames(tableC)
 inUniverse <- geneIDs %in% c(DEgenesCD,  backG)
@@ -1272,7 +1272,7 @@ in the annotation data base for the chip we are using. The `nodeSize`
 parameter specifies a minimum size of a GO category we want to use: i.e. here
 categories with less than 10 genes are not included in the testing.
 
-```{r createTopGODataSet, dependson="createFactorOfInterestingGenes", eval=TRUE }
+```{r createTopGODataSet, dependson="createFactorOfInterestingGenes", eval=FALSE }
 ont <- "BP"
 
 tgd <- new( "topGOdata", ontology=ont, allGenes = allG,
