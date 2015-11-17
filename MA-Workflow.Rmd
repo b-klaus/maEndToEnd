@@ -1225,7 +1225,7 @@ backGIdx <- sapply(backGIdx, function(x)x$indices)
 
 backGIdx <- backGIdx[is.finite(backGIdx)]
 
-backG <-featureNames(PalmieriFinal)[backGIdx]
+#backG <-featureNames(PalmieriFinal)[backGIdx]
 # backG <- setdiff(backG, DEgenesCD)
 # length(backG)
 # 
