@@ -1219,11 +1219,11 @@ expresssion. We then
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson="extractResults", warning=FALSE}
 DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
-backGIdx <- genefinder(PalmieriFinal, DEgenesCD,  5,
-  method="manhattan", scale="none")
-backGIdx <- sapply(backGIdx, function(x)x$indices)
+#backGIdx <- genefinder(PalmieriFinal, DEgenesCD,  5,
+#  method="manhattan", scale="none")
+#backGIdx <- sapply(backGIdx, function(x)x$indices)
 
-backGIdx <- backGIdx[is.finite(backGIdx)]
+#backGIdx <- backGIdx[is.finite(backGIdx)]
 
 #backG <-featureNames(PalmieriFinal)[backGIdx]
 # backG <- setdiff(backG, DEgenesCD)
