@@ -62,34 +62,38 @@ rawDataDir <- file.path(getwd(), "rawDataMAWorkflow")
 ```
 
 
-
-In this document we introduce a complete workflow for a typical microarray
+In this document we introduce a complete workflow for a typical (Affymetrix) microarray
 analysis. Data import, preprocessing, differential expression  and
 enrichment analysis are discussed. We also introduce some necessary mathematical
 background along the way.
 
-The data used is from  [Palmieri et. al.](http://dx.doi.org/10.1097/MIB.0000000000000370),
+The data used is from  [Palmieri et. al.](http://europepmc.org/abstract/MED/25901971),
 a paper studying the differences between inflamed and noninflamed
 colonic mucosa between patients suffering from Ulcerative colitis (UC) or 
 Crohn's disease (CD).  This is a typical clincal data set consiting of 15 CD and
 14 UC patients.
 
 
-# Download files using ArrayExpress
+# Download the raw data from from ArrayExpress
 
-The data has the accession number **E-MTAB-2967**
-and the landing page is here:
+The first step of the analysis is to download the raw data CEL files. Theses files
+are produced by the array scanner software and contain the probe intensities 
+measured. The data has been deposited at [ArrayExpress](https://www.ebi.ac.uk/arrayexpress/)
+and has the accession code **E-MTAB-2967**. This accession code is commonly
+reported in the original publication. 
 
-[Data fromPalmieri et. al. at ArrayEpress](https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-2967/)
+Each Array--Express data set has a landing page summarizing the data set, 
+the one for our data is here:
+
+* [Data fromPalmieri et. al. at ArrayEpress](https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-2967/)
 
 We use the `r Biocpkg("ArrayExpress") ` Bioconductor package to obtain the links to
 download the raw data.
 
-# Get the annotation for the data 
+# Information stored in ArrayExpress
 
-In the repository, for each dataset, ArrayExpress stores a 
-MAGE--TAB document with standardized format. A MAGE-TAB document contains 
-up to five different types of files
+In the repository for each dataset ArrayExpress stores a MAGE-TAB document with standardized
+format. A MAGE-TAB document contains upt to five different types of files
 Investigation DescriptionFormat (IDF), Array Design Format (ADF),
 Sample and Data Relationship Format (SDRF), the raw data files and
 the processed data files.
@@ -97,9 +101,50 @@ the processed data files.
 The Investigation Description Format (IDF) file contains top level information
 about the experiment including title, description, submitter contact details and
 protocols. The SDRF (Sample and Data Relationship Format) file containes
-the information on the samples. The following code downloads the raw
-data and extracts it. Subsequently it will be summarized in a
-`r Biocpkg("Biobase")` expression set which we will cover briefly next.
+the information on the samples. 
+
+
+
+
+# Get the raw and the annotation data 
+
+Wih the code below, we download the raw data from
+[ArrayExpress](https://www.ebi.ac.uk/arrayexpress/).
+
+It is saved in the directory **rawDataDir** which defaults to the current
+working directory. The names of the downloaded files are returned as a list.
+
+```{r getDataEBI, eval=TRUE }
+rawDataDir <- rawDataDir
+
+if(!dir.exists(rawDataDir)){
+
+    dir.create(rawDataDir)
+}
+
+annoAE <- getAE("E-MTAB-2967", path=rawDataDir, type="raw")
+```
+
+We now download the SDRF file directly to
+in order to obtain the sample annotation.
+
+The raw data constists of one CEL file per samples (see below) and
+we use the .CEL file names as row names. They are given in a column
+named `Array.Data.File` in the SDRF table. We turn the table into an
+` AnnotatedDataFrame ` from the `r Biocpkg("Biobase") ` package that 
+will need later to create an `ExpressionSet` for our data.
+
+
+```{r getSDRF}
+SDRF <-  read.delim(url("http://www.ebi.ac.uk/arrayexpress/files/E-MTAB-2967/E-MTAB-2967.sdrf.txt"),
+                    row.names = "Array.Data.File")
+SDRF <- AnnotatedDataFrame(SDRF)
+```
+
+
+Before we move on to the actual data import, we ill briefly introduce this
+` ExpressionSet ` class contained in the `r Biocpkg("Biobase")` package.
+It is commonly used to store Micorarray data in Bioconductor.
 
 ## Bioconductor ExpressionSets
 
@@ -155,38 +200,6 @@ You can use the functions ` pData ` and ` fData ` to extract
 the sample and feature annotation respectively from an ` ExpressionSet `.
 The function ` exprs ` will return the expression data itself as a matrix.
 
-# Get raw and annotation data 
-
-Wih the un--evaluated code below, we download the raw data from
-[ArrayExpress](https://www.ebi.ac.uk/arrayexpress/).
-
-It is saved in the directory **rawDataDir** which defaults to the current
-working directory. The names of the downloaded files are returned as a list.
-
-```{r getDataEBI, eval=TRUE }
-rawDataDir <- rawDataDir
-
-if(!dir.exists(rawDataDir)){
-
-    dir.create(rawDataDir)
-}
-
-annoAE <- getAE("E-MTAB-2967", path=rawDataDir, type="raw")
-#save(annoAE, file = "annoAE.RData")
-```
-
-We now download the SDRF file directly to
-in order to obtain the sample annotation.
-
-We use the .CEL file names as row names, they are given in a column
-named Array.Data.File in the SDRF table. We turn the table into an
-` AnnotatedDataFrame ` from the `r Biocpkg("Biobase") ` package.
-
-```{r getSDRF}
-SDRF <-  read.delim(url("http://www.ebi.ac.uk/arrayexpress/files/E-MTAB-2967/E-MTAB-2967.sdrf.txt"),
-                    row.names = "Array.Data.File")
-SDRF <- AnnotatedDataFrame(SDRF)
-```
 
 
 ## Import of microarray data and initial quality control
@@ -202,10 +215,12 @@ we want to import and then save them in  the variable `rawData`.
 The followng code results in a character vector with the paths to the
 CEL files we want to import. the function ` read.celfiles `
 from the `r Biocpkg("oligo") ` can be
-used to import the files. The package automatically usees
+used to import the files. The package automatically uses
 `r  Biocannopkg("pd.hugene.1.0.st") ` as the chip annotation package.
 
-We specifiy our \Rclass{AnnotatedDataFrame}
+We specifiy our `AnnotatedDataFrame` created earlier as `phenoData` and check
+whether the object created is valid. (e.g. sample names match between the different
+tables)
 
 ```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF"}
 celfolder <- rawDataDir
@@ -215,20 +230,17 @@ rawData <- read.celfiles(filenames = file.path(rawDataDir, cels),
                          verbose = FALSE, phenoData = SDRF)
 
 validObject(rawData)
-#save(rawData, file = "rawData.RData")
 ```
 
-We inspect the raw data and remove some uninteresting phenoData columns and retain
-only those that are related to the experimental factors. (IDs of the individuals,
-disease of the individual and the mucosa type)
+We now inspect the raw data a bit, remove some uninteresting phenoData columns 
+and finally retain only those columns that are related to the experimental factors.
+(IDs of the individuals, disease of the individual and the mucosa type)
 
 ```{r inspectPhenoData, results='hide', eval=TRUE }
-#load(file.path("dataMAWorkflow","rawData.RData"))
 head(pData(rawData))
 head(exprs(rawData))
 stopifnot(validObject(rawData))
 
-# clean the phenoData
 pData(rawData) <- pData(rawData)[, c("Source.Name",
                                      "Characteristics.individual.",
                                      "Factor.Value.disease.",
@@ -238,11 +250,10 @@ pData(rawData) <- pData(rawData)[, c("Source.Name",
 
 ### Quality control of the raw data
 
-
-The package `r Biocpkg("arrayQualityMetrics") ` produces an html report, containing lots of
-quality control plots together with a description of their
+The package `r Biocpkg("arrayQualityMetrics") ` produces an html report, 
+containing lots of quality control plots together with a description of their
 aims. We also check our raw data using this reporting tool.
-Note taht it cannot use more than 10 phenoData columns.
+Note that it cannot use more than 10 phenoData columns.
 
 
 ```{r arrayQualityMetricsRaw, eval=FALSE}
@@ -278,17 +289,17 @@ rawData <- rawData[, !outlierIdx ]
 ```
 
 
-##Background adjustment, calibration, summarization and annotation}
+# Background adjustment, calibration, summarization and annotation
 
 
-### Within--array normalization
+## Within--array normalization
 After the initial import and quality assessment, the next step in processing of
 microarray data is background adjustment. This  is essential because part of the
 measured probe intensities are due to non-specific hybridization and the noise in the optical
 detection system. Observed intensities need to be adjusted to give accurate measurements
 of specific hybridization.
 
-### Across--array normalization
+## Across--array normalization
 Without proper normalization, it is impossible to compare measurements from
 different array hybridizations due to many obscuring sources of variation.
 These include different efficiencies of
@@ -298,7 +309,7 @@ conditions. By looking at the box-- and densityplots of the array quality
 metrics report, we can clearly see that the raw arrays are quite different from
 each other.
 
-### Summarization
+## Summarization
 After normalization,  summarization is needed because transcripts are represented
 by multiple probes. For each gene, the background adjusted and normalized intensities
 need to be summarized into one quantity that estimates an amount proportional to
@@ -320,7 +331,7 @@ Additional information is available form the reference manual of the package.
 Essentially, the package provides a mapping from the manufacturer ids to
 the annotation.
 
-### Old and new "probesets" of  Affymetrix microarrays
+## Old and new "probesets" of  Affymetrix microarrays
 
 Traditionally, Affymetrix arrays (the so--called 3' IVT arrays)
 were probeset based: a certain fixed group of probes were part of a probeset
@@ -348,7 +359,7 @@ probesets on the Gene ST arrays are made up of 3 or fewer probes. Thus,
 a summarization on the probeset / Exon level is not recommended for gene
 arrays but still possible by using the \Biocannopkg{hugene10stprobeset.db} database.
 
-### One--go preprocessing in oligo
+## One--go preprocessing in oligo
 `r Biocpkg("oligo") ` allows us to perform background correction, normalization
 and summarization in one single step using a deconvolution method for
 background correction, quantile normalization and
@@ -382,7 +393,7 @@ An alternative to quantile normalization is the `r Biocpkg("vsn") ` algorithm,
 that preforms background correction and normalization by robustly
 shifting and scaling log--scale intensity values within arrays.
 
-### Some mathematical background on normalization/calibration
+## Some mathematical background on normalization/calibration
 and background correction}
 A generic model for the value of the intensity $y$ of a single probe on
 a microarray is given by
@@ -409,7 +420,7 @@ an estimate of $\vartheta$ is obtained.
 
 
 
-### Quality assessment of the calibrated data
+## Quality assessment of the calibrated data
 After running the RMA algorithm it is a good idea to produce another
 quality control report.
 
@@ -431,7 +442,7 @@ samples on the PCA plot, so we keep them.
 
 We also produce another clustering and PCA plot. In order to display a
 heatmap of the sample--to--sample distances, we first compute them using
-the \Rfunction{dist} function. We need to transpose the expresssion values since
+the `dist` function. We need to transpose the expresssion values since
 the function computes the distances between the rows (i.e. genes in our case) by
 default. The distance chosen is the Eucledian one, however this can of course be
 changed and we choose the manhatten distance here which uses absolute instead of
@@ -473,15 +484,15 @@ between the diseases is not perfect.
 
 
 
-### Filtering based on intensity 
+## Filtering based on intensity 
 We now filter out lowly expressed genes. Microarrays commonly show a large number
 of probes in the background range. They do not change much and have a low
 intensity. Hence they combine a low variance with
 a low intensity. Thus they could end up as being detected as differentially
 expressed although they are barely above the "detection" limit. We will perform
 a "soft" intensity based filtering here, since this is recommended by
-the `r Biocpkg("limma") ` although a variance based filter should filter a similar
-set of probes in practice. (see the exercise). We filter low gene
+the `r Biocpkg("limma") ` although a variance based filter might filter a similar
+set of probes in practice. We filter low gene
 medians by visually inspecting fitting a "null" distribution
 $0.05 \cdot N(5.1, 1.18)$ of the gene--wise medians representing their typical
 behavior.
@@ -522,28 +533,13 @@ idx_thresh_median <- apply(exprs(palmieriEset), 1, function(x){
 
 
 PalmieriFiltered <- subset(palmieriEset, idx_thresh_median )
-#save(PalmieriFiltered, file = "PalmieriFiltered.RData")
 ```
 
 
 
 
-###*{Exercise: Filtering based on variance}
-In this exercise we filter the expression data based on the row--mad (mean
-absolute deviation) instead of the row median. This
-can be conveniently done using the function
-\Rfunction{rowMads}.
 
-\begin{enumerate}[label=(\emph{\alph*})]
-\item A histogram of the square root of the mads will be
-roughly symmetric. Fit a null model via visual inspection.
-\item Use the 5\% quantile of this model as a threshold. Compare
-the thresholded genes to the intensity based approach. Is the overlap
-very large? (HINT use the function \Rfunction{table} to check this)
-\end{enumerate}
-
-
-##Annotation of the transcript clusters}
+## Annotation of the transcript clusters
 
 Before we continue with the linear models for microarrays and differential
 expression  we  describe how to add ``feature Data", i.e. annotation
@@ -554,14 +550,13 @@ short descriptions for the transcript clusters.
 
 
 ```{r annotateData, eval=TRUE, dependson="intensityBasedFiltering"}
-#load(file.path("dataMAWorkflow","PalmieriFiltered.RData"))
 annoPalmieri <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
                                   keys=(featureNames(PalmieriFiltered)),
                                   columns = c("SYMBOL", "GENENAME"),
                                   keytype="PROBEID")
 ```
 
-##Removing multiple mappings and building custom annotations}
+## Removing multiple mappings and building custom annotations
 
 Many transcript--cluster IDs will map to multiple gene symbols.
 We compute a summary table in the code below to see how many there are.
@@ -576,8 +571,6 @@ probeStats <- annoPalmieri  %>%
 probeStats
 
 dim(probeStats)
-
-# View(subset(annoPalmieri, PROBEID %in% probeStats$PROBEID))
 
 ```
 
@@ -597,11 +590,9 @@ table(IDsToExlude)
 PalmieriFinal <- subset(PalmieriFiltered, !IDsToExlude )
 
 
-# View(annoPalmieri)
 fData(PalmieriFinal)$PROBEID <- rownames(fData(PalmieriFinal))
 fData(PalmieriFinal) <- left_join(fData(PalmieriFinal), annoPalmieri)
 
-#save(PalmieriFinal, file = "PalmieriFinal.RData")
 ```
 
 Alternatively, one can re--map the probes of the array
@@ -925,7 +916,7 @@ Therefore, the non--singularity of the model matrix should
 always be checked beforehand.
 
 
-##Using contrasts to test hypotheses  in linear regression}
+## Using contrasts to test hypotheses  in linear regression 
 
 In differential expression analysis, our most important covariates will
 be factors that differentiate between two or more groups, e.g. the
@@ -1230,7 +1221,11 @@ DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
 backGIdx <- genefinder(PalmieriFinal, DEgenesCD,  5,
   method="manhattan", scale="none")
-backG <-featureNames(PalmieriFinal)[sapply(backGIdx, function(x)x$indices)]
+backGIdx <- sapply(backGIdx, function(x)x$indices)
+
+backGIdx <- backGIdx[is.finite(backGIdx)]
+
+backG <-featureNames(PalmieriFinal)[backGIdx]
 backG <- setdiff(backG, DEgenesCD)
 length(backG)
 
@@ -1300,7 +1295,7 @@ for every gene.
 
 The tests uses a 0.01 p--value cutoff by default.
 
-```{r runtopGOTests, results='hide', eval=TRUE, dependson = "createTopGODataSet"}
+```{r runtopGOTests, results='hide', eval=FALSE, dependson = "createTopGODataSet"}
 resultTopGOElim <- runTest(tgd, algorithm = "elim", statistic = "Fisher" )
 resultTopGOClassic <- runTest(tgd, algorithm = "classic", statistic = "Fisher" )
 ```
@@ -1310,7 +1305,7 @@ to the ``Fisher elim" algorithm. The function \Rfunction{GenTable} produces
 a table of significant GO categories, the function \Rfunction{printGenes}
 gives significant genes annotated to them.
 
-```{r processtopGOResults, eval=TRUE, dependson="runtopGOTests"}
+```{r processtopGOResults, eval=FALSE, dependson="runtopGOTests"}
 tab <- GenTable( tgd, Fisher.elim = resultTopGOElim,
 		Fisher.classic = resultTopGOClassic,
 		orderBy = "Fisher.elim" , topNodes = 100)
@@ -1329,7 +1324,7 @@ A graph of the results can also be produced. Here we visualize the 5 most
 significant nodes according to the Fisher elim algorithm in the context of
 the GO hierarchy.
 
-```{r  graph of results, eval=TRUE}
+```{r  graph of results, eval=FALSE}
 pdf("visualizationOfGOResults.pdf", width = 7, height = 7,
     pointsize = 30)
 showSigOfNodes(tgd, score(resultTopGOElim), firstSigNodes = 5,
@@ -1340,14 +1335,8 @@ dev.off()
 
 Gene set enrichment analysis has been and is a field of very extensive
 research in bioinformatics. For additional approaches see the `r Biocpkg("topGO") `
-vignette and the references therin and also GeneSetEnrichment workflow
-in Bioconductor:
-
-%
-
-\begin{itemize}
-  \item \url{http://bioconductor.org/packages/release/BiocViews.html#___GeneSetEnrichment}
-\end{itemize}
+vignette and the references therin and also in the [GeneSetEnrichment view](http://bioconductor.org/packages/release/BiocViews.html#___GeneSetEnrichment)
+.
 
 
 # EnrichmentBrowser  based analysis
