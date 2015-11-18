@@ -537,8 +537,6 @@ PalmieriFiltered <- subset(palmieriEset, idx_thresh_median )
 
 
 
-
-
 ## Annotation of the transcript clusters
 
 Before we continue with the linear models for microarrays and differential
@@ -1019,7 +1017,7 @@ however usually it should be clear from the context whether a reparameterization
 or test of linear hypotheses is intended.
 
 
-#Linear models for microarrays
+# Linear models for microarrays
 
 We now apply linear models to microarrays. Specifically, we discuss
 how to use the `r Biocpkg("limma") ` for differential expression analysis.
@@ -1035,7 +1033,7 @@ arrays.
 As introduced above, we use appropriate design and contrast matrices for
 our linear models and fit a linear model to each gene separately.
 
-##A linear model for the data
+## A linear model for the data
 The original paper was interersted in changes in transcription that occur
 between inflamed and adjacent noninflamed mucoasal areas of the colon
 in both inflamatory bowel disease types studied.
@@ -1216,7 +1214,8 @@ expresssion. We then
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson="extractResults", warning=FALSE}
 DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
-backGIdx <- genefinder(PalmieriFinal, DEgenesCD,  1,
+backGIdx <- genefinder(as.matrix(tableC[, "AveExpr", drop = F]), 
+                       match(DEgenesCD, rownames(tableC)), 5,
   method="manhattan", scale="none")
 
 #backGIdx <- sapply(backGIdx, function(x)x$indices)
