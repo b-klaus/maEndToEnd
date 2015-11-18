@@ -1197,12 +1197,9 @@ We can now try characterize the identified differentially expressed genes
 a bit better by performing an GO enrichment analysis. Essentially the
 gene ontology (\url{http://www.geneontology.org/}) is hierarchically organized
 collection of functional gene sets. For a nice introduction to the GO see
+[du Plessis et. al.](http://www.dx.doi.org/10.1093/bib/bbr002).
 
-\begin{itemize}
-  \item du Plessis et. al. - The what, where, how and why of gene ontology primer for bioinformaticians- Bioinformatics, 2011
-\end{itemize}
-
-### Matching the background set
+## Matching the background set
 
 The function \Rfunction{genefinder} from the `r Biocpkg("genefilter") ` will be used
 to find background genes that are similar to the differentially expressed
@@ -1219,8 +1216,9 @@ expresssion. We then
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson="extractResults", warning=FALSE}
 DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
-#backGIdx <- genefinder(PalmieriFinal, DEgenesCD,  5,
-#  method="manhattan", scale="none")
+backGIdx <- genefinder(PalmieriFinal, DEgenesCD,  1,
+  method="manhattan", scale="none")
+
 #backGIdx <- sapply(backGIdx, function(x)x$indices)
 
 #backGIdx <- backGIdx[is.finite(backGIdx)]
@@ -1252,7 +1250,7 @@ The GO has three top ontologies, cellular component (CC), biological  processess
 (BP), and molecular function (MF). Here we only use the biological  processess category
 for illustration.
 
-### Running topGO
+## Running topGO
 
 We first create a factor `allG` which indicates for every gene in
 our background / universe, whether it is differentially expressed or not.
