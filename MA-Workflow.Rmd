@@ -22,7 +22,7 @@ library(knitr)
 options(digits=3, width=80)
 opts_chunk$set(echo=TRUE,tidy=FALSE,include=TRUE,
                dev='png', fig.width = 6, fig.height = 3.5, comment = '  ', dpi = 300,
-		cache = TRUE, lazy.load = FALSE )
+		cache = FALSE, lazy.load = FALSE )
 ```
 
 
@@ -1211,10 +1211,10 @@ is very similar to web tools like DAVID. Here we focus on the  CD data.
 For every differentially expressed gene, we try to find 5 genes with similar
 expresssion.
 
-```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson="extractResults", warning=FALSE}
+```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=FALSE}
 DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
-load("testDataGeneFinder.RData")
+#load("testDataGeneFinder.RData")
 
 backGIdx <- genefinder(PalmieriFinal, DEgenesCD, 5, 
                        method="manhattan", scale="none")
@@ -1244,12 +1244,9 @@ We can see that the matching returned a sensible result, we can now
 perform the actual testing. For this purpose we use the `r Biocpkg("topGO") ` which
 implements a nice interface to Fisher testing and also has additional algorithms
 taking the GO structure into account, by e.g. only reporting the most specific
-gene set in the hierarchy. For more details, see the paper:
+gene set in the hierarchy. For more details, see the paper of [Alex et. al.](http://www.dx.doi.org/10.1093/bioinformatics/btl140)
 
-\begin{itemize}
-  \item Alexa et. al. - Improved scoring of functional groups from gene expression data
-by decorrelating GO graph structure - Bioinformatics, 2006
-\end{itemize}
+
 
 The GO has three top ontologies, cellular component (CC), biological  processess
 (BP), and molecular function (MF). Here we only use the biological  processess category
