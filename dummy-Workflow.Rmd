@@ -14,7 +14,7 @@ vignette: >
 
 <!--
 To compile this document
-graphics.off();rm(list=ls());rmarkdown::render('MA-Workflow.Rmd');
+graphics.off();rm(list=ls());rmarkdown::render('dummy-Workflow.Rmd');
 -->
 
 ```{r options, include=FALSE}
@@ -85,8 +85,9 @@ closeg <- genefinder(ALL, igenes, 10, method="euc", scale="none")
 #DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
 
-#backGIdx <- genefinder(PalmieriFinal, DEgenesCD, 5, 
-#                       method="manhattan", scale="none")
+load("testDataGeneFinder.RData")
+
+backGIdx <- genefinder(PalmieriFinal, DEgenesCD, 5)
 
 
 # backGIdx <- genefinder(as.matrix(tableC[, "AveExpr", drop = F]), 
