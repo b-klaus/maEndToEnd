@@ -57,6 +57,7 @@ library(multcomp)
 library(limma)
 library(EnrichmentBrowser)
 library(xlsx)
+library(MatchIt)
 
 rawDataDir <- file.path(getwd(), "rawDataMAWorkflow")
 ```
@@ -819,7 +820,7 @@ model.matrix(~ 0 + z)
 model.matrix(~ z + I(z^2))
 ```
 
-##Singular model matrices}
+## Singular model matrices
 
 No matter how your  model matrix looks like, you should make sure that it is
 non--singular. Singularity means that the measured variables
@@ -956,7 +957,7 @@ summary(lm.car)
 ```
 
 
-##Testing general linear hypotheses}
+## Testing general linear hypotheses
 
 The estimated coefficients now give us the difference between the distance
 traveled between car 1 and car 2 (0.11) and car 1 and car 3 (-0.08), and the associated
@@ -1210,18 +1211,30 @@ We do this in order not to select a biased background since the gene set testing
 is performed by a simple Fisher test on a 2x2 table. Note that this appraoch
 is very similar to web tools like DAVID. Here we focus on the  CD data.
 
-For every differentially expressed gene, we try to find 5 genes with similar
+For every differentially expressed gene, we try to find genes with similar
 expresssion.
 
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=FALSE}
 DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
-#load("testDataGeneFinder.RData")
+dfForGeneFinding <- data.frame(sign=as.integer( rownames(tableC)  %in% DEgenesCD), 
+                  tableC["AveExpr"])
 
-load("PalmieriFinal.RData")
+   ## repeat matching multiple times since
+  ## each differentially expressed gene is 
+  ## matched by exactly one non-expressed gene 
 
-backGIdx <- genefinder(PalmieriFinal, DEgenesCD, 5, 
-                       method="manhattan", scale="none")
+backG  <- vector()
+    for( i in 1:5 ){
+    mm <- matchit( sign ~ AveExpr, dfForGeneFinding, 
+      method="nearest", distance="mahalanobis")
+    backG <- c(backG, mm$match.matrix[,1])
+    dfForGeneFinding <- dfForGeneFinding[which(!rownames(dfForGeneFinding) %in% backG),]
+    }
+
+
+#backGIdx <- genefinder(PalmieriFinal, DEgenesCD, 5, 
+#                       method="manhattan", scale="none")
 
 
 # backGIdx <- genefinder(as.matrix(tableC[, "AveExpr", drop = F]), 
@@ -1233,15 +1246,18 @@ backGIdx <- genefinder(PalmieriFinal, DEgenesCD, 5,
 #backGIdx <- backGIdx[is.finite(backGIdx)]
 
 #backG <-featureNames(PalmieriFinal)[backGIdx]
-# backG <- setdiff(backG, DEgenesCD)
-# length(backG)
-# 
-#   multidensity( list(
-#        all=  tableC[,"AveExpr"] ,
-#        fore= tableC[DEgenesCD, "AveExpr"],
-#        back= tableC[rownames(tableC) %in% backG, "AveExpr"]),
-#      xlab="mean expression",
-#   main = "DE genes for CD - Background - Matching")
+#backG <- setdiff(backG, DEgenesCD)
+
+    
+intersect(backG, DEgenesCD)
+length(backG)
+
+   multidensity( list(
+        all=  tableC[,"AveExpr"] ,
+        fore= tableC[DEgenesCD, "AveExpr"],
+        back= tableC[rownames(tableC) %in% backG, "AveExpr"]),
+     xlab="mean expression",
+   main = "DE genes for CD - Background - Matching")
 ```
 
 We can see that the matching returned a sensible result, we can now
