@@ -588,12 +588,18 @@ table(IDsToExlude)
 
 PalmieriFinal <- subset(PalmieriFiltered, !IDsToExlude )
 
+validObject(PalmieriFinal)
 
 fData(PalmieriFinal)$PROBEID <- rownames(fData(PalmieriFinal))
 fData(PalmieriFinal) <- left_join(fData(PalmieriFinal), annoPalmieri)
 
+# restore rownames
+rownames(fData(PalmieriFinal)) <-fData(PalmieriFinal)$PROBEID 
+    
+#table(rownames(fData(PalmieriFinal)) == rownames(exprs(PalmieriFinal)))
 
-save(PalmieriFinal, file = "PalmieriFinal.RData")
+validObject(PalmieriFinal)
+#save(PalmieriFinal, file = "PalmieriFinal.RData")
 
 ```
 
@@ -723,7 +729,7 @@ of the covariates separately.
 
 
 
-##Creating design matrices in R
+## Creating design matrices in R
 
 Parts of this section are based on material by Mike Love.
 To get an idea of what design matrices look like, we consider several examples.
@@ -1217,24 +1223,30 @@ expresssion.
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=FALSE}
 DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
-dfForGeneFinding <- data.frame(sign=as.integer( rownames(tableC)  %in% DEgenesCD), 
-                  tableC["AveExpr"])
+# dfForGeneFinding <- data.frame(sign=as.integer( rownames(tableC)  %in% DEgenesCD), 
+#                   tableC["AveExpr"])
+# 
+#    ## repeat matching multiple times since
+#   ## each differentially expressed gene is 
+#   ## matched by exactly one non-expressed gene 
+# 
+# backG  <- vector()
+#     for( i in 1:5 ){
+#     mm <- matchit( sign ~ AveExpr, dfForGeneFinding, 
+#       method="nearest", distance="mahalanobis")
+#     backG <- c(backG, mm$match.matrix[,1])
+#     dfForGeneFinding <- dfForGeneFinding[which(!rownames(dfForGeneFinding) %in% backG),]
+#     }
 
-   ## repeat matching multiple times since
-  ## each differentially expressed gene is 
-  ## matched by exactly one non-expressed gene 
+stopifnot(dim(PalmieriFinal) == c(16906, 46))
 
-backG  <- vector()
-    for( i in 1:5 ){
-    mm <- matchit( sign ~ AveExpr, dfForGeneFinding, 
-      method="nearest", distance="mahalanobis")
-    backG <- c(backG, mm$match.matrix[,1])
-    dfForGeneFinding <- dfForGeneFinding[which(!rownames(dfForGeneFinding) %in% backG),]
-    }
+stopifnot(dim(exprs(PalmieriFinal)) == c(16906, 46))
 
+stopifnot(validObject(PalmieriFinal))
 
-#backGIdx <- genefinder(PalmieriFinal, DEgenesCD, 5, 
-#                       method="manhattan", scale="none")
+#load("PalmieriFinal.RData")
+backGIdx <- genefinder(PalmieriFinal, DEgenesCD, 5, 
+                       method="manhattan", scale="none")
 
 
 # backGIdx <- genefinder(as.matrix(tableC[, "AveExpr", drop = F]), 
@@ -1249,15 +1261,15 @@ backG  <- vector()
 #backG <- setdiff(backG, DEgenesCD)
 
     
-intersect(backG, DEgenesCD)
-length(backG)
-
-   multidensity( list(
-        all=  tableC[,"AveExpr"] ,
-        fore= tableC[DEgenesCD, "AveExpr"],
-        back= tableC[rownames(tableC) %in% backG, "AveExpr"]),
-     xlab="mean expression",
-   main = "DE genes for CD - Background - Matching")
+# intersect(backG, DEgenesCD)
+# length(backG)
+# 
+#    multidensity( list(
+#         all=  tableC[,"AveExpr"] ,
+#         fore= tableC[DEgenesCD, "AveExpr"],
+#         back= tableC[rownames(tableC) %in% backG, "AveExpr"]),
+#      xlab="mean expression",
+#    main = "DE genes for CD - Background - Matching")
 ```
 
 We can see that the matching returned a sensible result, we can now
