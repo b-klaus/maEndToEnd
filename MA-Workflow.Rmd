@@ -22,7 +22,7 @@ library(knitr)
 options(digits=3, width=80)
 opts_chunk$set(echo=TRUE,tidy=FALSE,include=TRUE,
                dev='png', fig.width = 6, fig.height = 3.5, comment = '  ', dpi = 300,
-		cache = FALSE, lazy.load = FALSE )
+		cache = TRUE, lazy.load = FALSE )
 ```
 
 
@@ -590,6 +590,9 @@ PalmieriFinal <- subset(PalmieriFiltered, !IDsToExlude )
 
 fData(PalmieriFinal)$PROBEID <- rownames(fData(PalmieriFinal))
 fData(PalmieriFinal) <- left_join(fData(PalmieriFinal), annoPalmieri)
+
+
+save(PalmieriFinal, file = "PalmieriFinal.RData")
 
 ```
 
@@ -1167,7 +1170,6 @@ of 0.001.
 PalmieriDERes <- sapply(1:4, function(i) read.xlsx(colIndex = 1,
 "PalmieriDERes.xls", sheetIndex = i, startRow = 4))
 
-#load(file.path("dataMAWorkflow", "PalmieriDERes.RData"))
 
 names(PalmieriDERes) <- c("CD_UP", "CD_DOWN", "UC_UP", "UC_DOWN")
 PalmieriDERes <- lapply(PalmieriDERes, as.character)
@@ -1215,6 +1217,8 @@ expresssion.
 DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
 #load("testDataGeneFinder.RData")
+
+load("PalmieriFinal.RData")
 
 backGIdx <- genefinder(PalmieriFinal, DEgenesCD, 5, 
                        method="manhattan", scale="none")
