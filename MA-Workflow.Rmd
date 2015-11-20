@@ -558,15 +558,20 @@ annoPalmieri <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
                                   columns = c("SYMBOL", "GENENAME"),
                                   keytype="PROBEID")
 message(c("length of featue names: ", length(featureNames(PalmieriFiltered))))
-message(dim(annoPalmieri))
+message(paste(dim(annoPalmieri), collapse = "--"))
+
+message(paste(annoPalmieri[19106,], collapse = "--"))
+# "8056784--DLX2--distal-less homeobox 2"
 stopifnot(dim(annoPalmieri) == c( 31589, 3))
 ```
 
+Test biomart for annotation. `r Biocpkg("AnnotationDbi") `  does not seem to work.
 
 ```{r annotateBM}
 
-# HSmart <- useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
-# # get probeset IDs for transcript cluster 2315633
+#listMarts(host="www.ensembl.org")
+#HSmart <- useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl", host="www.ensembl.org")
+# get probeset IDs for transcript cluster 2315633
 # huex <- read.table("~/Downloads/HuEx-1_0-st-v2.na32.hg19.probeset.csv", sep = ",", stringsAsFactors = F, header = T)
 # probes <- subset(huex, transcript_cluster_id == "2315633")$probeset_id
 # # get gene symbols
