@@ -569,8 +569,10 @@ Test biomart for annotation. `r Biocpkg("AnnotationDbi") `  does not seem to wor
 
 ```{r annotateBM}
 
-#listMarts(host="www.ensembl.org")
-#HSmart <- useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl", host="www.ensembl.org")
+listMarts(host="www.ensembl.org")
+HSmart <- useMart(biomart="ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl", host="www.ensembl.org")
+# affy_hugene_1_0_st_v1
+
 # get probeset IDs for transcript cluster 2315633
 # huex <- read.table("~/Downloads/HuEx-1_0-st-v2.na32.hg19.probeset.csv", sep = ",", stringsAsFactors = F, header = T)
 # probes <- subset(huex, transcript_cluster_id == "2315633")$probeset_id
@@ -1157,10 +1159,13 @@ We call around 1000 genes in both conditions at the same cutoff, this is probabl
 due to the increased power from the blocking according to the individuals
 and the moderated variance estimation that `r Biocpkg("limma") ` performs.
 
-```{r extractResults, eval = TRUE, dependson="createContrastMatrixAndFitModelFit"}
+```{r extractResults, eval = TRUE, dependson="createContrastMatrixAndFitModelFit", message=FALSE}
 tableC <-  topTable(PalmieriFitC, number = Inf, sort.by = "t")
 
-table(tableC$adj.P.Val < 0.05)
+message( paste0(c("number of C DE genes: ", table(tableC$adj.P.Val < 0.05)[2], collapse = " ")))
+
+DEgenesCD <- subset(tableC, adj.P.Val < 0.05)$PROBEID
+
 
 table(tableC$P.Value < 0.001)
 
@@ -1248,7 +1253,6 @@ expresssion.
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=TRUE, message = FALSE}
 message(paste0("PROBEID comlumn does exist? -- ", "PROBEID" %in% names(tableC)))
 
-DEgenesCD <- subset(tableC, adj.P.Val < 0.05)$PROBEID
 
 # dfForGeneFinding <- data.frame(sign=as.integer( rownames(tableC)  %in% DEgenesCD), 
 #                   tableC["AveExpr"])
