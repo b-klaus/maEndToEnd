@@ -372,6 +372,10 @@ although strictly speaking RMA is only a summarization method.
 
 ```{r RMAcalibration, eval=TRUE}
 palmieriEset <- oligo::rma(rawData, target="core")
+
+stopifnot(isTRUE(identical(featureNames(palmieriEset)[c(500, 5500)], 
+                           c("7893003", "7909954"))))
+
 #save(palmieriEset, file = "palmieriEset.RData")
 ```
 
@@ -548,12 +552,14 @@ from `r Biocpkg("AnnotationDbi") ` to query the gene symbols and associated
 short descriptions for the transcript clusters.
 
 
-```{r annotateData, eval=TRUE, dependson="intensityBasedFiltering"}
+```{r annotateData, eval=TRUE, dependson="intensityBasedFiltering", message = FALSE}
 annoPalmieri <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
                                   keys=(featureNames(PalmieriFiltered)),
                                   columns = c("SYMBOL", "GENENAME"),
                                   keytype="PROBEID")
+message(c("length of featue names: ", length(featureNames(PalmieriFiltered))))
 message(dim(annoPalmieri))
+stopifnot(dim(annoPalmieri) == c( 31589, 3))
 ```
 
 
