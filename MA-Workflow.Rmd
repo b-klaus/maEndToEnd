@@ -1220,7 +1220,7 @@ is very similar to web tools like DAVID. Here we focus on the  CD data.
 For every differentially expressed gene, we try to find genes with similar
 expresssion.
 
-```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=FALSE}
+```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=TRUE, message = FALSE}
 DEgenesCD <- subset(tableC, adj.P.Val < 0.05)$PROBEID
 
 # dfForGeneFinding <- data.frame(sign=as.integer( rownames(tableC)  %in% DEgenesCD), 
@@ -1244,8 +1244,16 @@ stopifnot(dim(exprs(PalmieriFinal)) == c(16906, 46))
 
 stopifnot(validObject(PalmieriFinal))
 
-# stopifnot(length(DEgenesCD) == 1974, DEgenesCD[100] == "8094625", DEgenesCD[1200] == "8112731", 
-#           is.character(DEgenesCD),   all(DEgenesCD %in% featureNames(PalmieriFinal)))
+
+message(as.character(length(DEgenesCD)))
+
+message(all(DEgenesCD %in% featureNames(PalmieriFinal)))
+
+
+stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 1974)
+
+ #stopifnot(length(DEgenesCD) == 1974, DEgenesCD[100] == "8094625", DEgenesCD[1200] == "8112731", 
+ #         is.character(DEgenesCD),   all(DEgenesCD %in% featureNames(PalmieriFinal)))
 # 
 # 
 # stopifnot(all.equal(exprs(PalmieriFinal)[777,], structure(c(3.86294358847113, 3.96543939174019, 3.92868734085776, 
@@ -1270,8 +1278,10 @@ stopifnot(validObject(PalmieriFinal))
 # "3266_I.CEL", "3266_II.CEL", "3269_I.CEL", "3269_II.CEL", "3271_I.CEL", 
 # "3271_II.CEL", "848_A.CEL", "848_B.CEL", "888_I.CEL", "888_II.CEL"
 # ))))
+ 
+ # c("8121563", "8125048")
 
-backGIdx <- genefinder(PalmieriFinal, c("8121563", "8125048"), 1, 
+backGIdx <- genefinder(PalmieriFinal, DEgenesCD , 
                        method="manhattan", scale="none")
 
 
