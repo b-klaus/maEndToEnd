@@ -57,7 +57,8 @@ library(multcomp)
 library(limma)
 library(EnrichmentBrowser)
 library(xlsx)
-library(MatchIt)
+library(devtools)
+library(biomaRt)
 
 rawDataDir <- file.path(getwd(), "rawDataMAWorkflow")
 ```
@@ -547,13 +548,26 @@ from `r Biocpkg("AnnotationDbi") ` to query the gene symbols and associated
 short descriptions for the transcript clusters.
 
 
-
 ```{r annotateData, eval=TRUE, dependson="intensityBasedFiltering"}
 annoPalmieri <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
                                   keys=(featureNames(PalmieriFiltered)),
                                   columns = c("SYMBOL", "GENENAME"),
                                   keytype="PROBEID")
+message(dim(annoPalmieri))
 ```
+
+
+```{r annotateBM}
+
+# HSmart <- useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
+# # get probeset IDs for transcript cluster 2315633
+# huex <- read.table("~/Downloads/HuEx-1_0-st-v2.na32.hg19.probeset.csv", sep = ",", stringsAsFactors = F, header = T)
+# probes <- subset(huex, transcript_cluster_id == "2315633")$probeset_id
+# # get gene symbols
+# genes <- getBM(attributes = c("affy_huex_1_0_st_v2", "hgnc_symbol"), filters = "affy_huex_1_0_st_v2", values = probes, mart = mart.hs)
+# genes
+```
+
 
 ## Removing multiple mappings and building custom annotations
 
@@ -1221,6 +1235,8 @@ For every differentially expressed gene, we try to find genes with similar
 expresssion.
 
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=TRUE, message = FALSE}
+message(paste0("PROBEID comlumn does exist? -- ", "PROBEID" %in% names(tableC)))
+
 DEgenesCD <- subset(tableC, adj.P.Val < 0.05)$PROBEID
 
 # dfForGeneFinding <- data.frame(sign=as.integer( rownames(tableC)  %in% DEgenesCD), 
@@ -1247,10 +1263,22 @@ stopifnot(validObject(PalmieriFinal))
 
 message(as.character(length(DEgenesCD)))
 
+si <- devtools::session_info()
+si <- si$packages
+
+    for(i in seq_len(dim(si)[1]) ){
+     message(paste(si[i,], collapse = "--"))
+    # message()
+        
+    }
+
+
+
+
 message(all(DEgenesCD %in% featureNames(PalmieriFinal)))
 
 
-stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 1974)
+#stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 1974)
 
  #stopifnot(length(DEgenesCD) == 1974, DEgenesCD[100] == "8094625", DEgenesCD[1200] == "8112731", 
  #         is.character(DEgenesCD),   all(DEgenesCD %in% featureNames(PalmieriFinal)))
@@ -1281,8 +1309,8 @@ stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 
  
  # c("8121563", "8125048")
 
-backGIdx <- genefinder(PalmieriFinal, DEgenesCD , 
-                       method="manhattan", scale="none")
+#backGIdx <- genefinder(PalmieriFinal, DEgenesCD , 
+ #                      method="manhattan", scale="none")
 
 
 # backGIdx <- genefinder(as.matrix(tableC[, "AveExpr", drop = F]), 
