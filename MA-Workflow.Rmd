@@ -1190,7 +1190,7 @@ message( paste0(c("colnames of tableC: ", paste0(colnames(tableC), collapse = " 
 
 message( paste0(c("number of C DE genes: ", table(tableC[,"adj.P.Val"] < 0.05)[2], collapse = " ")))
 
-DEgenesCD <- subset(tableC, adj.P.Val < 0.05)$PROBEID
+DEgenesCD <- base::subset(tableC, adj.P.Val < 0.05)$PROBEID
 
 
 table(tableC$P.Value < 0.001)
