@@ -1273,12 +1273,10 @@ si <- si$packages
     }
 
 
-
-
 message(all(DEgenesCD %in% featureNames(PalmieriFinal)))
 
 
-#stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 1974)
+stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 1974)
 
  #stopifnot(length(DEgenesCD) == 1974, DEgenesCD[100] == "8094625", DEgenesCD[1200] == "8112731", 
  #         is.character(DEgenesCD),   all(DEgenesCD %in% featureNames(PalmieriFinal)))
@@ -1309,8 +1307,8 @@ message(all(DEgenesCD %in% featureNames(PalmieriFinal)))
  
  # c("8121563", "8125048")
 
-#backGIdx <- genefinder(PalmieriFinal, DEgenesCD , 
- #                      method="manhattan", scale="none")
+backGIdx <- genefinder(PalmieriFinal, DEgenesCD , 
+                      method="manhattan", scale="none")
 
 
 # backGIdx <- genefinder(as.matrix(tableC[, "AveExpr", drop = F]), 
