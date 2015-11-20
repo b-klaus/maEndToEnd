@@ -1185,7 +1185,10 @@ tableC <-  topTable(PalmieriFitC, number = Inf, sort.by = "t")
 message( paste0(c("rows of tableC: ", dim(tableC)[1], collapse = " ")))
 
 
-message( paste0(c("number of C DE genes: ", table(tableC$adj.P.Val < 0.05)[2], collapse = " ")))
+message( paste0(c("colnames of tableC: ", paste0(colnames(tableC), collapse = " -- "), collapse = " ")))
+
+
+message( paste0(c("number of C DE genes: ", table(tableC[,"adj.P.Val"] < 0.05)[2], collapse = " ")))
 
 DEgenesCD <- subset(tableC, adj.P.Val < 0.05)$PROBEID
 
