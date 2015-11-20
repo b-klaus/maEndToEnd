@@ -1111,7 +1111,7 @@ colnames(designPalmieriU)[1:2] <- c("I", "nI")
 
 We can now inspect the design matrices and test their rank.
 
-```{r inspectDesingMatrix, eval = TRUE}
+```{r inspectDesignMatrix, eval = TRUE, dependson="createDesign"}
 head(designPalmieriC[, 1:6])
 dim(designPalmieriC)
 
@@ -1131,7 +1131,7 @@ by calling the \Rfunction{eBayes} function and finally extract the number of
 differentially expressed genes while controlling the FDR by
 requiring BH--corrected p--value below a certain threshold.
 
-```{r createContrastMatrixAndFitModelFit, eval=TRUE, dependson="createDesign" }
+```{r createContrastMatrixAndFitModel, eval=TRUE, dependson="createDesign" }
 contrastMatrixC <- makeContrasts(I-nI, levels = designPalmieriC)
 
 PalmieriFitC <- eBayes(contrasts.fit(lmFit(PalmieriFinal[,disease == "C"],
@@ -1159,8 +1159,31 @@ We call around 1000 genes in both conditions at the same cutoff, this is probabl
 due to the increased power from the blocking according to the individuals
 and the moderated variance estimation that `r Biocpkg("limma") ` performs.
 
-```{r extractResults, eval = TRUE, dependson="createContrastMatrixAndFitModelFit", message=FALSE}
+```{r extractResults, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE}
+
+individual <- as.character(pData(PalmieriFinal)$Characteristics.individual.)
+
+tissue <- str_replace_all(pData(PalmieriFinal)$Factor.Value.phenotype., " ", "_")
+tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
+
+disease <- str_replace_all(pData(PalmieriFinal)$Factor.Value.disease., " ", "_")
+disease <- ifelse(disease == "Crohn's_disease", "C", "U")
+
+
+i <- individual[disease == "C"]
+designPalmieriC <- model.matrix(~ 0  + tissue[disease == "C"]
+                                + i)
+colnames(designPalmieriC)[1:2] <- c("I", "nI")
+
+contrastMatrixC <- makeContrasts(I-nI, levels = designPalmieriC)
+
+PalmieriFitC <- eBayes(contrasts.fit(lmFit(PalmieriFinal[,disease == "C"],
+                                design = designPalmieriC),
+                                contrastMatrixC))
 tableC <-  topTable(PalmieriFitC, number = Inf, sort.by = "t")
+
+message( paste0(c("rows of tableC: ", dim(tableC)[1], collapse = " ")))
+
 
 message( paste0(c("number of C DE genes: ", table(tableC$adj.P.Val < 0.05)[2], collapse = " ")))
 
