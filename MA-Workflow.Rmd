@@ -569,8 +569,8 @@ Test biomart for annotation. `r Biocpkg("AnnotationDbi") `  does not seem to wor
 
 ```{r annotateBM}
 
-listMarts(host="www.ensembl.org")
-HSmart <- useMart(biomart="ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl", host="www.ensembl.org")
+#listMarts(host="www.ensembl.org")
+#HSmart <- useMart(biomart="ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl", host="www.ensembl.org")
 # affy_hugene_1_0_st_v1
 
 # get probeset IDs for transcript cluster 2315633
@@ -1187,20 +1187,28 @@ message( paste0(c("rows of tableC: ", dim(tableC)[1], collapse = " ")))
 
 message( paste0(c("colnames of tableC: ", paste0(colnames(tableC), collapse = " -- "), collapse = " ")))
 
+write.csv(tableC, file = "tableC.csv")
+
+tableC <- read.csv("tableC.csv")
+
+FDR <- tableC[, 8]
+
+message( paste0(c("number of C DE genes: ", table(FDR < 0.9)[2], collapse = " ")))
+
+DEgenesCD <- tableC[FDR< 0.9,]
 
 
-
-message( paste0(c("number of C DE genes: ", table(tableC[, 8] < 0.05)[2], collapse = " ")))
-
-DEgenesCD <- tableC[tableC[, 8] < 0.05,]
 
 message(paste0("dim of selection to tableC---",dim(DEgenesCD)))
 
-message( paste0(c("colnames of DEgenesCD: ", paste0(colnames(DEgenesCD), collapse = " -- "), collapse = " ")))
+message(paste("row 5 of tableC", paste0(tableC[5,], collapse = "---"), "\n\n"))
+
+#message( paste0(c("colnames of DEgenesCD: ", paste0(colnames(DEgenesCD), collapse = " -- "), collapse = " ")))
 
 
 DEgenesCD <- DEgenesCD[, "PROBEID"]
 
+DEgenesCD <-as.character(DEgenesCD)
 
 table(tableC$P.Value < 0.001)
 
@@ -1326,7 +1334,7 @@ si <- si$packages
 message(all(DEgenesCD %in% featureNames(PalmieriFinal)))
 
 
-stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 1974)
+#stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 1974)
 
  #stopifnot(length(DEgenesCD) == 1974, DEgenesCD[100] == "8094625", DEgenesCD[1200] == "8112731", 
  #         is.character(DEgenesCD),   all(DEgenesCD %in% featureNames(PalmieriFinal)))
@@ -1357,7 +1365,7 @@ stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 
  
  # c("8121563", "8125048")
 
-backGIdx <- genefinder(PalmieriFinal, DEgenesCD , 
+backGIdx <- genefinder(PalmieriFinal, as.character(DEgenesCD)[1:5], 
                       method="manhattan", scale="none")
 
 
