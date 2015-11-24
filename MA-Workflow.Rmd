@@ -22,7 +22,7 @@ library(knitr)
 options(digits=3, width=80)
 opts_chunk$set(echo=TRUE,tidy=FALSE,include=TRUE,
                dev='png', fig.width = 6, fig.height = 3.5, comment = '  ', dpi = 300,
-cache = FALSE)
+cache = TRUE)
 ```
 
 
@@ -1198,7 +1198,7 @@ table(tableC$P.Value < 0.001)
 hist(tableC$P.Value, col = brewer.pal(3, name = "Dark2")[1],
      main = "inflammed - not inflamed -- Crohn's disease")
 
-write.csv(tableC, file = "tableC.csv")
+#write.csv(tableC, file = "tableC.csv")
 
 tableU <-  topTable(PalmieriFitU, number = Inf)
 head(tableU)
@@ -1279,7 +1279,7 @@ expresssion.
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=TRUE, message = FALSE}
 message(paste0("PROBEID comlumn does exist? -- ", "PROBEID" %in% names(tableC)))
 
-rm(tableC)
+#rm(tableC)
 tableC <- read.csv("tableC.csv", row.names  = 1)
 
 DEgenesCD <- base::subset(tableC, adj.P.Val < 0.1)$PROBEID
