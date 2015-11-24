@@ -1105,8 +1105,6 @@ designPalmieriU <- model.matrix(~ 0  + tissue[disease == "U"]
                                 + i)
 colnames(designPalmieriU)[1:2] <- c("I", "nI")
 
-## test rank
-
 ```
 
 We can now inspect the design matrices and test their rank.
@@ -1160,55 +1158,40 @@ due to the increased power from the blocking according to the individuals
 and the moderated variance estimation that `r Biocpkg("limma") ` performs.
 
 ```{r extractResults, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE}
+# 
+# 
+# message( paste0(c("rows of tableC: ", dim(tableC)[1], collapse = " ")))
+# 
+# 
+# message( paste0(c("colnames of tableC: ", paste0(colnames(tableC), collapse = " -- "), collapse = " ")))
+# 
+# 
+# 
+# tableC <- read.csv("tableC.csv")
+# 
+# FDR <- tableC[, 8]
+# 
+# message( paste0(c("number of C DE genes: ", table(FDR < 0.9)[2], collapse = " ")))
+# 
+# DEgenesCD <- tableC[FDR< 0.9,]
+# 
+# 
+# 
+# message(paste0("dim of selection to tableC---",dim(DEgenesCD)))
+# 
+# message(paste("row 5 of tableC", paste0(tableC[5,], collapse = "---"), "\n\n"))
+# 
+# #message( paste0(c("colnames of DEgenesCD: ", paste0(colnames(DEgenesCD), collapse = " -- "), collapse = " ")))
+# 
+# 
+# DEgenesCD <- DEgenesCD[, "PROBEID"]
+# 
+# DEgenesCD <-as.character(DEgenesCD)
 
-individual <- as.character(pData(PalmieriFinal)$Characteristics.individual.)
+tableC <-  topTable(PalmieriFitC, number = Inf)
+head(tableC)
 
-tissue <- str_replace_all(pData(PalmieriFinal)$Factor.Value.phenotype., " ", "_")
-tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
-
-disease <- str_replace_all(pData(PalmieriFinal)$Factor.Value.disease., " ", "_")
-disease <- ifelse(disease == "Crohn's_disease", "C", "U")
-
-
-i <- individual[disease == "C"]
-designPalmieriC <- model.matrix(~ 0  + tissue[disease == "C"]
-                                + i)
-colnames(designPalmieriC)[1:2] <- c("I", "nI")
-
-contrastMatrixC <- makeContrasts(I-nI, levels = designPalmieriC)
-
-PalmieriFitC <- eBayes(contrasts.fit(lmFit(PalmieriFinal[,disease == "C"],
-                                design = designPalmieriC),
-                                contrastMatrixC))
-tableC <-  topTable(PalmieriFitC, number = Inf, sort.by = "t")
-
-message( paste0(c("rows of tableC: ", dim(tableC)[1], collapse = " ")))
-
-
-message( paste0(c("colnames of tableC: ", paste0(colnames(tableC), collapse = " -- "), collapse = " ")))
-
-write.csv(tableC, file = "tableC.csv")
-
-tableC <- read.csv("tableC.csv")
-
-FDR <- tableC[, 8]
-
-message( paste0(c("number of C DE genes: ", table(FDR < 0.9)[2], collapse = " ")))
-
-DEgenesCD <- tableC[FDR< 0.9,]
-
-
-
-message(paste0("dim of selection to tableC---",dim(DEgenesCD)))
-
-message(paste("row 5 of tableC", paste0(tableC[5,], collapse = "---"), "\n\n"))
-
-#message( paste0(c("colnames of DEgenesCD: ", paste0(colnames(DEgenesCD), collapse = " -- "), collapse = " ")))
-
-
-DEgenesCD <- DEgenesCD[, "PROBEID"]
-
-DEgenesCD <-as.character(DEgenesCD)
+table(tableC$adj.P.Val < 0.05)
 
 table(tableC$P.Value < 0.001)
 
@@ -1216,6 +1199,7 @@ hist(tableC$P.Value, col = brewer.pal(3, name = "Dark2")[1],
      main = "inflammed - not inflamed -- Crohn's disease")
 
 
+write.csv(tableC, file = "tableC.csv")
 
 tableU <-  topTable(PalmieriFitU, number = Inf)
 head(tableU)
@@ -1312,27 +1296,31 @@ message(paste0("PROBEID comlumn does exist? -- ", "PROBEID" %in% names(tableC)))
 #     dfForGeneFinding <- dfForGeneFinding[which(!rownames(dfForGeneFinding) %in% backG),]
 #     }
 #load("PalmieriFinal.RData") 
-stopifnot(dim(PalmieriFinal) == c(16906, 46))
+# stopifnot(dim(PalmieriFinal) == c(16906, 46))
+# 
+# stopifnot(dim(exprs(PalmieriFinal)) == c(16906, 46))
+# 
+# stopifnot(validObject(PalmieriFinal))
+# 
+# 
+# message(as.character(length(DEgenesCD)))
+# 
+# si <- devtools::session_info()
+# si <- si$packages
+# 
+#     for(i in seq_len(dim(si)[1]) ){
+#      message(paste(si[i,], collapse = "--"))
+#     # message()
+#         
+#     }
+# 
+# 
+# message(all(DEgenesCD %in% featureNames(PalmieriFinal)))
+# 
 
-stopifnot(dim(exprs(PalmieriFinal)) == c(16906, 46))
+tableC <- read.csv("tableC.csv", row.names  = 1)
 
-stopifnot(validObject(PalmieriFinal))
-
-
-message(as.character(length(DEgenesCD)))
-
-si <- devtools::session_info()
-si <- si$packages
-
-    for(i in seq_len(dim(si)[1]) ){
-     message(paste(si[i,], collapse = "--"))
-    # message()
-        
-    }
-
-
-message(all(DEgenesCD %in% featureNames(PalmieriFinal)))
-
+DEgenesCD <- base::subset(tableC, adj.P.Val < 0.1)$PROBEID
 
 #stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 1974)
 
