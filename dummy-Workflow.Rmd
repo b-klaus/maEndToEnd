@@ -22,7 +22,7 @@ library(knitr)
 options(digits=3, width=80)
 opts_chunk$set(echo=TRUE,tidy=FALSE,include=TRUE,
                dev='png', fig.width = 6, fig.height = 3.5, comment = '  ', dpi = 300,
-cache = FALSE)
+cache = TRUE)
 ```
 
 
