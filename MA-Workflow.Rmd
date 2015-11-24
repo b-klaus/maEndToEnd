@@ -1277,17 +1277,51 @@ For every differentially expressed gene, we try to find genes with similar
 expresssion.
 
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=TRUE, message = FALSE}
-message(paste0("PROBEID comlumn does exist? -- ", "PROBEID" %in% names(tableC)))
 
-#rm(tableC)
+load("PalmieriFinal.RData")
+individual <- as.character(pData(PalmieriFinal)$Characteristics.individual.)
+
+tissue <- str_replace_all(pData(PalmieriFinal)$Factor.Value.phenotype., " ", "_")
+tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
+
+disease <- str_replace_all(pData(PalmieriFinal)$Factor.Value.disease., " ", "_")
+disease <- ifelse(disease == "Crohn's_disease", "C", "U")
+
+
+i <- individual[disease == "C"]
+designPalmieriC <- model.matrix(~ 0  + tissue[disease == "C"]
+                                + i)
+colnames(designPalmieriC)[1:2] <- c("I", "nI")
+
+
+contrastMatrixC <- makeContrasts(I-nI, levels = designPalmieriC)
+
+PalmieriFitC <- eBayes(contrasts.fit(lmFit(PalmieriFinal[,disease == "C"],
+                                design = designPalmieriC),
+                                contrastMatrixC))
+tableC <-  topTable(PalmieriFitC, number = Inf)
+write.csv(tableC, file = "tableC.csv")
+
+rm(tableC)
+
 tableC <- read.csv("tableC.csv", row.names  = 1)
-
 DEgenesCD <- base::subset(tableC, adj.P.Val < 0.1)$PROBEID
 
 message(paste0(as.character(DEgenesCD)[1:5], collapse = "--"))
 
-backGIdx <- genefinder(PalmieriFinal, as.character(DEgenesCD)[1:5], 
-                      method="manhattan", scale="none")
+
+
+# message(paste0("PROBEID comlumn does exist? -- ", "PROBEID" %in% names(tableC)))
+# 
+# #rm(tableC)
+# tableC <- read.csv("tableC.csv", row.names  = 1)
+# 
+# DEgenesCD <- base::subset(tableC, adj.P.Val < 0.1)$PROBEID
+# 
+# message(paste0(as.character(DEgenesCD)[1:5], collapse = "--"))
+# 
+# backGIdx <- genefinder(PalmieriFinal, as.character(DEgenesCD)[1:5], 
+#                       method="manhattan", scale="none")
 
 
 # backGIdx <- genefinder(as.matrix(tableC[, "AveExpr", drop = F]), 
