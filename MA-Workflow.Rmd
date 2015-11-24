@@ -1284,6 +1284,7 @@ tableC <- read.csv("tableC.csv", row.names  = 1)
 
 DEgenesCD <- base::subset(tableC, adj.P.Val < 0.1)$PROBEID
 
+message(paste0(as.character(DEgenesCD)[1:5], collapse = "--"))
 
 backGIdx <- genefinder(PalmieriFinal, as.character(DEgenesCD)[1:5], 
                       method="manhattan", scale="none")
