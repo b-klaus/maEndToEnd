@@ -1198,7 +1198,6 @@ table(tableC$P.Value < 0.001)
 hist(tableC$P.Value, col = brewer.pal(3, name = "Dark2")[1],
      main = "inflammed - not inflamed -- Crohn's disease")
 
-
 write.csv(tableC, file = "tableC.csv")
 
 tableU <-  topTable(PalmieriFitU, number = Inf)
@@ -1280,78 +1279,11 @@ expresssion.
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=TRUE, message = FALSE}
 message(paste0("PROBEID comlumn does exist? -- ", "PROBEID" %in% names(tableC)))
 
-
-# dfForGeneFinding <- data.frame(sign=as.integer( rownames(tableC)  %in% DEgenesCD), 
-#                   tableC["AveExpr"])
-# 
-#    ## repeat matching multiple times since
-#   ## each differentially expressed gene is 
-#   ## matched by exactly one non-expressed gene 
-# 
-# backG  <- vector()
-#     for( i in 1:5 ){
-#     mm <- matchit( sign ~ AveExpr, dfForGeneFinding, 
-#       method="nearest", distance="mahalanobis")
-#     backG <- c(backG, mm$match.matrix[,1])
-#     dfForGeneFinding <- dfForGeneFinding[which(!rownames(dfForGeneFinding) %in% backG),]
-#     }
-#load("PalmieriFinal.RData") 
-# stopifnot(dim(PalmieriFinal) == c(16906, 46))
-# 
-# stopifnot(dim(exprs(PalmieriFinal)) == c(16906, 46))
-# 
-# stopifnot(validObject(PalmieriFinal))
-# 
-# 
-# message(as.character(length(DEgenesCD)))
-# 
-# si <- devtools::session_info()
-# si <- si$packages
-# 
-#     for(i in seq_len(dim(si)[1]) ){
-#      message(paste(si[i,], collapse = "--"))
-#     # message()
-#         
-#     }
-# 
-# 
-# message(all(DEgenesCD %in% featureNames(PalmieriFinal)))
-# 
-
+rm(tableC)
 tableC <- read.csv("tableC.csv", row.names  = 1)
 
 DEgenesCD <- base::subset(tableC, adj.P.Val < 0.1)$PROBEID
 
-#stopifnot(all(DEgenesCD %in% featureNames(PalmieriFinal)), length(DEgenesCD) == 1974)
-
- #stopifnot(length(DEgenesCD) == 1974, DEgenesCD[100] == "8094625", DEgenesCD[1200] == "8112731", 
- #         is.character(DEgenesCD),   all(DEgenesCD %in% featureNames(PalmieriFinal)))
-# 
-# 
-# stopifnot(all.equal(exprs(PalmieriFinal)[777,], structure(c(3.86294358847113, 3.96543939174019, 3.92868734085776, 
-# 3.98067413398069, 3.87366545053876, 3.90009360953456, 3.78874121897326, 
-# 4.23635595479387, 3.73183172324387, 4.15284538344275, 3.97340842777464, 
-# 4.0265781140039, 3.95177551390809, 3.86269027708537, 3.95360981768324, 
-# 4.01093582376294, 4.02915615223485, 3.9948624228601, 3.84869386090827, 
-# 4.11735476403206, 3.98880337241095, 4.11034398725311, 3.76505482564877, 
-# 3.86557615353883, 4.03475658903568, 3.97034976798167, 4.25950042005691, 
-# 3.78373846674526, 3.92852133616212, 3.86901359987491, 3.9106380414823, 
-# 3.87605646052219, 4.08040359465394, 3.98430809593041, 3.89664784692875, 
-# 3.93713875508904, 3.99800068065879, 3.82995731394574, 4.15560100427119, 
-# 4.10071484286234, 3.93562897140231, 4.04117795766429, 4.01261232063487, 
-# 3.80844705503611, 4.19353064820836, 3.99105172658776), .Names = c("164_I_.CEL", 
-# "164_II.CEL", "183_I.CEL", "183_II.CEL", "2114_I.CEL", "2114_II.CEL", 
-# "2255_I.CEL", "2255_II.CEL", "2400_I.CEL", "2400_II.CEL", "2424_A.CEL", 
-# "2424_B.CEL", "2853_I.CEL", "2853_II.CEL", "2978_I.CEL", "2978_II.CEL", 
-# "2987_I.CEL", "2987_II.CEL", "2992_I.CEL", "2992_II.CEL", "2995_I.CEL", 
-# "2995_II.CEL", "321_I.CEL", "321_II.CEL", "3222_I.CEL", "3222_II.CEL", 
-# "3223_I.CEL", "3223_II.CEL", "3226_I.CEL", "3226_II.CEL", "3233_I.CEL", 
-# "3233_II.CEL", "3258_I.CEL", "3258_II.CEL", "3259_I.CEL", "3259_II.CEL", 
-# "3266_I.CEL", "3266_II.CEL", "3269_I.CEL", "3269_II.CEL", "3271_I.CEL", 
-# "3271_II.CEL", "848_A.CEL", "848_B.CEL", "888_I.CEL", "888_II.CEL"
-# ))))
- 
- # c("8121563", "8125048")
 
 backGIdx <- genefinder(PalmieriFinal, as.character(DEgenesCD)[1:5], 
                       method="manhattan", scale="none")
