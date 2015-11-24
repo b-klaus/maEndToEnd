@@ -100,11 +100,11 @@ PalmieriFitC <- eBayes(contrasts.fit(lmFit(PalmieriFinal[,disease == "C"],
                                 design = designPalmieriC),
                                 contrastMatrixC))
 tableC <-  topTable(PalmieriFitC, number = Inf)
-write.csv(tableC, file = "tableC.csv")
+#write.csv(tableC, file = "tableC.csv")
 
-rm(tableC)
+#rm(tableC)
 
-tableC <- read.csv("tableC.csv", row.names  = 1)
+#tableC <- read.csv("tableC.csv", row.names  = 1)
 DEgenesCD <- base::subset(tableC, adj.P.Val < 0.1)$PROBEID
 
 message(paste0(as.character(DEgenesCD)[1:5], collapse = "--"))
