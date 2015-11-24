@@ -76,7 +76,7 @@ is very similar to web tools like DAVID. Here we focus on the  CD data.
 For every differentially expressed gene, we try to find 5 genes with similar
 expresssion.
 
-```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson="extractResults", warning=FALSE}
+```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE}
 
 load("PalmieriFinal.RData")
 individual <- as.character(pData(PalmieriFinal)$Characteristics.individual.)
@@ -109,6 +109,8 @@ DEgenesCD <- base::subset(tableC, adj.P.Val < 0.1)$PROBEID
 
 message(paste0(as.character(DEgenesCD)[1:5], collapse = "--"))
 
+backGIdx <- genefinder(PalmieriFinal, as.character(DEgenesCD)[1:5], 
+                       method="manhattan", scale="none")
 
 #DEgenesCD <- rownames(subset(tableC, adj.P.Val < 0.05))
 
