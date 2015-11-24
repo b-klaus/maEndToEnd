@@ -1278,7 +1278,7 @@ expresssion.
 
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=TRUE, message = FALSE}
 
-#load("PalmieriFinal.RData")
+load("PalmieriFinal.RData")
 individual <- as.character(pData(PalmieriFinal)$Characteristics.individual.)
 
 tissue <- str_replace_all(pData(PalmieriFinal)$Factor.Value.phenotype., " ", "_")
