@@ -626,7 +626,7 @@ rownames(fData(PalmieriFinal)) <-fData(PalmieriFinal)$PROBEID
 #table(rownames(fData(PalmieriFinal)) == rownames(exprs(PalmieriFinal)))
 
 validObject(PalmieriFinal)
-#save(PalmieriFinal, file = "PalmieriFinal.RData")
+save(PalmieriFinal, file = "PalmieriFinal.RData")
 
 ```
 
