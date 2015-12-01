@@ -158,39 +158,9 @@ pData(rawData) <- pData(rawData)[, c("Source.Name",
 ```{r RMAcalibration, eval=TRUE, dependson="inspectPhenoData"}
 palmieriEset <- oligo::rma(rawData, target="core")
 
-stopifnot(isTRUE(identical(featureNames(palmieriEset)[c(500, 5500)], 
-                           c("7893003", "7909954"))))
-
-#save(palmieriEset, file = "palmieriEset.RData")
 ```
 
 
-## Annotation of the transcript clusters
-
-Before we continue with the linear models for microarrays and differential
-expression  we  describe how to add ``feature Data", i.e. annotation
-information to the transcript clusters. We use the \Rfunction{select}
-from `r Biocpkg("AnnotationDbi") ` to query the gene symbols and associated
-short descriptions for the transcript clusters.
-
-
-```{r annotateData, eval=TRUE, dependson="RMAcalibration", message = FALSE}
-annoPalmieri <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
-                                  keys=(featureNames(palmieriEset)),
-                                  columns = c("SYMBOL", "GENENAME"),
-                                  keytype="PROBEID")
-
-## multiple mappings
-probeStats <- annoPalmieri  %>%
-    group_by(PROBEID) %>%
-    summarize(noOfMatches = n_distinct(SYMBOL)) %>%
-    filter( noOfMatches > 1)
-
-probeStats
-
-dim(probeStats)
-
-```
 
 
 
@@ -198,35 +168,13 @@ dim(probeStats)
 
 PalmieriFinal <- palmieriEset
 
-
-IDsToExlude <- ((featureNames(PalmieriFinal) %in% probeStats$PROBEID) |
-               featureNames(PalmieriFinal)  %in% subset(annoPalmieri,
-                                                           is.na(SYMBOL))$PROBEID)
-table(IDsToExlude)
-
-PalmieriFinal <- subset(PalmieriFinal, !IDsToExlude )
-
-
-fData(PalmieriFinal)$PROBEID <- rownames(fData(PalmieriFinal))
-fData(PalmieriFinal) <- left_join(fData(PalmieriFinal), annoPalmieri)
-
-# restore rownames
-rownames(fData(PalmieriFinal)) <-fData(PalmieriFinal)$PROBEID 
-    
-#table(rownames(fData(PalmieriFinal)) == rownames(exprs(PalmieriFinal)))
-
-validObject(PalmieriFinal)
-
-
-
 ```
 
 
-# Gene ontology enrichment analysis
+# Limma and Gene ontology enrichment analysis
 
 
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, dependson="excludeMultipleMappings"}
-
 
 individual <- as.character(pData(PalmieriFinal)$Characteristics.individual.)
 
@@ -249,12 +197,10 @@ PalmieriFitC <- eBayes(contrasts.fit(lmFit(PalmieriFinal[,disease == "C"],
                                 design = designPalmieriC),
                                 contrastMatrixC))
 tableC <-  topTable(PalmieriFitC, number = Inf)
-#write.csv(tableC, file = "tableC.csv")
 
-#rm(tableC)
+DEgenesCD <- rownames(base::subset(tableC, adj.P.Val < 0.1))
 
-#tableC <- read.csv("tableC.csv", row.names  = 1)
-DEgenesCD <- base::subset(tableC, adj.P.Val < 0.1)$PROBEID
+
 
 message(paste0(as.character(DEgenesCD)[1:5], collapse = "--"))
 
