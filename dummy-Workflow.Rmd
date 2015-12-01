@@ -95,7 +95,6 @@ the information on the samples.
 
 
 
-
 # Get the raw and the annotation data 
 
 Wih the code below, we download the raw data from
@@ -115,14 +114,7 @@ if(!dir.exists(rawDataDir)){
 annoAE <- getAE("E-MTAB-2967", path=rawDataDir, type="raw")
 ```
 
-We now download the SDRF file directly to
-in order to obtain the sample annotation.
 
-The raw data constists of one CEL file per samples (see below) and
-we use the .CEL file names as row names. They are given in a column
-named `Array.Data.File` in the SDRF table. We turn the table into an
-` AnnotatedDataFrame ` from the `r Biocpkg("Biobase") ` package that 
-will need later to create an `ExpressionSet` for our data.
 
 
 ```{r getSDRF}
@@ -132,31 +124,13 @@ SDRF <- AnnotatedDataFrame(SDRF)
 ```
 
 
-Before we move on to the actual data import, we ill briefly introduce this
-` ExpressionSet ` class contained in the `r Biocpkg("Biobase")` package.
-It is commonly used to store Micorarray data in Bioconductor.
 
 ## Import of microarray data and initial quality control
 
 ### Importing CEL files
-The microrarray analysis of Affymetrix arrays starts with CEL files. These are the result
-of processing of the raw image files using the Affymetrix software and contain
-estimated probe intensity values. Each CEL file contains data on the intensity at each
-probe on the chip, as well as some other quantities.
-We collect the information about the CEL files
-we want to import and then save them in  the variable `rawData`.
 
-The followng code results in a character vector with the paths to the
-CEL files we want to import. the function ` read.celfiles `
-from the `r Biocpkg("oligo") ` can be
-used to import the files. The package automatically uses
-`r  Biocannopkg("pd.hugene.1.0.st") ` as the chip annotation package.
 
-We specifiy our `AnnotatedDataFrame` created earlier as `phenoData` and check
-whether the object created is valid. (e.g. sample names match between the different
-tables)
-
-```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF"}
+```{r importCelfiles, results="hide", eval=TRUE, dependson=c("getSDRF", "getDataEBI")}
 celfolder <- rawDataDir
 cels <- list.celfiles(path = celfolder, pattern="*.CEL")
 
@@ -166,11 +140,9 @@ rawData <- read.celfiles(filenames = file.path(rawDataDir, cels),
 validObject(rawData)
 ```
 
-We now inspect the raw data a bit, remove some uninteresting phenoData columns 
-and finally retain only those columns that are related to the experimental factors.
-(IDs of the individuals, disease of the individual and the mucosa type)
 
-```{r inspectPhenoData, results='hide', eval=TRUE }
+
+```{r inspectPhenoData, results='hide', eval=TRUE, dependson="importCelfiles" }
 head(pData(rawData))
 head(exprs(rawData))
 stopifnot(validObject(rawData))
@@ -182,47 +154,8 @@ pData(rawData) <- pData(rawData)[, c("Source.Name",
 ```
 
 
-The `r Biocpkg("arrayQualityMetrics") ` report shows that the second principal
-component seems to differentiate  between the diseases. The density-- and
-boxplots show that the  intensity distributions
-of the individual arrays are quite different, indicating the need of an appropriate
-normalization, which we will discuss next.
 
-
-Basend on the PCA plot we remove the arrays belonging to individuals 255, 2209,
-2826, 3262, 3302 and 3332 since arrays that are based on tissues from them have been
-identified as outliers by at least one method or have an unusual intensity
-distribution (255 and 2209) compared to the other arrays.
-
-
-```{r removeOutliers, dependson="inspectPhenoData"}
-outlierIdx <- pData(rawData)$Characteristics.individual. %in% c( 255, 2209,
-                                                                  2826, 3262,
-                                                                  3302,3332)
-table(outlierIdx)
-
-rawData <- rawData[, !outlierIdx ]
-```
-
-
-You can view its content like this
-
-```{r annotation data base content, eval = TRUE}
-head(ls("package:hugene10sttranscriptcluster.db"))
-```
-
-
-
-## One--go preprocessing in oligo
-`r Biocpkg("oligo") ` allows us to perform background correction, normalization
-and summarization in one single step using a deconvolution method for
-background correction, quantile normalization and
-the RMA (robust multichip average) algorithm for summarization.
-
-This package of algorithms as a whole is commonly called RMA algorithm,
-although strictly speaking RMA is only a summarization method.
-
-```{r RMAcalibration, eval=TRUE}
+```{r RMAcalibration, eval=TRUE, dependson="inspectPhenoData"}
 palmieriEset <- oligo::rma(rawData, target="core")
 
 stopifnot(isTRUE(identical(featureNames(palmieriEset)[c(500, 5500)], 
@@ -230,58 +163,6 @@ stopifnot(isTRUE(identical(featureNames(palmieriEset)[c(500, 5500)],
 
 #save(palmieriEset, file = "palmieriEset.RData")
 ```
-
-## Filtering based on intensity 
-We now filter out lowly expressed genes. Microarrays commonly show a large number
-of probes in the background range. They do not change much and have a low
-intensity. Hence they combine a low variance with
-a low intensity. Thus they could end up as being detected as differentially
-expressed although they are barely above the "detection" limit. We will perform
-a "soft" intensity based filtering here, since this is recommended by
-the `r Biocpkg("limma") ` although a variance based filter might filter a similar
-set of probes in practice. We filter low gene
-medians by visually inspecting fitting a "null" distribution
-$0.05 \cdot N(5.1, 1.18)$ of the gene--wise medians representing their typical
-behavior.
-
-Then we use the 5% quantile of this distribution as a threshold. We keep
-only those genes that show an expression higher than threshold in at least
-as many arrays as in  the smallest experimental group.
-
-```{r expGroups, dependson="PCAMetricsCalibrated"}
-table(pData(palmieriEset)$Factor.Value.disease.)
-```
-
-In our case this would be \Sexpr{table(pData(palmieriEset)$Factor.Value.disease.)[1]}.
-
-
-```{r intensityBasedFiltering, fig.width=10, fig.height=6, eval=TRUE}
-PalmieriMedians <- rowMedians(exprs(palmieriEset))
-tmp <- hist(PalmieriMedians, 100, col="lavender", freq = FALSE)
-
-emp_mu <- tmp$breaks[which.max(tmp$density)]
-emp_sd <- mad(PalmieriMedians)/2
-eta0 <- 0.50
-
-lines(sort(PalmieriMedians), eta0*dnorm(sort(PalmieriMedians),
-  			mean = emp_mu , sd = emp_sd ),
-				col = "darkorange", lwd =4)
-
-### find 5% quantile of fitted null model
-cut_val <- 0.05 / eta0
-thresh_median <- qnorm(0.05 / eta0, emp_mu, emp_sd)
-
-
-noOfSamples <- table(pData(palmieriEset)$Factor.Value.disease.)[1]
-idx_thresh_median <- apply(exprs(palmieriEset), 1, function(x){
-	sum(x > thresh_median)  >  noOfSamples
-    })
-    table( idx_thresh_median)
-
-
-PalmieriFiltered <- subset(palmieriEset, idx_thresh_median )
-```
-
 
 
 ## Annotation of the transcript clusters
@@ -293,28 +174,13 @@ from `r Biocpkg("AnnotationDbi") ` to query the gene symbols and associated
 short descriptions for the transcript clusters.
 
 
-```{r annotateData, eval=TRUE, dependson="intensityBasedFiltering", message = FALSE}
+```{r annotateData, eval=TRUE, dependson="RMAcalibration", message = FALSE}
 annoPalmieri <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
-                                  keys=(featureNames(PalmieriFiltered)),
+                                  keys=(featureNames(palmieriEset)),
                                   columns = c("SYMBOL", "GENENAME"),
                                   keytype="PROBEID")
-message(c("length of featue names: ", length(featureNames(PalmieriFiltered))))
-message(paste(dim(annoPalmieri), collapse = "--"))
 
-message(paste(annoPalmieri[19106,], collapse = "--"))
-# "8056784--DLX2--distal-less homeobox 2"
-stopifnot(dim(annoPalmieri) == c( 31589, 3))
-```
-
-
-
-## Removing multiple mappings and building custom annotations
-
-Many transcript--cluster IDs will map to multiple gene symbols.
-We compute a summary table in the code below to see how many there are.
-
-```{r multipleMappings, dependson="annotateData"}
-
+## multiple mappings
 probeStats <- annoPalmieri  %>%
     group_by(PROBEID) %>%
     summarize(noOfMatches = n_distinct(SYMBOL)) %>%
@@ -326,22 +192,20 @@ dim(probeStats)
 
 ```
 
-We have  over 2000 transcript--clusters that map to multiple gene symbols.
-It is diffcult to decide which mapping is "correct". Therefore,
-we exclude these transcript--clusters. Additionally, we also exclude
-transcript--clusters that do not map to gene symbols.
 
 
-```{r excludeMultipleMappings, dependson="multipleMappings"}
+```{r excludeMultipleMappings, dependson="annotateData"}
 
-IDsToExlude <- ((featureNames(PalmieriFiltered) %in% probeStats$PROBEID) |
-               featureNames(PalmieriFiltered)  %in% subset(annoPalmieri,
+PalmieriFinal <- palmieriEset
+
+
+IDsToExlude <- ((featureNames(PalmieriFinal) %in% probeStats$PROBEID) |
+               featureNames(PalmieriFinal)  %in% subset(annoPalmieri,
                                                            is.na(SYMBOL))$PROBEID)
 table(IDsToExlude)
 
-PalmieriFinal <- subset(PalmieriFiltered, !IDsToExlude )
+PalmieriFinal <- subset(PalmieriFinal, !IDsToExlude )
 
-validObject(PalmieriFinal)
 
 fData(PalmieriFinal)$PROBEID <- rownames(fData(PalmieriFinal))
 fData(PalmieriFinal) <- left_join(fData(PalmieriFinal), annoPalmieri)
@@ -352,7 +216,8 @@ rownames(fData(PalmieriFinal)) <-fData(PalmieriFinal)$PROBEID
 #table(rownames(fData(PalmieriFinal)) == rownames(exprs(PalmieriFinal)))
 
 validObject(PalmieriFinal)
-#save(PalmieriFinal, file = "PalmieriFinal.RData")
+
+
 
 ```
 
@@ -360,7 +225,7 @@ validObject(PalmieriFinal)
 # Gene ontology enrichment analysis
 
 
-```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE}
+```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, dependson="excludeMultipleMappings"}
 
 
 individual <- as.character(pData(PalmieriFinal)$Characteristics.individual.)
