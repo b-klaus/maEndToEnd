@@ -42,21 +42,12 @@ library(LSD)
 library(gplots)
 library(RColorBrewer)
 library(ArrayExpress)
-library(arrayQualityMetrics)
-library(stringr)
-library(matrixStats)
 library(topGO)
 library(genefilter)
-library(biomaRt)
 library(pd.hugene.1.0.st.v1)
 library(hugene10sttranscriptcluster.db)
 library(pheatmap)
-library(mvtnorm)
-library(DAAG)
-library(multcomp)
 library(limma)
-library(EnrichmentBrowser)
-library(xlsx)
 library(devtools)
 library(biomaRt)
 
@@ -100,7 +91,7 @@ the information on the samples.
 Wih the code below, we download the raw data from
 [ArrayExpress](https://www.ebi.ac.uk/arrayexpress/).
 
-It is saved in the directory **rawDataDir** which defaults to the current
+It is saved in the subfolder  **rawDataDir**  of the current
 working directory. The names of the downloaded files are returned as a list.
 
 ```{r getDataEBI, eval=TRUE }
@@ -125,9 +116,9 @@ SDRF <- AnnotatedDataFrame(SDRF)
 
 
 
-## Import of microarray data and initial quality control
+# Import of microarray data
 
-### Importing CEL files
+## Importing CEL files
 
 
 ```{r importCelfiles, results="hide", eval=TRUE, dependson=c("getSDRF", "getDataEBI")}
@@ -141,6 +132,8 @@ validObject(rawData)
 ```
 
 
+## Inspecting phenoData
+
 
 ```{r inspectPhenoData, results='hide', eval=TRUE, dependson="importCelfiles" }
 head(pData(rawData))
@@ -153,6 +146,8 @@ pData(rawData) <- pData(rawData)[, c("Source.Name",
                                      "Factor.Value.phenotype." )]
 ```
 
+
+# RMA normalization
 
 
 ```{r RMAcalibration, eval=TRUE, dependson="inspectPhenoData"}
@@ -174,7 +169,7 @@ PalmieriFinal <- palmieriEset
 # Limma and Gene ontology enrichment analysis
 
 
-```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, dependson="excludeMultipleMappings"}
+```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, message=FALSE, dependson="excludeMultipleMappings"}
 
 individual <- as.character(pData(PalmieriFinal)$Characteristics.individual.)
 
