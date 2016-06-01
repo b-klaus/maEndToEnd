@@ -379,7 +379,7 @@ here, but the code below can be used to create a report for our raw data.
 arrayQualityMetrics(expressionset = raw_data,
     outdir = "Report_for_Palmieri_raw",
     force = TRUE, do.logtransform = TRUE,
-    intgroup = c("Factor.Value.disease." , "Factor.Value.phenotype."))
+    intgroup = c("Factor.Value.disease.", "Factor.Value.phenotype."))
 ```
 
 # Background adjustment, calibration, summarization and annotation
