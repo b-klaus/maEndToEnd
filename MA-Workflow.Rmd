@@ -33,10 +33,6 @@ sed 's/\\(/$/g' | \
 sed 's/\\)/$/g' | \
 sed 's/\.png/\.pdf/g' | \
 sed 's/MA-Workflow_files\/figure-latex\///g' > MA-Workflow_clean.tex
-
-#sed 's/.png/.pdf/g' | \
-sed 's/MA-Workflow_files\/figure-latex/figure-latex/g' > MA-Workflow_clean.tex
-
 -->
 
 <!--
@@ -173,7 +169,7 @@ raw_data_dir <- file.path(getwd(), "rawDataMAWorkflow")
 
 # Download the raw data from from ArrayExpress
 
-The first step of the analysis is to download the raw data CEL files. Theses files
+The first step of the analysis is to download the raw data CEL files. These files
 are produced by the array scanner software and contain the probe intensities 
 measured. The data have been deposited at [ArrayExpress](https://www.ebi.ac.uk/arrayexpress/)
 and have the accession code **E-MTAB-2967**. 
@@ -266,7 +262,7 @@ gene annotations from biomedical databases (annotation).
 + **experimentData**: A flexible structure to describe the experiment.
 
 The ExpressionSet class coordinates all of these data, so that one does not 
-have to worry about the details. However, some contrains have to be met. 
+have to worry about the details. However, some constrains have to be met. 
 In particular, the rownames of the `phenoData` (which holds the content of the
 SDRF file) have to match the column names of the assay data (as they represent the sample 
 identifiers), while the row names of the expression data have to match the 
@@ -330,11 +326,11 @@ related to the experimental factors of interest (identifiers of the individuals,
 disease of the individual and the mucosa type).
 
 ```{r inspectPhenoData, eval=TRUE }
-head(pData(raw_data))
+head(Biobase::pData(raw_data))
 head(exprs(raw_data))
 stopifnot(validObject(raw_data))
 
-pData(raw_data) <- pData(raw_data)[, c("Source.Name",
+Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
                                      "Characteristics.individual.",
                                      "Factor.Value.disease.",
                                      "Factor.Value.phenotype.")]
@@ -353,9 +349,9 @@ exp_raw <- log2(exprs(raw_data))
 PCA_raw <- prcomp(t(exp_raw), scale = FALSE)
 
 dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
-                    Disease = pData(raw_data)$Factor.Value.disease.,
-                    Phenotype = pData(raw_data)$Factor.Value.phenotype.,
-                    Individual = pData(raw_data)$Characteristics.individual.)
+                    Disease = Biobase::pData(raw_data)$Factor.Value.disease.,
+                    Phenotype = Biobase::pData(raw_data)$Factor.Value.phenotype.,
+                    Individual = Biobase::pData(raw_data)$Characteristics.individual.)
         
 (qplot(PC1, PC2, data = dataGG, color =  Disease,
        main = "PCA plot of the raw data (log-transformed)", size = I(2), 
@@ -433,8 +429,8 @@ identifiers to the various annotation data.
 
 Traditionally, Affymetrix arrays (the so--called 3' IVT arrays)
 were probeset based: a certain fixed group of probes were part of a probeset
-which represented a certain gene or transcript.
-(Note however, that a gene can be represented by multiple probesets.)
+which represented a certain gene or transcript (note however, that a
+gene can be represented by multiple probesets).
 
 The more recent "Gene" and "Exon" Affymetrix arrays are exon based and hence there 
 are two levels of summarization. The exon level summarization 
@@ -451,10 +447,10 @@ To complicate things even a bit more, note that the "Gene"  arrays  were created
 as affordable versions of the "Exon" arrays by taking the "good"  probes from the Exon
 array. So the notion of a probeset is based on the
 original construction of the probesets on the Exon array, which contains
-usually at least 4 probes.
+usually at least four probes.
 
 But since Affymetrix selected only a the subset of "good" probes for the 
-Gene arrays, a lot of the probesets on the "Gene" arrays are made up of 3 
+Gene arrays, a lot of the probesets on the "Gene" arrays are made up of three 
 or fewer probes. Thus, a summarization on the probeset / exon level 
 is not recommended for "Gene" arrays but nonetheless possible by using the 
 `r Biocannopkg("hugene10stprobeset.db") ` annotation package.
@@ -531,7 +527,7 @@ order to display a heatmap of the sample--to--sample distances, we first compute
 the `dist` function. We need to transpose the expression values since
 the function computes the distances between the rows (i.e. genes in our case) by
 default. The default distance  is the Euclidean one. However this can  be
-changed and we choose the manhatten distance here. (it uses absolute instead of
+changed and we choose the manhatten distance here (it uses absolute instead of
 squared distances). We set the diagonal of the distance matrix to ` NA ` in order 
 to increase the contrast of the color coding. Those diagonal entries do 
 not contain information since the distance of a sample to itself is
@@ -544,8 +540,8 @@ exp_palmieri <- exprs(palmieri_eset)
 PCA <- prcomp(t(exp_palmieri), scale = FALSE)
 
 dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
-                    Disease = pData(palmieri_eset)$Factor.Value.disease.,
-                    Phenotype = pData(palmieri_eset)$Factor.Value.phenotype.)
+                    Disease = Biobase::pData(palmieri_eset)$Factor.Value.disease.,
+                    Phenotype = Biobase::pData(palmieri_eset)$Factor.Value.phenotype.)
         
 (qplot(PC1, PC2, data = dataGG, color =  Disease, shape =  Phenotype,
        main = "PCA plot of the calibrated data", size = I(2), asp = 1.0)
@@ -555,14 +551,14 @@ dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
 dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 colnames(dists) <- NULL
 diag(dists) <- NA
-rownames(dists) <-  pData(palmieri_eset)$Factor.Value.phenotype.
+rownames(dists) <-  Biobase::pData(palmieri_eset)$Factor.Value.phenotype.
 hmcol <- colorRampPalette(rev(brewer.pal(9, "PuOr")))(255)
 
 pheatmap(dists, col = rev(hmcol), clustering_distance_rows = "manhattan",
                                  clustering_distance_cols = "manhattan")
 ```
 
-The second PC roughly separates Chron's disease from ulcerative colitis, while the first 
+The second PC roughly separates Crohn's disease from ulcerative colitis, while the first 
 separates the tissues. This is what we expect: the samples cluster by
 their experimental conditions.
 On the heatmap plot we also see that the samples do not cluster strongly by tissue, confirming 
@@ -597,10 +593,12 @@ only those genes that show an expression higher than the threshold in at least
 as many arrays as in  the smallest experimental group.
 
 ```{r expGroups, dependson="PCAMetricsCalibrated"}
-table(pData(palmieri_eset)$Factor.Value.disease.)
+no_of_samples <- table(paste0(Biobase::pData(palmieri_eset)$Factor.Value.disease., "_", 
+                        Biobase::pData(palmieri_eset)$Factor.Value.phenotype.))
+no_of_samples 
 ```
 
-In our case this would be `r table(pData(palmieri_eset)$Factor.Value.disease.)[1]`.
+In our case this would be `r min(no_of_samples)`.
 
 
 ```{r intensityBasedFiltering, fig.width=10, fig.height=6, eval=TRUE}
@@ -621,10 +619,10 @@ lines(sort(palmieri_medians), prop_cental*dnorm(sort(palmieri_medians),
 cut_val <- 0.05 / prop_cental
 thresh_median <- qnorm(0.05 / prop_cental, emp_mu, emp_sd)
 
-no_of_samples <- table(pData(palmieri_eset)$Factor.Value.disease.)[1]
+samples_cutoff <- min(no_of_samples)
 
 idx_thresh_median <- apply(exprs(palmieri_eset), 1, function(x){
-                                sum(x > thresh_median) >= no_of_samples})
+                                sum(x > thresh_median) >= samples_cutoff})
 table(idx_thresh_median)
 
 palmieri_filtered <- subset(palmieri_eset, idx_thresh_median)
@@ -778,7 +776,7 @@ y_i= \beta_0 + \sum_{j=1}^p \beta_j x_{i} + \varepsilon_i; \quad  j=1,...,p
 $$
 
 The equation for a multiple linear regression model can also be written in matrix
-form. (We will denote matrices and vectors in bold font).
+form (we will denote matrices and vectors in bold font).
 
 $$
 \mathbf{Y}_{n \times 1} =  \mathbf{X}_{n \times (p+1)}  \mathbf{\beta}_{(p+1) \times 1} + \mathbf{\varepsilon}_{n \times 1}
@@ -821,7 +819,7 @@ We will use the  base R functions:
 
 ... in order to produce design matrices for a variety of linear models. R uses the formula
 interface to create design matrices automatically. In the first example, we have
-two groups of 2 samples each. Using `formula`  and  `model.matrix`
+two groups of two samples each. Using `formula`  and  `model.matrix`
 we will create  a model matrix with so called treatment contrast parameterization (the
 default setting in R). This means
 that an intercept is included in the model, i.e. \(X_0 = \mathbb{1}_n\)
@@ -860,7 +858,7 @@ like this below.
 
 We explicitly excluded the intercept by specifying it as zero.
 Commonly it makes sense to include an intercept in the model, especially
-in more complex models. We canspecify a more complex design pretty easily: 
+in more complex models. We can specify a more complex design pretty easily: 
 if we have two independent
 factors, the base mean now corresponds to the first levels of the two factors.
 
@@ -996,7 +994,7 @@ The estimated coefficients now give us the difference between the distance
 traveled between car 1 and car 2 (0.11) and car 1 and car 3 (-0.08), and the associated
 t--tests of these coefficients. However we cannot see a test of car 2 vs. car 3.
 This contrast test would correspond to testing the difference between
-the car2 and car3 regression coefficients.
+the car 2 and car 3 regression coefficients.
 
 Thus, contrasts of interest to us may not readily correspond to coefficients
 in a fitted linear model. However, one can easily test general linear hypotheses
@@ -1027,7 +1025,7 @@ to test these general linear hypotheses [@mult]. Let us assume we want all pairw
 comparisons between the cars, this can be achieved by defining a specific contrast
 matrix for our current model as given below.
 
-There are 3 such comparisons  and we can print
+There are three such comparisons  and we can print
 the results by using the `summary` function. As we can see the estimates
 for the contrasts already contained in the original model agree with the obtained
 results from contrast fit.
@@ -1093,17 +1091,17 @@ the tissue types. We furthermore simplify the names of the
 diseases to UC and DC, respectively. Then, we create two design matrices, 
 one for each of the two diseases
 as we will analyze them separately in order to follow the  analysis 
-strategy of the original paper closely. (One could also fit a joint model to 
+strategy of the original paper closely (one could also fit a joint model to 
 the complete data set, however, the two diseases might behave very differently 
-so that a joint fit might not be appropriate.)
+so that a joint fit might not be appropriate).
 
 ```{r createDesign, eval=TRUE, dependson="excludeMultipleMappings" }
-individual <- as.character(pData(palmieri_final)$Characteristics.individual.)
+individual <- as.character(Biobase::pData(palmieri_final)$Characteristics.individual.)
 
-tissue <- str_replace_all(pData(palmieri_final)$Factor.Value.phenotype., " ", "_")
+tissue <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.phenotype., " ", "_")
 tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
 
-disease <- str_replace_all(pData(palmieri_final)$Factor.Value.disease., " ", "_")
+disease <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.disease., " ", "_")
 disease <- ifelse(disease == "Crohn's_disease", "CD", "UC")
 
 
@@ -1349,7 +1347,7 @@ result_top_GO_elim <- runTest(top_GO_data, algorithm = "elim", statistic = "Fish
 result_top_GO_classic <- runTest(top_GO_data, algorithm = "classic", statistic = "Fisher")
 ```
 
-We can now insepect the results.  We look at the top 100 GO categories according
+We can now inspect the results.  We look at the top 100 GO categories according
 to the "Fisher elim" algorithm. The function `GenTable` produces
 a table of significant GO categories, the function `printGenes`
 gives significant genes annotated to them.
