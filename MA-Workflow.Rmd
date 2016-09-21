@@ -1,12 +1,15 @@
 ---
-author: "Bernd Klaus"
+title: An end to end workflow for differential gene expression using Affymetrix microarrays
+author:
+  name: Bernd Klaus
+  affiliation: European Molecular Biology Laboratory (EMBL), Heidelberg, Germany
 output: html_document
 bibliography: MA_end_to_end.bib
 csl: biometrics.csl
 vignette: >
-    %\VignetteIndexEntry{An end to tend workflow for differential gene expression using Affymetrix microarrays}
-    %\VignetteEngine{knitr::rmarkdown}
-    %\VignetteEncoding{UTF-8}  
+  %\VignetteIndexEntry{An end to end workflow for differential gene expression using Affymetrix microarrays}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 
@@ -46,12 +49,6 @@ sed 's/MA-Workflow_files\/figure-latex\///g' > MA-Workflow_clean.tex
   src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 </script>
 -->
-
-# An end to end workflow for differential gene expression using Affymetrix microarrays
-
-Bernd Klaus [1]
-
-[1] European Molecular Biology Laboratory (EMBL), Heidelberg, Germany.
 
 ```{r options, include=FALSE}
 library(BiocStyle)
