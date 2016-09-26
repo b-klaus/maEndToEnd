@@ -1469,6 +1469,7 @@ with all code used in the analysis.
 ```{r, include=FALSE}
 ## clean up to improve build stability
 rm(list=ls())
+gc()
 ```
 
 ```{r}
