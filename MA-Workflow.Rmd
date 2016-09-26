@@ -58,13 +58,6 @@ opts_chunk$set(echo=TRUE,tidy=FALSE,include=TRUE,
                dev=c('png', 'pdf'), fig.width = 6, fig.height = 3.5,
                comment = '  ', dpi = 300,
 cache = TRUE)
-
-## trigger garbage collection after each evaluated code chunk to improve build
-## stability by reducing the chance on running out of memory
-knit_hooks$set(eval = function(before, options) {
-  if ( !isTRUE(before) && isTRUE(options$eval) )
-    gc()
-})
 ```
 
 
@@ -1472,6 +1465,11 @@ The session information should also *always*
 be included in any emails to the
 [Bioconductor support site](https://support.bioconductor.org) along
 with all code used in the analysis.
+
+```{r, include=FALSE}
+## clean up to improve build stability
+rm(list=ls())
+```
 
 ```{r}
 sessionInfo()
