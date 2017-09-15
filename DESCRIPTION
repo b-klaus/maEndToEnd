@@ -1,0 +1,56 @@
+Package: maEndToEnd
+Title:  An end to end workflow for differential gene expression using Affymetrix microarrays
+Version: 1.0.0
+Date: 2017-09-05
+Authors@R: person(role=c("aut", "cre"), "Bernd", "Klaus", email = "bernd.klaus@embl.de")
+Description: In this article, we walk through an end--to--end Affymetrix microarray differential
+    expression workflow using Bioconductor packages. This workflow is directly 
+    applicable to current "Gene" type arrays, e.g. the HuGene or MoGene arrays
+    but can easily adapted to  similar platforms.
+    The data re-analyzed is a typical clinical microarray data set that 
+    compares inflammed and non--inflammed colon tissue in two disease subtypes.
+    We will start from the raw data CEL files, show how to import them into a 
+    Bioconductor ExpressionSet, perform quality control and normalization and finally
+    differential gene expression (DE) analysis, followed by some enrichment 
+    analysis. As experimental designs can be complex, a self contained introduction 
+    to linear models is also part of the workflow. 
+Depends: R (>= 3.3.0),
+    Biobase,
+    oligoClasses,
+    knitr,
+    BiocStyle,
+    oligo,
+    geneplotter,
+    ggplot2,
+    dplyr,
+    LSD,
+    gplots,
+    RColorBrewer,
+    ArrayExpress,
+    arrayQualityMetrics,
+    stringr,
+    matrixStats,
+    topGO,
+    genefilter,
+    biomaRt,
+    pd.hugene.1.0.st.v1,
+    hugene10sttranscriptcluster.db,
+    pheatmap,
+    mvtnorm,
+    DAAG,
+    multcomp,
+    limma,
+    ReactomePA,
+    clusterProfiler,
+    openxlsx,
+    devtools,
+    biomaRt,
+    EnrichmentBrowser
+License: Artistic-2.0
+Encoding: UTF-8
+LazyData: true
+VignetteBuilder: knitr
+biocViews: DifferentialExpression, Microarray, AffymetrixChip 
+Suggests: knitr, rmarkdown
+NeedsCompilation: no
+URL: https://www.bioconductor.org/help/workflows/

@@ -1210,7 +1210,7 @@ of 0.001.
 
 ```{r compareDEgenes, dependson="extractResults"}
 palmieri_DE_res <- sapply(1:4, function(i) read.xlsx(cols = 1, 
-                                                     "palmieri_DE_res.xlsx", 
+                                                     "inst/extdata/palmieri_DE_res.xlsx", 
                                                      sheet = i, startRow = 4))
 
 names(palmieri_DE_res) <- c("CD_UP", "CD_DOWN", "UC_UP", "UC_DOWN")
