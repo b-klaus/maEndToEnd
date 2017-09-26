@@ -124,6 +124,7 @@ suppressPackageStartupMessages({
     library(devtools)
     library(biomaRt)
     library(EnrichmentBrowser)
+    library(maEndToEnd)
 })
 ```
 
@@ -1209,8 +1210,8 @@ of 0.001.
 
 
 ```{r compareDEgenes, dependson="extractResults"}
-palmieri_DE_res <- sapply(1:4, function(i) read.xlsx(cols = 1, 
-                                                     "inst/extdata/palmieri_DE_res.xlsx", 
+fpath <- system.file("extdata", "palmieri_DE_res.xlsx", package="maEndToEnd")
+palmieri_DE_res <- sapply(1:4, function(i) read.xlsx(cols = 1, fpath, 
                                                      sheet = i, startRow = 4))
 
 names(palmieri_DE_res) <- c("CD_UP", "CD_DOWN", "UC_UP", "UC_DOWN")
