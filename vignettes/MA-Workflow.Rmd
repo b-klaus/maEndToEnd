@@ -1,8 +1,5 @@
 ---
-title: An end to end workflow for differential gene expression using Affymetrix microarrays
-author:
-  name: Bernd Klaus
-  affiliation: European Molecular Biology Laboratory (EMBL), Heidelberg, Germany
+author: "Bernd Klaus"
 output: html_document
 bibliography: MA_end_to_end.bib
 csl: biometrics.csl
@@ -44,11 +41,9 @@ sed 's/MA-Workflow_files\/figure-latex\///g' > MA-Workflow_clean.tex
      find.package(reqlibs)
 -->
 
-<!--
 <script type="text/javascript"
   src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 </script>
--->
 
 ```{r options, include=FALSE}
 library(BiocStyle)
@@ -57,7 +52,7 @@ options(digits=3, width=80)
 opts_chunk$set(echo=TRUE,tidy=FALSE,include=TRUE,
                dev=c('png', 'pdf'), fig.width = 6, fig.height = 3.5,
                comment = '  ', dpi = 300,
-cache = TRUE)
+cache=FALSE)
 ```
 
 
@@ -91,75 +86,15 @@ expression (DE) between the tissues in the two  diseases.
 
 # Required packages and other preparations
 
-```{r, echo=FALSE, results="hide", warning=FALSE}
+```{r, echo=FALSE, results="hide", warning=FALSE, eval=TRUE}
 suppressPackageStartupMessages({
-    library(Biobase)
-    library(oligoClasses)
-    library(knitr)
-    library(BiocStyle)
-    library(oligo)
-    library(geneplotter)
-    library(ggplot2)
-    library(dplyr)
-    library(LSD)
-    library(gplots)
-    library(RColorBrewer)
-    library(ArrayExpress)
-    library(arrayQualityMetrics)
-    library(stringr)
-    library(matrixStats)
-    library(topGO)
-    library(genefilter)
-    library(biomaRt)
-    library(pd.hugene.1.0.st.v1)
-    library(hugene10sttranscriptcluster.db)
-    library(pheatmap)
-    library(mvtnorm)
-    library(DAAG)
-    library(multcomp)
-    library(limma)
-    library(ReactomePA)
-    library(clusterProfiler)
-    library(openxlsx)
-    library(devtools)
-    library(biomaRt)
-    library(EnrichmentBrowser)
-    library(maEndToEnd)
+    library("maEndToEnd")
 })
 ```
 
 
 ```{r required packages and data, echo = TRUE}
-library(Biobase)
-library(oligoClasses)
-library(knitr)
-library(BiocStyle)
-library(oligo)
-library(geneplotter)
-library(ggplot2)
-library(dplyr)
-library(LSD)
-library(gplots)
-library(RColorBrewer)
-library(ArrayExpress)
-library(arrayQualityMetrics)
-library(stringr)
-library(matrixStats)
-library(topGO)
-library(genefilter)
-library(pd.hugene.1.0.st.v1)
-library(hugene10sttranscriptcluster.db)
-library(pheatmap)
-library(mvtnorm)
-library(DAAG)
-library(multcomp)
-library(limma)
-library(ReactomePA)
-library(clusterProfiler)
-library(openxlsx)
-library(devtools)
-library(biomaRt)
-library(EnrichmentBrowser)
+library("maEndToEnd")
 set.seed(777)
 raw_data_dir <- file.path(getwd(), "rawDataMAWorkflow")
 ```
@@ -200,12 +135,212 @@ It is saved in the directory **raw\_data\_dir** which defaults to the subdirecto
 `rawDataMAWorkflow` of  the current working directory. The names 
 of the downloaded files are returned as a list.
 
+We use a custom function here for now, `https_getAE` , since EBI
+has recently switched to https and `getAE` only supports http.
+See als <https://www.ebi.ac.uk/services>.
+
+```{r my_getAE, echo=TRUE}
+
+https_getAE <- function (accession, path = getwd(), type = "full", extract = TRUE, 
+          local = FALSE, sourcedir = path) 
+{
+  if (!local) {
+    baseURL = "https://www.ebi.ac.uk/arrayexpress/xml/v2/files"
+    xmlURL = getURL(paste(baseURL, accession, sep = "/"))
+    xml = xmlTreeParse(xmlURL, useInternalNodes = TRUE, isURL=FALSE)
+    sdrfURL = xpathSApply(xml, "/files/experiment/file[kind='sdrf' and extension='txt']/url", 
+                          xmlValue)
+    sdrfFile = xpathSApply(xml, "/files/experiment/file[kind='sdrf' and extension='txt']/name", 
+                           xmlValue)
+    idfURL = xpathSApply(xml, "/files/experiment/file[kind='idf' and extension='txt']/url", 
+                         xmlValue)
+    idfFile = xpathSApply(xml, "/files/experiment/file[kind='idf' and extension='txt']/name", 
+                          xmlValue)
+    adfURL = xpathApply(xml, "/files/experiment/file[kind='adf' and extension='txt']/url", 
+                        xmlValue)
+    adfFiles = xpathApply(xml, "/files/experiment/file[kind='adf' and extension='txt']/name", 
+                          xmlValue)
+    rawArchiveURL = xpathApply(xml, "/files/experiment/file[kind='raw' and extension='zip']/url", 
+                               xmlValue)
+    procArchiveURL = xpathApply(xml, "/files/experiment/file[kind='processed' and extension='zip']/url", 
+                                xmlValue)
+  }
+  else {
+    allfiles = list.files(sourcedir)
+    sdrfFile = allfiles[grep(paste(accession, ".sdrf.txt$", 
+                                   sep = ""), allfiles)]
+    if (length(sdrfFile) == 0) 
+      stop("SDRF file not found in directory ", sourcedir)
+    sdrfURL = paste("file:/", sourcedir, sdrfFile, sep = "/")
+    idfFile = allfiles[grep(paste(accession, ".idf.txt$", 
+                                  sep = ""), allfiles)]
+    if (length(idfFile) == 0) 
+      warning("IDF file not found in directory ", sourcedir)
+    idfURL = paste("file:/", sourcedir, idfFile, sep = "/")
+    ph = try(read.AnnotatedDataFrame(sdrfFile, path = sourcedir, 
+                                     row.names = NULL, blank.lines.skip = TRUE, fill = TRUE, 
+                                     varMetadata.char = "$"))
+    if (inherits(ph, "try-error")) {
+      warning("Unable to retrieve ADF reference from SDRF. Reading any ADF in directory.")
+      adfFiles = allfiles[grep(".adf.txt$", allfiles)]
+    }
+    else {
+      adr = unique(pData(ph)[, getSDRFcolumn("ArrayDesignREF", 
+                                             varLabels(ph))])
+      adfFiles = paste(adr, ".adf.txt", sep = "")
+    }
+    if (all(file.exists(file.path(sourcedir, adfFiles)))) {
+      adfURL = paste("file:/", sourcedir, adfFiles, sep = "/")
+      downloadADF = FALSE
+    }
+    else {
+      filesURL = "https://www.ebi.ac.uk/arrayexpress/files"
+      adfURL = paste(filesURL, adr, adfFiles, sep = "/")
+      downloadADF = TRUE
+    }
+    rawArchiveURL = NULL
+    procArchiveURL = NULL
+    rawArchive = allfiles[grep(paste(accession, ".raw.[0-9]{1,}.zip", 
+                                     sep = ""), allfiles)]
+    if (length(rawArchive) != 0) 
+      rawArchiveURL = paste("file:/", sourcedir, rawArchive, 
+                            sep = "/")
+    else warning("No raw files found in directory ", sourcedir)
+    processedArchive = allfiles[grep(paste(accession, ".processed.[0-9]{1,}.zip", 
+                                           sep = ""), allfiles)]
+    if (length(processedArchive) != 0) 
+      procArchiveURL = paste("file:/", sourcedir, processedArchive, 
+                             sep = "/")
+    else warning("No processed data files found in directory ", 
+                 sourcedir)
+  }
+  if (length(sdrfURL) > 1) {
+    warning("Found two SDRF files: \n", paste(sdrfURL, "\n"))
+    hybSDRF = grep("hyb.sdrf", sdrfURL)
+    if (length(hybSDRF) > 0) {
+      message("Choosing ", sdrfURL[hybSDRF])
+      sdrfURL = sdrfURL[hybSDRF]
+      sdrfFile = sdrfFile[hybSDRF]
+    }
+    else {
+      warning("Unable to choose SDRF file. Please report experiment to miamexpress@ebi.ac.uk")
+    }
+  }
+  if (!local || path != sourcedir || downloadADF) {
+    adfFiles <- lapply(adfURL, function(url) {
+      filedest = paste(path, basename(url), sep = "/")
+      dnld = try(download.file(url, filedest, mode = "wb"))
+      if (inherits(dnld, "try-error") || file.info(filedest)$size == 
+          0) {
+        warning(paste(url, " does not exist or is empty. \n"), 
+                sep = "")
+        adffile = NULL
+      }
+      else {
+        adffile = basename(filedest)
+      }
+      return(adffile)
+    })
+    if (!is.null(adfFiles)) 
+      adfFiles = unlist(adfFiles)
+  }
+  if (!local || path != sourcedir) {
+    sdrfFileDest = paste(path, sdrfFile, sep = "/")
+    dnld = try(download.file(sdrfURL, sdrfFileDest, mode = "wb"))
+    if (inherits(dnld, "try-error") || file.info(sdrfFileDest)$size == 
+        0) {
+      warning(paste(sdrfFile, " does not exist or is empty. The object will not have featureData or phenoData. \n"), 
+              sep = "")
+      sdrfFile = NULL
+      adffile = NULL
+    }
+    idfFileDest = paste(path, idfFile, sep = "/")
+    dnld = try(download.file(idfURL, idfFileDest, mode = "wb"))
+    if (inherits(dnld, "try-error") || file.info(idfFileDest)$size == 
+        0) {
+      warning(paste(idfFile, " does not exist or is empty. \n"), 
+              sep = "")
+      idfFile = NULL
+    }
+    rawArchive = NULL
+    processedArchive = NULL
+    if (type != "mageFilesOnly" && !is.null(rawArchiveURL) && 
+        (type == "full" || type == "raw")) {
+      message("Copying raw data files\n")
+      rawArchive <- lapply(rawArchiveURL, function(url) {
+        filedest = paste(path, basename(url), sep = "/")
+        dnld = try(download.file(url, filedest, mode = "wb"))
+        if (inherits(dnld, "try-error") || file.info(filedest)$size == 
+            0) {
+          warning(paste(url, " does not exist or is empty. \n"), 
+                  sep = "")
+        }
+        else {
+          return(filedest)
+        }
+      })
+      if (!is.null(rawArchive)) {
+        rawArchive = unlist(rawArchive)
+        rawArchive = basename(rawArchive)
+      }
+    }
+    if ((type != "mageFilesOnly" && type == "full" || type == 
+         "processed") && !is.null(procArchiveURL)) {
+      message("Copying processed data files\n")
+      processedArchive <- lapply(procArchiveURL, function(url) {
+        filedest = paste(path, basename(url), sep = "/")
+        dnld = try(download.file(url, filedest, mode = "wb"))
+        if (inherits(dnld, "try-error") || file.info(filedest)$size == 
+            0) {
+          warning(paste(url, " does not exist or is empty. \n"), 
+                  sep = "")
+        }
+        else {
+          return(filedest)
+        }
+      })
+      if (!is.null(processedArchive)) {
+        processedArchive = unlist(processedArchive)
+        processedArchive = basename(processedArchive)
+      }
+    }
+  }
+  rawFiles = NULL
+  processedFiles = NULL
+  if (extract) {
+    message("Unpacking data files")
+    if (!is.null(rawArchive)) 
+      rawFiles <- lapply(rawArchive, function(zipfile) {
+        rawfiles = extract.zip(file = paste(path, zipfile, 
+                                            sep = "/"))
+        return(rawfiles)
+      })
+    if (!is.null(processedArchive)) 
+      processedFiles <- lapply(processedArchive, function(zipfile) {
+        procfiles = extract.zip(file = paste(path, zipfile, 
+                                             sep = "/"))
+        return(procfiles)
+      })
+    if (!is.null(rawFiles)) 
+      rawFiles = unlist(rawFiles)
+    if (!is.null(processedFiles)) 
+      processedFiles = unlist(processedFiles)
+  }
+  res = list(path = path, rawFiles = rawFiles, rawArchive = rawArchive, 
+             processedFiles = processedFiles, processedArchive = processedArchive, 
+             sdrf = sdrfFile, idf = idfFile, adf = adfFiles)
+  return(res)
+}
+
+```
+
+
 ```{r getDataEBI, eval=TRUE, results='hide', message=FALSE}
 if(!dir.exists(raw_data_dir)){
     dir.create(raw_data_dir)
 }
 
-anno_AE <- getAE("E-MTAB-2967", path=raw_data_dir, type="raw")
+anno_AE <- https_getAE("E-MTAB-2967", path=raw_data_dir, type="raw")
 ```
 
 We now import the SDRF file directly from ArrayExpress
@@ -488,8 +623,8 @@ about it.
 
 An alternative to quantile normalization is the `r Biocpkg("vsn") ` algorithm,
 that performs background correction and normalization by robustly
-shifting and scaling log--scale intensity values within arrays [@vsn]. This is
-less "severe" than quantile normalization. 
+shifting and scaling intensity values within arrays [@vsn] before log--transforming
+them. This is less "severe" than quantile normalization. 
 
 ## Some mathematical background on normalization (calibration) and background correction
 
@@ -668,7 +803,7 @@ we exclude these transcript--clusters. Additionally, we also exclude
 transcript--clusters that do not map to gene symbols.
 
 
-```{r excludeMultipleMappings, dependson="multipleMappings", cache=TRUE}
+```{r excludeMultipleMappings, dependson="multipleMappings", cache=FALSE}
 ids_to_exlude <- ((featureNames(palmieri_filtered) %in% probe_stats$PROBEID) |
                featureNames(palmieri_filtered)  %in% subset(anno_palmieri ,
                                                            is.na(SYMBOL))$PROBEID)
@@ -1406,7 +1541,7 @@ based on the hypergeoemtric distribution that is the same as a one sided Fisher-
 which `r Biocpkg("topGO")` calls "Fisher--classic".
 Details can be found in the vignette of the `r Biocpkg("DOSE")` package [@Yu_2014].
 
-```{r runReactomeEnrichment, dependson="mapIDsToEntrez", eval = TRUE, cache=TRUE}
+```{r runReactomeEnrichment, dependson="mapIDsToEntrez", eval = TRUE, cache=FALSE}
 reactome_enrich <- enrichPathway(gene = entrez_ids[DE_genes_CD], 
                                 universe = entrez_ids[c(DE_genes_CD, 
                                                         back_genes)],

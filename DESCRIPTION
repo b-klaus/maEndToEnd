@@ -1,6 +1,6 @@
 Package: maEndToEnd
-Title:  An end to end workflow for differential gene expression using Affymetrix microarrays
-Version: 1.0.1
+Title: An end to end workflow for differential gene expression using Affymetrix microarrays
+Version: 1.0.2
 Date: 2017-09-05
 Authors@R: person(role=c("aut", "cre"), "Bernd", "Klaus", email = "bernd.klaus@embl.de")
 Description: In this article, we walk through an end--to--end Affymetrix microarray differential
@@ -15,9 +15,9 @@ Description: In this article, we walk through an end--to--end Affymetrix microar
     analysis. As experimental designs can be complex, a self contained introduction 
     to linear models is also part of the workflow. 
 Depends: R (>= 3.3.0),
+    AnnotationDbi,
     Biobase,
     oligoClasses,
-    knitr,
     BiocStyle,
     oligo,
     geneplotter,
@@ -44,8 +44,8 @@ Depends: R (>= 3.3.0),
     clusterProfiler,
     openxlsx,
     devtools,
-    biomaRt,
-    EnrichmentBrowser
+    EnrichmentBrowser,
+    RCurl
 License: Artistic-2.0
 Encoding: UTF-8
 LazyData: true
@@ -54,3 +54,5 @@ biocViews: DifferentialExpression, Microarray, AffymetrixChip
 Suggests: knitr, rmarkdown
 NeedsCompilation: no
 URL: https://www.bioconductor.org/help/workflows/
+Workflow: True
+RoxygenNote: 6.0.1
