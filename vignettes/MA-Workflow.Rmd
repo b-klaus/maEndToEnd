@@ -679,17 +679,60 @@ dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
        main = "PCA plot of the calibrated data", size = I(2), asp = 1.0)
        + scale_colour_brewer(palette = "Set2"))
 ```
+```{r rownames for heatmap, fig.height = 8.5, eval = TRUE }
+phenotype_names <- c()
+disease_names <- c()
+
+for (i in 1:length(Biobase::pData(palmieri_eset)$Factor.Value.phenotype.)){
+  phenotype_name <- toString(Biobase::pData(palmieri_eset)$Factor.Value.phenotype.[i])
+  phenotype_names <- c(phenotype_names, phenotype_name)
+  disease_name <- toString(Biobase::pData(palmieri_eset)$Factor.Value.disease.[i])
+  disease_names <- c(disease_names, disease_name)
+}
+
+
+row_names_dataframe <- data.frame("Phenotype"=phenotype_names, "Disease"=disease_names)
+row_names_for_heatmap <- paste(row_names_dataframe$Phenotype, row_names_dataframe$Disease, sep="   ")
+
+```
+
+```{r PCAMetricsCalibrated_2, fig.height = 8.5, eval = TRUE }
+dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
+colnames(dists) <- NULL 
+diag(dists) <- NA
+rownames(dists) <-  Biobase::pData(palmieri_eset)$Factor.Value.phenotype.
+hmcol <- colorRampPalette(brewer.pal(9, "PuOr")))(255)
+
+pheatmap(dists, col = (hmcol),clustering_distance_rows = "manhattan",
+                                 clustering_distance_cols = "manhattan"
+         
+```
+#Alternative Heatmap with rownames indicating disease and phenotype
+```{r PCAMetricsCalibrated_2, fig.height = 8.5, eval = TRUE }
+dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
+colnames(dists) <- NULL 
+diag(dists) <- NA
+rownames(dists) <- row_names_for_heatmap
+hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
+
+pheatmap(dists, col = (hmcol),clustering_distance_rows = "manhattan",
+                                 clustering_distance_cols = "manhattan",
+         legend_breaks=c(min(dists), max(dists)), legend_labels=c("small difference", "big difference"))
+         
+```
+
+
+#Alternative Heatmap without "manhattan" as distance measure between rows and columns; also low and high difference indicated in legend 
 ```{r PCAMetricsCalibrated_2, fig.height = 8.5, eval = TRUE }
 dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 colnames(dists) <- NULL
 diag(dists) <- NA
 rownames(dists) <-  Biobase::pData(palmieri_eset)$Factor.Value.phenotype.
-hmcol <- colorRampPalette(rev(brewer.pal(9, "PuOr")))(255)
+hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
 
-pheatmap(dists, col = rev(hmcol), clustering_distance_rows = "manhattan",
-                                 clustering_distance_cols = "manhattan")
+pheatmap(dists, col = (hmcol), legend=TRUE, legend_breaks=c(min(dists, na.rm=TRUE), max(dists, na.rm=TRUE)), legend_labels=(c("low difference", "high difference")))
+
 ```
-
 The second PC roughly separates Crohn's disease from ulcerative colitis, while the first 
 separates the tissues. This is what we expect: the samples cluster by
 their experimental conditions.
