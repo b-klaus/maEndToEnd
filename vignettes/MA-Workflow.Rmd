@@ -1,5 +1,3 @@
-#test modification_SR
----
 author: "Bernd Klaus"
 output: html_document
 bibliography: MA_end_to_end.bib
@@ -486,11 +484,11 @@ dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
                     Disease = Biobase::pData(raw_data)$Factor.Value.disease.,
                     Phenotype = Biobase::pData(raw_data)$Factor.Value.phenotype.,
                     Individual = Biobase::pData(raw_data)$Characteristics.individual.)
-        
-(qplot(PC1, PC2, data = dataGG, color =  Disease,
+
+
+(qplot(PC1, PC2, data = dataGG, color =  Phenotype, shape = Disease,
        main = "PCA plot of the raw data (log-transformed)", size = I(2), 
-       asp = 1.0, geom = "text",
-       label = Individual)
+       asp = 1.0)
      + scale_colour_brewer(palette = "Set2"))
 
 boxplot(raw_data, target = "core", 
@@ -677,7 +675,7 @@ dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
                     Disease = Biobase::pData(palmieri_eset)$Factor.Value.disease.,
                     Phenotype = Biobase::pData(palmieri_eset)$Factor.Value.phenotype.)
         
-(qplot(PC1, PC2, data = dataGG, color =  Disease, shape =  Phenotype,
+(qplot(PC1, PC2, data = dataGG, color =  Phenotype, shape =  Disease,
        main = "PCA plot of the calibrated data", size = I(2), asp = 1.0)
        + scale_colour_brewer(palette = "Set2"))
 ```
