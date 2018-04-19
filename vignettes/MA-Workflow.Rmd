@@ -701,10 +701,10 @@ dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 colnames(dists) <- NULL 
 diag(dists) <- NA
 rownames(dists) <-  Biobase::pData(palmieri_eset)$Factor.Value.phenotype.
-hmcol <- colorRampPalette(brewer.pal(9, "PuOr")))(255)
+hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
 
 pheatmap(dists, col = (hmcol),clustering_distance_rows = "manhattan",
-                                 clustering_distance_cols = "manhattan"
+                                 clustering_distance_cols = "manhattan")
          
 ```
 #Alternative Heatmap with rownames indicating disease and phenotype
@@ -838,6 +838,85 @@ probe_stats
 
 dim(probe_stats)
 ```
+#alternative way of writing the %>%-function above; doesn't work!!!!
+```{r multipleMappings_alternative_writing, dependson="annotateData"}
+
+probe_stats <- filter(summarize(group_by(anno_palmieri, PROBEID), no_of_matches = n_distinct(anno_palmieri$SYMBOL)), no_of_matches > 1)
+
+probe_stats
+
+dim(probe_stats)
+
+#old code: 
+#probe_stats <- anno_palmieri   %>%
+#    group_by(PROBEID) %>%
+#    summarize(no_of_matches = n_distinct(SYMBOL)) %>%
+#    filter(no_of_matches > 1)
+```
+#getting the output of the %>%-function with the affycoretools package
+
+```{r multipleMappings, dependson="annotateData"}
+#doesn't work
+source("https://bioconductor.org/biocLite.R")
+biocLite("affycoretools") #download package
+
+probe_stats1 <- anno_palmieri
+probe_stats2 <- probe_stats1[!duplicated(probe_stats1[,1]),]
+
+no_of_multiple_assigned <- n_distinct(probe_stats1$SYMBOL)-n_distinct(probe_stats2$SYMBOL)
+
+```
+
+#Code Bernd (18.04.): mit Annotate_eset-funktion aus affycoretools
+```{r testAnnotateFunction}
+# annotateEset(object, x,
+#   columns = c("PROBEID", "ENTREZID", "SYMBOL", "GENENAME"),
+#   multivals = "first")
+
+library("affycoretools")
+test <- annotateEset(palmieri_filtered, hugene10sttranscriptcluster.db,
+                     multivals = "first")
+
+test
+```
+
+```{r annotateEset method modified}
+setMethod("annotateEset", c("ExpressionSet","ChipDb"),
+          function(object, x, columns = c("PROBEID","ENTREZID","SYMBOL","GENENAME"), multivals = "first"){
+    ## Doing mapIds(chipDb, featureNames(object), "PROBEID","PROBEID") fails for many packages, and wastes compute cycles
+    ## so we just add that by hand.
+    addcol <- FALSE
+    if(any(columns == "PROBEID")) {
+        addcol <- TRUE
+        columns <- columns[-grep("PROBEID", columns)]
+        collst <- list(PROBEID = featureNames(object))
+    }
+    multivals <- switch(multivals,
+                        first = "first",
+                        list = "CharacterList",
+                        CharacterList = "CharacterList",
+                        filter = "filter",
+                        asNA = "asNA",
+                        stop("The multivals argument should be 'first', 'list' or 'CharacterList'", call. = FALSE))
+    annolst <- lapply(columns, function(y) mapIds(x, featureNames(object), y, "PROBEID", multiVals = multivals))
+    if(addcol) annolst <- c(collst, annolst)
+    anno <- switch(multivals,
+                   first = as.data.frame(annolst),
+                   DataFrame(annolst))
+    names(anno) <- if(addcol) c("PROBEID", columns) else columns
+    if(!isTRUE(all.equal(row.names(anno), featureNames(object))))
+        stop(paste("There appears to be a mismatch between the ExpressionSet and",
+                   "the annotation data.\nPlease ensure that the summarization level",
+                   "for the ExpressionSet and the annotation package are the same.\n"),
+             call. = FALSE)
+    andf <- dfToAnnoDF(anno)
+    featureData(object) <- andf
+    stopifnot(validObject(object))
+    object
+})
+test2 <- annotateEset(palmieri_filtered, hugene10sttranscriptcluster.db,
+                     multivals = "filter")
+```
 
 We have  over 2000 transcript--clusters that map to multiple gene symbols.
 It is difficult to decide which mapping is "correct". Therefore,
@@ -863,6 +942,8 @@ rownames(fData(palmieri_final)) <-fData(palmieri_final)$PROBEID
     
 validObject(palmieri_final)
 ```
+
+
 
 Alternatively, one can re--map the probes of the array
 to a current annotation, a workflow to do this for Illumina arrays is given in
