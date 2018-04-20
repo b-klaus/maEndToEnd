@@ -861,7 +861,7 @@ source("https://bioconductor.org/biocLite.R")
 biocLite("affycoretools") #download package
 
 probe_stats1 <- anno_palmieri
-probe_stats2 <- probe_stats1[!duplicated(probe_stats1[,1]),]
+probe_stats2 <- probe_stats1[!duplicated(probe_stats1[,1]),] #doesn't work, because duplicated stops after 1875; why is that?
 
 no_of_multiple_assigned <- n_distinct(probe_stats1$SYMBOL)-n_distinct(probe_stats2$SYMBOL)
 
@@ -875,10 +875,15 @@ no_of_multiple_assigned <- n_distinct(probe_stats1$SYMBOL)-n_distinct(probe_stat
 
 library("affycoretools")
 test <- annotateEset(palmieri_filtered, hugene10sttranscriptcluster.db,
+                     columns=c("PROBEID", "ENTREZID", "SYMBOL", "GENENAME"),
                      multivals = "first")
+
+test <- test[complete.cases(test@featureData@data),] #filter out NA values 
 
 test
 ```
+
+
 
 ```{r annotateEset method modified}
 setMethod("annotateEset", c("ExpressionSet","ChipDb"),
