@@ -62,7 +62,7 @@ expression workflow using Bioconductor packages. This workflow is directly
 applicable to current "Gene" type arrays, e.g. the HuGene or MoGene arrays
 but can easily adapted to  similar platforms.
 The data re--analyzed is a typical clinical microarray data set that 
-compares inflammed and non--inflammed colon tissue in two disease subtypes.
+compares inflamed and non--inflamed colon tissue in two disease subtypes. For each disease, the differential gene expression between inflamed-- and non--inflamed colon tissue was analyzed. 
 We will start from the raw data CEL files, show how to import them into a 
 Bioconductor ExpressionSet, perform quality control and normalization and finally
 differential gene expression (DE) analysis, followed by some enrichment 
@@ -77,11 +77,10 @@ enrichment analysis are discussed. We also introduce some necessary mathematical
 background on linear models along the way.
 
 The data set used [@Palmieri_2015] is from 
-a paper studying the differences between  patients suffering from Ulcerative colitis (UC) or 
-Crohn's disease (CD).  This is a typical clinical data set consisting of 14 UC and
-15 CD patients from which inflamed and non--inflamed
-colonic mucosa tissue was obtained via a biopsy. Our aim is to analyze differential 
-expression (DE) between the tissues in the two  diseases.
+a paper studying the differences in gene expression in inflamed-- and non--inflamed tissue. 
+14 Patients suffering from Ulcerative colitis (UC) and 15 patients with Crohn's disease (CD) were tested, and from each patient inflamed-- and non--inflamed colonic mucosa tissue was obtained via a biopsy. 
+This is a typical clinical data set consisting of 58 probes in total.
+Our aim is to analyze differential expression (DE) between the tissues in the two  diseases. As a proof of concept, we compare our results to the one found in the paper. 
 
 # Required packages and other preparations
 
@@ -92,19 +91,26 @@ suppressPackageStartupMessages({
 ```
 
 
-```{r required packages and data, echo = TRUE}
-library("maEndToEnd")
-set.seed(777)
-raw_data_dir <- file.path(getwd(), "rawDataMAWorkflow")
-```
-
 
 # Download the raw data from from ArrayExpress
 
 The first step of the analysis is to download the raw data CEL files. These files
 are produced by the array scanner software and contain the probe intensities 
 measured. The data have been deposited at [ArrayExpress](https://www.ebi.ac.uk/arrayexpress/)
-and have the accession code **E-MTAB-2967**. 
+and have the accession code **E-MTAB-2967**.
+
+We will store these files in the directory **raw\_data\_dir** which defaults to the subdirectory
+`rawDataMAWorkflow` of the current working directory:
+
+```{r generate folder for raw data, echo = TRUE}
+raw_data_dir <- file.path(getwd(), "rawDataMAWorkflow")
+
+if(!dir.exists(raw_data_dir)){
+    dir.create(raw_data_dir)
+}
+
+```
+
 
 Each ArrayExpress data set has a landing page summarizing the data set, 
 and we use the `r Biocpkg("ArrayExpress") ` Bioconductor package to obtain the ftp 
@@ -120,7 +126,7 @@ Investigation Description Format (IDF), the Array Design Format (ADF),
 the Sample and Data Relationship Format (SDRF), the raw data files and
 the processed data files.
 
-For use, the IDF and the SDRF file are important. 
+Other than the raw data files, the IDF and the SDRF file are important for us. 
 The IDF file contains top level information
 about the experiment including title, description, submitter contact details and
 protocols. The SDRF file contains essential information on the experimental 
@@ -130,9 +136,7 @@ samples, e.g. the experimental group(s) they belong to.
 
 With the code below, we download the raw data from
 [ArrayExpress](https://www.ebi.ac.uk/arrayexpress/) [@Kolesnikov_2014].
-It is saved in the directory **raw\_data\_dir** which defaults to the subdirectory
-`rawDataMAWorkflow` of  the current working directory. The names 
-of the downloaded files are returned as a list.
+It is saved in the `raw_data_dir` created above. The names of the downloaded files are returned as a list.
 
 We use a custom function here for now, `https_getAE` , since EBI
 has recently switched to https and `getAE` only supports http.
@@ -335,9 +339,6 @@ https_getAE <- function (accession, path = getwd(), type = "full", extract = TRU
 
 
 ```{r getDataEBI, eval=TRUE, results='hide', message=FALSE}
-if(!dir.exists(raw_data_dir)){
-    dir.create(raw_data_dir)
-}
 
 anno_AE <- https_getAE("E-MTAB-2967", path=raw_data_dir, type="raw")
 ```
@@ -361,6 +362,13 @@ rownames(SDRF) <- SDRF$Array.Data.File
 SDRF <- AnnotatedDataFrame(SDRF)
 ```
 
+```{r getSDRF from local directory}
+sdrf_location <- file.path(raw_data_dir, "E-MTAB-2967.sdrf.txt")
+SDRF2 <- read.delim(sdrf_location)
+
+rownames(SDRF2) <- SDRF$Array.Data.File
+SDRF2 <- AnnotatedDataFrame(SDRF)
+```
 
 Before we move on to the actual raw data import, we will briefly introduce the
 ` ExpressionSet ` class contained in the `r Biocpkg("Biobase")` package.
@@ -443,7 +451,7 @@ Finally, we check whether the object created is valid. (e.g. sample names
 match between the different tables).
 
 We collect the information about 
-the CEL files and import and them into the  variable `raw_data`:
+the CEL files and import and them into the variable `raw_data`:
 
 
 ```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF", warning = FALSE }
@@ -572,7 +580,7 @@ chips, which usually represented a gene/transcript. Furthermore, there
 are also no longer designated match/mismatch probes present on "Gene" type chips.
 
 For the newer Affymetrix chips a gene/transcript level summary is given 
-by "transcriptct clusters". Hence the appropriate annotation package is called
+by "transcript clusters". Hence the appropriate annotation package is called
 `r Biocpkg("hugene10sttranscriptcluster.db") `.
 
 To complicate things even a bit more, note that the "Gene"  arrays  were created
@@ -659,7 +667,7 @@ order to display a heatmap of the sample--to--sample distances, we first compute
 the `dist` function. We need to transpose the expression values since
 the function computes the distances between the rows (i.e. genes in our case) by
 default. The default distance  is the Euclidean one. However this can  be
-changed and we choose the manhatten distance here (it uses absolute instead of
+changed and we choose the Manhattan distance here (it uses absolute instead of
 squared distances). We set the diagonal of the distance matrix to ` NA ` in order 
 to increase the contrast of the color coding. Those diagonal entries do 
 not contain information since the distance of a sample to itself is
@@ -904,6 +912,7 @@ test <- test[complete.cases(test@featureData@data),] #filter out NA values
 
 
 ```{r annotateEset method modified}
+#doesn't work
 setMethod("annotateEset", c("ExpressionSet","ChipDb"),
           function(object, x, columns = c("PROBEID","ENTREZID","SYMBOL","GENENAME"), multivals = "first"){
     ## Doing mapIds(chipDb, featureNames(object), "PROBEID","PROBEID") fails for many packages, and wastes compute cycles
