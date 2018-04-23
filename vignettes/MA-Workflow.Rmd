@@ -802,6 +802,25 @@ table(idx_thresh_median)
 
 palmieri_filtered <- subset(palmieri_eset, idx_thresh_median)
 ```
+```{r alternative intensityBasedFiltering manually filtered}
+palmieri_medians <- rowMedians(exprs(palmieri_eset))
+
+hist_res <- hist(palmieri_medians, 100, col="#e7efd8", freq = FALSE, 
+            main = "Histogram of the median intensities", 
+            xlab = "Median intensities")
+
+abline(v=man_threshold, col="red", lwd=2)
+
+man_threshold <- 4.5
+samples_cutoff <- min(no_of_samples)
+
+
+idx_man_threshold <- apply(exprs(palmieri_eset), 1, function(x){
+  sum(x > man_threshold) >= samples_cutoff})
+table(idx_man_threshold)
+
+palmieri_manfiltered <- subset(palmieri_eset, idx_man_threshold)
+```
 
 
 ## Annotation of the transcript clusters
@@ -816,10 +835,18 @@ gene symbol and a short description of the gene the cluster represents.
 
 
 ```{r annotateData, eval=TRUE, dependson="intensityBasedFiltering", message = FALSE}
+
 anno_palmieri  <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
                                   keys=(featureNames(palmieri_filtered)),
                                   columns = c("SYMBOL", "GENENAME"),
                                   keytype="PROBEID")
+```
+
+```{r}
+#SR: suggestion for annotation and filtering, in my opinion easily understandable 
+anno_palmieri <- anno_palmieri[complete.cases(anno_palmieri$SYMBOL),] #filter out NA values 
+
+anno_palmieri <-  #filter out duplicated values; note, however, that it keeps the first of each type 
 
 ```
 
@@ -853,22 +880,12 @@ dim(probe_stats)
 #    summarize(no_of_matches = n_distinct(SYMBOL)) %>%
 #    filter(no_of_matches > 1)
 ```
-#getting the output of the %>%-function with the affycoretools package
 
-```{r multipleMappings, dependson="annotateData"}
-#doesn't work
+#Code suggested by Bernd (18.04.): mit Annotate_eset-funktion aus affycoretools
+```{r testAnnotateFunction}
+
 source("https://bioconductor.org/biocLite.R")
 biocLite("affycoretools") #download package
-
-probe_stats1 <- anno_palmieri
-probe_stats2 <- probe_stats1[!duplicated(probe_stats1[,1]),] #doesn't work, because duplicated stops after 1875; why is that?
-
-no_of_multiple_assigned <- n_distinct(probe_stats1$SYMBOL)-n_distinct(probe_stats2$SYMBOL)
-
-```
-
-#Code Bernd (18.04.): mit Annotate_eset-funktion aus affycoretools
-```{r testAnnotateFunction}
 # annotateEset(object, x,
 #   columns = c("PROBEID", "ENTREZID", "SYMBOL", "GENENAME"),
 #   multivals = "first")
@@ -876,11 +893,12 @@ no_of_multiple_assigned <- n_distinct(probe_stats1$SYMBOL)-n_distinct(probe_stat
 library("affycoretools")
 test <- annotateEset(palmieri_filtered, hugene10sttranscriptcluster.db,
                      columns=c("PROBEID", "ENTREZID", "SYMBOL", "GENENAME"),
-                     multivals = "first")
+                     multivals = "first") #note: multivals = "filter", which would be the desired output, is not supported by annotateEset --> find out why! 
 
 test <- test[complete.cases(test@featureData@data),] #filter out NA values 
 
-test
+
+
 ```
 
 
@@ -930,12 +948,12 @@ transcript--clusters that do not map to gene symbols.
 
 
 ```{r excludeMultipleMappings, dependson="multipleMappings", cache=FALSE}
-ids_to_exlude <- ((featureNames(palmieri_filtered) %in% probe_stats$PROBEID) |
-               featureNames(palmieri_filtered)  %in% subset(anno_palmieri ,
+ids_to_exlude <- ((featureNames(palmieri_manfiltered) %in% probe_stats$PROBEID) |
+               featureNames(palmieri_manfiltered)  %in% subset(anno_palmieri,
                                                            is.na(SYMBOL))$PROBEID)
 table(ids_to_exlude)
 
-palmieri_final <- subset(palmieri_filtered, !ids_to_exlude)
+palmieri_final <- subset(palmieri_manfiltered, !ids_to_exlude)
 
 validObject(palmieri_final)
 
@@ -1357,12 +1375,12 @@ the complete data set, however, the two diseases might behave very differently
 so that a joint fit might not be appropriate).
 
 ```{r createDesign, eval=TRUE, dependson="excludeMultipleMappings" }
-individual <- as.character(Biobase::pData(palmieri_final)$Characteristics.individual.)
+individual <- as.character(Biobase::pData(test)$Characteristics.individual.)
 
-tissue <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.phenotype., " ", "_")
+tissue <- str_replace_all(Biobase::pData(test)$Factor.Value.phenotype., " ", "_")
 tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
 
-disease <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.disease., " ", "_")
+disease <- str_replace_all(Biobase::pData(test)$Factor.Value.disease., " ", "_")
 disease <- ifelse(disease == "Crohn's_disease", "CD", "UC")
 
 
@@ -1405,13 +1423,13 @@ requiring BH--corrected p--value below a certain threshold.
 ```{r createContrastMatrixAndFitModel, eval=TRUE, dependson="createDesign" }
 contrast_matrix_CD <- makeContrasts(I-nI, levels = design_palmieri_CD)
 
-palmieri_fit_CD <- eBayes(contrasts.fit(lmFit(palmieri_final[,disease == "CD"],
+palmieri_fit_CD <- eBayes(contrasts.fit(lmFit(test[,disease == "CD"],
                                 design = design_palmieri_CD),
                                 contrast_matrix_CD))
 
 contrast_matrix_UC <- makeContrasts(I-nI, levels = design_palmieri_UC)
 
-palmieri_fit_UC <- eBayes(contrasts.fit(lmFit(palmieri_final[,disease == "UC"],
+palmieri_fit_UC <- eBayes(contrasts.fit(lmFit(test[,disease == "UC"],
                                 design = design_palmieri_UC),
                                 contrast_matrix_UC))
 ```
@@ -1488,9 +1506,17 @@ overlap_CD <- length(intersect(subset(table_CD, P.Value < 0.001)$SYMBOL,
 
 overlap_UC <- length(intersect(subset(table_UC, P.Value < 0.001)$SYMBOL,
                                paper_DE_genes_UC)) / length(paper_DE_genes_UC)
-
 overlap_CD
 overlap_UC 
+
+#add total number of genes found with our method
+total_genenumber_CD <- length(subset(table_CD, P.Value < 0.001)$SYMBOL)
+total_genenumber_UC <- length(subset(table_UC, P.Value < 0.001)$SYMBOL)
+
+total_genenumber_CD
+total_genenumber_UC
+
+
 ```
 
 
@@ -1529,12 +1555,12 @@ expression.
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=FALSE, message=FALSE}
 DE_genes_CD <- subset(table_CD, adj.P.Val < 0.1)$PROBEID
 
-back_genes_idx <- genefinder(palmieri_final, as.character(DE_genes_CD), 
+back_genes_idx <- genefinder(test, as.character(DE_genes_CD), 
                        method="manhattan", scale="none")
 
 back_genes_idx <- sapply(back_genes_idx, function(x)x$indices)
 
-back_genes <-featureNames(palmieri_final)[back_genes_idx]
+back_genes <-featureNames(test)[back_genes_idx]
 back_genes <- setdiff(back_genes, DE_genes_CD)
 
     
