@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 author: "Bernd Klaus"
 output: html_document
 bibliography: MA_end_to_end.bib
@@ -363,6 +368,7 @@ SDRF <- AnnotatedDataFrame(SDRF)
 ```
 
 ```{r getSDRF from local directory}
+#passt so 
 sdrf_location <- file.path(raw_data_dir, "E-MTAB-2967.sdrf.txt")
 SDRF2 <- read.delim(sdrf_location)
 
@@ -692,9 +698,14 @@ phenotype_names <- c()
 disease_names <- c()
 
 for (i in 1:length(Biobase::pData(palmieri_eset)$Factor.Value.phenotype.)){
-  phenotype_name <- toString(Biobase::pData(palmieri_eset)$Factor.Value.phenotype.[i])
+  if(grepl ("non", toString(Biobase::pData(palmieri_eset)$Factor.Value.phenotype.[i])))
+    {phenotype_name="non-infl."}
+  else {phenotype_name = "infl."}
   phenotype_names <- c(phenotype_names, phenotype_name)
-  disease_name <- toString(Biobase::pData(palmieri_eset)$Factor.Value.disease.[i])
+  
+  if (grepl ("Crohn", toString(Biobase::pData(palmieri_eset)$Factor.Value.disease.[i])))
+    {disease_name="CD"}
+  else {disease_name="UC"}
   disease_names <- c(disease_names, disease_name)
 }
 
@@ -704,38 +715,13 @@ row_names_for_heatmap <- paste(row_names_dataframe$Phenotype, row_names_datafram
 
 ```
 
-```{r PCAMetricsCalibrated_2, fig.height = 8.5, eval = TRUE }
-dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
-colnames(dists) <- NULL 
-diag(dists) <- NA
-rownames(dists) <-  Biobase::pData(palmieri_eset)$Factor.Value.phenotype.
-hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
 
-pheatmap(dists, col = (hmcol),clustering_distance_rows = "manhattan",
-                                 clustering_distance_cols = "manhattan")
-         
-```
-#Alternative Heatmap with rownames indicating disease and phenotype
-```{r PCAMetricsCalibrated_2, fig.height = 8.5, eval = TRUE }
-dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
-colnames(dists) <- NULL 
-diag(dists) <- NA
-rownames(dists) <- row_names_for_heatmap
-hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
-
-pheatmap(dists, col = (hmcol),clustering_distance_rows = "manhattan",
-                                 clustering_distance_cols = "manhattan",
-         legend_breaks=c(min(dists), max(dists)), legend_labels=c("small difference", "big difference"))
-         
-```
-
-
-#Alternative Heatmap without "manhattan" as distance measure between rows and columns; also low and high difference indicated in legend 
+#Alternative Heatmap without "manhattan" as distance measure between rows and columns; also low and high difference indicated in legend; row names indicate tissue and disease, abbreviated 
 ```{r PCAMetricsCalibrated_2, fig.height = 8.5, eval = TRUE }
 dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 colnames(dists) <- NULL
 diag(dists) <- NA
-rownames(dists) <-  Biobase::pData(palmieri_eset)$Factor.Value.phenotype.
+rownames(dists) <- row_names_for_heatmap
 hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
 
 pheatmap(dists, col = (hmcol), legend=TRUE, legend_breaks=c(min(dists, na.rm=TRUE), max(dists, na.rm=TRUE)), legend_labels=(c("low difference", "high difference")))
@@ -813,11 +799,11 @@ palmieri_filtered <- subset(palmieri_eset, idx_thresh_median)
 ```{r alternative intensityBasedFiltering manually filtered}
 palmieri_medians <- rowMedians(exprs(palmieri_eset))
 
-hist_res <- hist(palmieri_medians, 100, col="#e7efd8", freq = FALSE, 
+hist_res <- hist(palmieri_medians, 100, col="cornsilk1", freq = FALSE, 
             main = "Histogram of the median intensities", 
             xlab = "Median intensities")
 
-abline(v=man_threshold, col="red", lwd=2)
+abline(v=man_threshold, col="coral3", lwd=2)
 
 man_threshold <- 4.5
 samples_cutoff <- min(no_of_samples)
@@ -876,7 +862,21 @@ dim(probe_stats)
 #alternative way of writing the %>%-function above; doesn't work!!!!
 ```{r multipleMappings_alternative_writing, dependson="annotateData"}
 
-probe_stats <- filter(summarize(group_by(anno_palmieri, PROBEID), no_of_matches = n_distinct(anno_palmieri$SYMBOL)), no_of_matches > 1)
+probe_stats <- anno_palmieri   %>%
+    group_by(PROBEID) %>%
+    summarize(no_of_matches = n_distinct(SYMBOL)) %>%
+    filter(no_of_matches > 1)
+
+probe_stats
+
+dim(probe_stats)
+
+
+anno_grouped <- group_by(anno_palmieri, PROBEID)
+anno_summarized <- summarize(anno_grouped, no_of_matches = n_distinct(SYMBOL))
+#fertigschreiben 
+
+probe_stats <- filter(summarize(group_by(anno_palmieri, PROBEID), no_of_matches = n_distinct(SYMBOL)), no_of_matches > 1)
 
 probe_stats
 
@@ -966,8 +966,16 @@ palmieri_final <- subset(palmieri_manfiltered, !ids_to_exlude)
 
 validObject(palmieri_final)
 
-fData(palmieri_final)$PROBEID <- rownames(fData(palmieri_final))
+#fData(palmieri_final)$PROBEID <- rownames(fData(palmieri_final))
+
+
+# match_id_in_anno <- match(fData(palmieri_final)$PROBEID, anno_palmieri$PROBEID)
+# fData(palmieri_final) <-  cbind(fData(palmieri_final) anno_palmieri[match_id_in_anno,]
+# stopifnot(all(rownames(fData(palmieri_final)) == fData(palmieri_final)$PROBEID))
+
 fData(palmieri_final) <- left_join(fData(palmieri_final), anno_palmieri)
+
+#leftjoin besser erklären!
 
 # restore rownames after left_join
 rownames(fData(palmieri_final)) <-fData(palmieri_final)$PROBEID 
