@@ -348,9 +348,7 @@ https_getAE <- function (accession, path = getwd(), type = "full", extract = TRU
 anno_AE <- https_getAE("E-MTAB-2967", path=raw_data_dir, type="raw")
 ```
 
-We now import the SDRF file directly from ArrayExpress
-in order to obtain the sample annotation.
-
+We now import the SDRF file from the raw data folder in order to obtain the sample annotation. 
 The raw data consists of one CEL file per sample (see below) and
 we use the CEL file names as row names for the imported data. 
 These names are given in a column
@@ -358,22 +356,12 @@ named `Array.Data.File` in the SDRF table. We turn the SDRF table into an
 ` AnnotatedDataFrame ` from the `r Biocpkg("Biobase") ` package that we
 will need later to create an `ExpressionSet` for our data [@Bioc].
 
-
-```{r getSDRF}
-SDRF <- read.delim(
-url("http://www.ebi.ac.uk/arrayexpress/files/E-MTAB-2967/E-MTAB-2967.sdrf.txt"))
-
-rownames(SDRF) <- SDRF$Array.Data.File
-SDRF <- AnnotatedDataFrame(SDRF)
-```
-
 ```{r getSDRF from local directory}
-#passt so 
 sdrf_location <- file.path(raw_data_dir, "E-MTAB-2967.sdrf.txt")
 SDRF2 <- read.delim(sdrf_location)
 
 rownames(SDRF2) <- SDRF$Array.Data.File
-SDRF2 <- AnnotatedDataFrame(SDRF)
+SDRF2 <- AnnotatedDataFrame(SDRF2)
 ```
 
 Before we move on to the actual raw data import, we will briefly introduce the
@@ -410,8 +398,8 @@ gene annotations from biomedical databases (annotation).
 The ExpressionSet class coordinates all of these data, so that one does not 
 have to worry about the details. However, some constrains have to be met. 
 In particular, the rownames of the `phenoData` (which holds the content of the
-SDRF file) have to match the column names of the assay data (as they represent the sample 
-identifiers), while the row names of the expression data have to match the 
+SDRF file) have to match the column names of the assay data (as they represent the sample
+identifiers), while the row names of the assay data have to match the 
 row names of the `featureData` (as they represent the feature identifiers). This is 
 illustrated in the figure.
 
@@ -437,33 +425,29 @@ The function ` exprs ` will return the expression data itself as a matrix.
 
 ## Import of the raw microarray data 
 
+In the first step of the analysis, we create the Expression Set "raw_data", which contains array data, pheno data as well as the information of the correct chip annotation package to use:
+
 The analysis of Affymetrix arrays starts with CEL files. These are the result
 of the processing of the raw image files using the Affymetrix software and contain
 estimated probe intensity values. Each CEL file additionally contains some 
 metadata, such as a chip identifier. 
 
-The function ` read.celfiles `
-from the `r Biocpkg("oligo") ` [@oligo] can be
-used to import the files. The package automatically uses
-`r  Biocannopkg("pd.hugene.1.0.st.v1") ` as the chip annotation package as the 
-chip--type is also stored in the .CEL files.
+We use the function ` read.celfiles`  from the `r Biocpkg("oligo") ` [@oligo] to import the files. This automatically creates an ExpressionSet, fills the sections "array data" with the data from the CEL files and uses the correct chip annotation package, 
+`r  Biocannopkg("pd.hugene.1.0.st.v1") `, as the 
+chip--type is also stored in the .CEL files. 
+Further, We specify our `AnnotatedDataFrame` created earlier from the SDRF file as `phenoData`. Thus, We have to be sure that we import the CEL files in the order that corresponds to the SDRF
+table --- to enforce this, we use the column `Array.Data.File` of the `SDRF` table as the `filenames` argument.
 
-We specify our `AnnotatedDataFrame` created earlier as `phenoData`. Thus, We have 
-to be sure that we import the CEL files in the order that corresponds to the SDRF
-table --- to enforce this, we use the column `Array.Data.File` of the `SDRF` table as the `filenames` 
-argument.
-
-Finally, we check whether the object created is valid. (e.g. sample names 
+Finally, we check whether the object created is valid (e.g. sample names 
 match between the different tables).
 
-We collect the information about 
-the CEL files and import and them into the variable `raw_data`:
+We collect the information about the CEL files and import and them into the variable `raw_data`:
 
 
 ```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF", warning = FALSE }
 raw_data <- read.celfiles(filenames = file.path(raw_data_dir, 
-                                                SDRF$Array.Data.File),
-                         verbose = FALSE, phenoData = SDRF)
+                                                SDRF2$Array.Data.File),
+                         verbose = FALSE, phenoData = SDRF2)
 validObject(raw_data)
 ```
 
@@ -767,35 +751,8 @@ no_of_samples <- table(paste0(Biobase::pData(palmieri_eset)$Factor.Value.disease
 no_of_samples 
 ```
 
-In our case this would be `r min(no_of_samples)`.
 
 
-```{r intensityBasedFiltering, fig.width=10, fig.height=6, eval=TRUE}
-palmieri_medians <- rowMedians(exprs(palmieri_eset))
-
-hist_res <- hist(palmieri_medians, 100, col="#e7efd8", freq = FALSE, 
-            main = "Histogram of the median intensities", 
-            xlab = "Median intensities")
-
-emp_mu <- hist_res$breaks[which.max(hist_res$density)]
-emp_sd <- mad(palmieri_medians)/2
-prop_cental <- 0.50
-
-lines(sort(palmieri_medians), prop_cental*dnorm(sort(palmieri_medians),
-                              mean = emp_mu , sd = emp_sd),
-                              col = "grey10", lwd = 4)
-
-cut_val <- 0.05 / prop_cental
-thresh_median <- qnorm(0.05 / prop_cental, emp_mu, emp_sd)
-
-samples_cutoff <- min(no_of_samples)
-
-idx_thresh_median <- apply(exprs(palmieri_eset), 1, function(x){
-                                sum(x > thresh_median) >= samples_cutoff})
-table(idx_thresh_median)
-
-palmieri_filtered <- subset(palmieri_eset, idx_thresh_median)
-```
 ```{r alternative intensityBasedFiltering manually filtered}
 palmieri_medians <- rowMedians(exprs(palmieri_eset))
 
@@ -836,13 +793,6 @@ anno_palmieri  <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
                                   keytype="PROBEID")
 ```
 
-```{r}
-#SR: suggestion for annotation and filtering, in my opinion easily understandable 
-anno_palmieri <- anno_palmieri[complete.cases(anno_palmieri$SYMBOL),] #filter out NA values 
-
-anno_palmieri <-  #filter out duplicated values; note, however, that it keeps the first of each type 
-
-```
 
 ## Removing multiple mappings and building custom annotations
 
@@ -850,105 +800,16 @@ Many transcript--cluster identifiers will map to multiple gene symbols.
 We compute a summary table in the code below to see how many there are.
 
 ```{r multipleMappings, dependson="annotateData"}
-probe_stats <- anno_palmieri   %>%
-    group_by(PROBEID) %>%
-    summarize(no_of_matches = n_distinct(SYMBOL)) %>%
-    filter(no_of_matches > 1)
-
-probe_stats
-
-dim(probe_stats)
-```
-#alternative way of writing the %>%-function above; doesn't work!!!!
-```{r multipleMappings_alternative_writing, dependson="annotateData"}
-
-probe_stats <- anno_palmieri   %>%
-    group_by(PROBEID) %>%
-    summarize(no_of_matches = n_distinct(SYMBOL)) %>%
-    filter(no_of_matches > 1)
-
-probe_stats
-
-dim(probe_stats)
-
 
 anno_grouped <- group_by(anno_palmieri, PROBEID)
 anno_summarized <- summarize(anno_grouped, no_of_matches = n_distinct(SYMBOL))
-#fertigschreiben 
+anno_filtered <- filter(anno_summarized, no_of_matches > 1)
 
-probe_stats <- filter(summarize(group_by(anno_palmieri, PROBEID), no_of_matches = n_distinct(SYMBOL)), no_of_matches > 1)
-
-probe_stats
+probe_stats <- anno_filtered 
 
 dim(probe_stats)
-
-#old code: 
-#probe_stats <- anno_palmieri   %>%
-#    group_by(PROBEID) %>%
-#    summarize(no_of_matches = n_distinct(SYMBOL)) %>%
-#    filter(no_of_matches > 1)
 ```
 
-#Code suggested by Bernd (18.04.): mit Annotate_eset-funktion aus affycoretools
-```{r testAnnotateFunction}
-
-source("https://bioconductor.org/biocLite.R")
-biocLite("affycoretools") #download package
-# annotateEset(object, x,
-#   columns = c("PROBEID", "ENTREZID", "SYMBOL", "GENENAME"),
-#   multivals = "first")
-
-library("affycoretools")
-test <- annotateEset(palmieri_filtered, hugene10sttranscriptcluster.db,
-                     columns=c("PROBEID", "ENTREZID", "SYMBOL", "GENENAME"),
-                     multivals = "first") #note: multivals = "filter", which would be the desired output, is not supported by annotateEset --> find out why! 
-
-test <- test[complete.cases(test@featureData@data),] #filter out NA values 
-
-
-
-```
-
-
-
-```{r annotateEset method modified}
-#doesn't work
-setMethod("annotateEset", c("ExpressionSet","ChipDb"),
-          function(object, x, columns = c("PROBEID","ENTREZID","SYMBOL","GENENAME"), multivals = "first"){
-    ## Doing mapIds(chipDb, featureNames(object), "PROBEID","PROBEID") fails for many packages, and wastes compute cycles
-    ## so we just add that by hand.
-    addcol <- FALSE
-    if(any(columns == "PROBEID")) {
-        addcol <- TRUE
-        columns <- columns[-grep("PROBEID", columns)]
-        collst <- list(PROBEID = featureNames(object))
-    }
-    multivals <- switch(multivals,
-                        first = "first",
-                        list = "CharacterList",
-                        CharacterList = "CharacterList",
-                        filter = "filter",
-                        asNA = "asNA",
-                        stop("The multivals argument should be 'first', 'list' or 'CharacterList'", call. = FALSE))
-    annolst <- lapply(columns, function(y) mapIds(x, featureNames(object), y, "PROBEID", multiVals = multivals))
-    if(addcol) annolst <- c(collst, annolst)
-    anno <- switch(multivals,
-                   first = as.data.frame(annolst),
-                   DataFrame(annolst))
-    names(anno) <- if(addcol) c("PROBEID", columns) else columns
-    if(!isTRUE(all.equal(row.names(anno), featureNames(object))))
-        stop(paste("There appears to be a mismatch between the ExpressionSet and",
-                   "the annotation data.\nPlease ensure that the summarization level",
-                   "for the ExpressionSet and the annotation package are the same.\n"),
-             call. = FALSE)
-    andf <- dfToAnnoDF(anno)
-    featureData(object) <- andf
-    stopifnot(validObject(object))
-    object
-})
-test2 <- annotateEset(palmieri_filtered, hugene10sttranscriptcluster.db,
-                     multivals = "filter")
-```
 
 We have  over 2000 transcript--clusters that map to multiple gene symbols.
 It is difficult to decide which mapping is "correct". Therefore,
@@ -966,12 +827,6 @@ palmieri_final <- subset(palmieri_manfiltered, !ids_to_exlude)
 
 validObject(palmieri_final)
 
-#fData(palmieri_final)$PROBEID <- rownames(fData(palmieri_final))
-
-
-# match_id_in_anno <- match(fData(palmieri_final)$PROBEID, anno_palmieri$PROBEID)
-# fData(palmieri_final) <-  cbind(fData(palmieri_final) anno_palmieri[match_id_in_anno,]
-# stopifnot(all(rownames(fData(palmieri_final)) == fData(palmieri_final)$PROBEID))
 
 fData(palmieri_final) <- left_join(fData(palmieri_final), anno_palmieri)
 
