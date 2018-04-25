@@ -445,7 +445,7 @@ We collect the information about the CEL files and import and them into the vari
 
 
 ```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF", warning = FALSE }
-raw_data <- read.celfiles(filenames = file.path(raw_data_dir, 
+raw_data <- oligo::read.celfiles(filenames = file.path(raw_data_dir, 
                                                 SDRF2$Array.Data.File),
                          verbose = FALSE, phenoData = SDRF2)
 validObject(raw_data)
@@ -489,9 +489,39 @@ dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
        asp = 1.0)
      + scale_colour_brewer(palette = "Set2"))
 
-boxplot(raw_data, target = "core", 
-        main = "Boxplots of log2-intensities for the raw data")
+#boxplot(raw_data, target = "core", 
+#        main = "Boxplots of log2-intensities for the raw data")
+
+boxplot(raw_data, target="core", transfo=log2)
+
+
 ```
+
+
+```{r boxplot data for RLE}
+
+
+row_medians_assayData <- rowMedians(as.matrix(exp_raw))
+RLE_data <- sweep(exp_raw, 1, row_medians_assayData)
+#boxplot(RLE_data, target="core") #problem: now not oligo::boxplot is called anymore, because RLE_data is no expression set; transfo=log2 isn't default anymore; also, nsamples isn't set anymore, so that the boxplotting takes FOREVER (literally). Therefore, a random subset of the data has to be generated first:
+
+RLE_data_subset <- (RLE_data[sample(nrow(RLE_data), 50),])
+
+#RLE_data_subset_stacked <- stack(as.data.frame(RLE_data_subset))
+#ggplot(RLE_data_subset_stacked) + geom_boxplot(aes(x=ind, y=values))
+#https://stackoverflow.com/questions/21508909/create-boxplot-from-matrix-with-ggplot2
+
+
+#boxplot(RLE_data_subset)
+RLE_data_subset_trafo <- as.data.frame(t(RLE_data_subset))
+RLE_data_subset_trafo$group <- rownames(RLE_data_subset_trafo)
+RLE_data_subset_trafo.m <- melt(RLE_data_subset_trafo, id.vars= "group")
+ggplot(RLE_data_subset_trafo.m, aes (group, value)) + geom_boxplot() + geom_jitter (width = 0.5)#--> schöne Idee, aber der melting Schritt benötigt viel zu viel Rechenleistung
+#https://stackoverflow.com/questions/8510870/boxplot-from-row-values-in-a-dataframe
+
+
+```
+
 
 The PCA (performed on the log--intensity scale) plot of the raw data shows 
 that the first principal component differentiates  between the diseases. 
@@ -598,6 +628,32 @@ although strictly speaking RMA is merely a summarization method
 
 ```{r RMAcalibration, eval=TRUE}
 palmieri_eset <- oligo::rma(raw_data, target="core")
+```
+
+
+```{r boxplot data for RLE_after RMA}
+
+log_assay_data <- log2(exprs(palmieri_eset))
+row_medians_assayData <- rowMedians(as.matrix(log_assay_data))
+RLE_data <- sweep(log_assay_data, 1, row_medians_assayData)
+#boxplot(RLE_data, target="core") #problem: now not oligo::boxplot is called anymore, because RLE_data is no expression set; transfo=log2 isn't default anymore; also, nsamples isn't set anymore, so that the boxplotting takes FOREVER (literally). Therefore, a random subset of the data has to be generated first:
+
+RLE_data_subset <- RLE_data
+
+#RLE_data_subset_stacked <- stack(as.data.frame(RLE_data_subset))
+#ggplot(RLE_data_subset_stacked) + geom_boxplot(aes(x=ind, y=values))
+#https://stackoverflow.com/questions/21508909/create-boxplot-from-matrix-with-ggplot2
+
+
+#boxplot(RLE_data_subset)
+RLE_data_subset_trafo <- as.data.frame(t(RLE_data_subset))
+RLE_data_subset_trafo$group <- rownames(RLE_data_subset_trafo)
+RLE_data_subset_trafo.m <- melt(RLE_data_subset_trafo, id.vars= "group")
+ggplot(RLE_data_subset_trafo.m, aes (group, value)) + geom_boxplot(outlier.size=0.2)
+
+#https://stackoverflow.com/questions/8510870/boxplot-from-row-values-in-a-dataframe
+
+
 ```
 
 The parameter `target` defines the degree of summarization, the
