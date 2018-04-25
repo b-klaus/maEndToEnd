@@ -140,212 +140,13 @@ samples, e.g. the experimental group(s) they belong to.
 # Download the raw data and the annotation data 
 
 With the code below, we download the raw data from
-[ArrayExpress](https://www.ebi.ac.uk/arrayexpress/) [@Kolesnikov_2014].
+[ArrayExpress](https://www.ebi.ac.uk/arrayexpress/) [@Kolesnikov_2014] by using the getAE-function.
 It is saved in the `raw_data_dir` created above. The names of the downloaded files are returned as a list.
-
-We use a custom function here for now, `https_getAE` , since EBI
-has recently switched to https and `getAE` only supports http.
-See als <https://www.ebi.ac.uk/services>.
-
-```{r my_getAE, echo=TRUE}
-
-https_getAE <- function (accession, path = getwd(), type = "full", extract = TRUE, 
-          local = FALSE, sourcedir = path) 
-{
-  if (!local) {
-    baseURL = "https://www.ebi.ac.uk/arrayexpress/xml/v2/files"
-    xmlURL = getURL(paste(baseURL, accession, sep = "/"))
-    xml = xmlTreeParse(xmlURL, useInternalNodes = TRUE, isURL=FALSE)
-    sdrfURL = xpathSApply(xml, "/files/experiment/file[kind='sdrf' and extension='txt']/url", 
-                          xmlValue)
-    sdrfFile = xpathSApply(xml, "/files/experiment/file[kind='sdrf' and extension='txt']/name", 
-                           xmlValue)
-    idfURL = xpathSApply(xml, "/files/experiment/file[kind='idf' and extension='txt']/url", 
-                         xmlValue)
-    idfFile = xpathSApply(xml, "/files/experiment/file[kind='idf' and extension='txt']/name", 
-                          xmlValue)
-    adfURL = xpathApply(xml, "/files/experiment/file[kind='adf' and extension='txt']/url", 
-                        xmlValue)
-    adfFiles = xpathApply(xml, "/files/experiment/file[kind='adf' and extension='txt']/name", 
-                          xmlValue)
-    rawArchiveURL = xpathApply(xml, "/files/experiment/file[kind='raw' and extension='zip']/url", 
-                               xmlValue)
-    procArchiveURL = xpathApply(xml, "/files/experiment/file[kind='processed' and extension='zip']/url", 
-                                xmlValue)
-  }
-  else {
-    allfiles = list.files(sourcedir)
-    sdrfFile = allfiles[grep(paste(accession, ".sdrf.txt$", 
-                                   sep = ""), allfiles)]
-    if (length(sdrfFile) == 0) 
-      stop("SDRF file not found in directory ", sourcedir)
-    sdrfURL = paste("file:/", sourcedir, sdrfFile, sep = "/")
-    idfFile = allfiles[grep(paste(accession, ".idf.txt$", 
-                                  sep = ""), allfiles)]
-    if (length(idfFile) == 0) 
-      warning("IDF file not found in directory ", sourcedir)
-    idfURL = paste("file:/", sourcedir, idfFile, sep = "/")
-    ph = try(read.AnnotatedDataFrame(sdrfFile, path = sourcedir, 
-                                     row.names = NULL, blank.lines.skip = TRUE, fill = TRUE, 
-                                     varMetadata.char = "$"))
-    if (inherits(ph, "try-error")) {
-      warning("Unable to retrieve ADF reference from SDRF. Reading any ADF in directory.")
-      adfFiles = allfiles[grep(".adf.txt$", allfiles)]
-    }
-    else {
-      adr = unique(pData(ph)[, getSDRFcolumn("ArrayDesignREF", 
-                                             varLabels(ph))])
-      adfFiles = paste(adr, ".adf.txt", sep = "")
-    }
-    if (all(file.exists(file.path(sourcedir, adfFiles)))) {
-      adfURL = paste("file:/", sourcedir, adfFiles, sep = "/")
-      downloadADF = FALSE
-    }
-    else {
-      filesURL = "https://www.ebi.ac.uk/arrayexpress/files"
-      adfURL = paste(filesURL, adr, adfFiles, sep = "/")
-      downloadADF = TRUE
-    }
-    rawArchiveURL = NULL
-    procArchiveURL = NULL
-    rawArchive = allfiles[grep(paste(accession, ".raw.[0-9]{1,}.zip", 
-                                     sep = ""), allfiles)]
-    if (length(rawArchive) != 0) 
-      rawArchiveURL = paste("file:/", sourcedir, rawArchive, 
-                            sep = "/")
-    else warning("No raw files found in directory ", sourcedir)
-    processedArchive = allfiles[grep(paste(accession, ".processed.[0-9]{1,}.zip", 
-                                           sep = ""), allfiles)]
-    if (length(processedArchive) != 0) 
-      procArchiveURL = paste("file:/", sourcedir, processedArchive, 
-                             sep = "/")
-    else warning("No processed data files found in directory ", 
-                 sourcedir)
-  }
-  if (length(sdrfURL) > 1) {
-    warning("Found two SDRF files: \n", paste(sdrfURL, "\n"))
-    hybSDRF = grep("hyb.sdrf", sdrfURL)
-    if (length(hybSDRF) > 0) {
-      message("Choosing ", sdrfURL[hybSDRF])
-      sdrfURL = sdrfURL[hybSDRF]
-      sdrfFile = sdrfFile[hybSDRF]
-    }
-    else {
-      warning("Unable to choose SDRF file. Please report experiment to miamexpress@ebi.ac.uk")
-    }
-  }
-  if (!local || path != sourcedir || downloadADF) {
-    adfFiles <- lapply(adfURL, function(url) {
-      filedest = paste(path, basename(url), sep = "/")
-      dnld = try(download.file(url, filedest, mode = "wb"))
-      if (inherits(dnld, "try-error") || file.info(filedest)$size == 
-          0) {
-        warning(paste(url, " does not exist or is empty. \n"), 
-                sep = "")
-        adffile = NULL
-      }
-      else {
-        adffile = basename(filedest)
-      }
-      return(adffile)
-    })
-    if (!is.null(adfFiles)) 
-      adfFiles = unlist(adfFiles)
-  }
-  if (!local || path != sourcedir) {
-    sdrfFileDest = paste(path, sdrfFile, sep = "/")
-    dnld = try(download.file(sdrfURL, sdrfFileDest, mode = "wb"))
-    if (inherits(dnld, "try-error") || file.info(sdrfFileDest)$size == 
-        0) {
-      warning(paste(sdrfFile, " does not exist or is empty. The object will not have featureData or phenoData. \n"), 
-              sep = "")
-      sdrfFile = NULL
-      adffile = NULL
-    }
-    idfFileDest = paste(path, idfFile, sep = "/")
-    dnld = try(download.file(idfURL, idfFileDest, mode = "wb"))
-    if (inherits(dnld, "try-error") || file.info(idfFileDest)$size == 
-        0) {
-      warning(paste(idfFile, " does not exist or is empty. \n"), 
-              sep = "")
-      idfFile = NULL
-    }
-    rawArchive = NULL
-    processedArchive = NULL
-    if (type != "mageFilesOnly" && !is.null(rawArchiveURL) && 
-        (type == "full" || type == "raw")) {
-      message("Copying raw data files\n")
-      rawArchive <- lapply(rawArchiveURL, function(url) {
-        filedest = paste(path, basename(url), sep = "/")
-        dnld = try(download.file(url, filedest, mode = "wb"))
-        if (inherits(dnld, "try-error") || file.info(filedest)$size == 
-            0) {
-          warning(paste(url, " does not exist or is empty. \n"), 
-                  sep = "")
-        }
-        else {
-          return(filedest)
-        }
-      })
-      if (!is.null(rawArchive)) {
-        rawArchive = unlist(rawArchive)
-        rawArchive = basename(rawArchive)
-      }
-    }
-    if ((type != "mageFilesOnly" && type == "full" || type == 
-         "processed") && !is.null(procArchiveURL)) {
-      message("Copying processed data files\n")
-      processedArchive <- lapply(procArchiveURL, function(url) {
-        filedest = paste(path, basename(url), sep = "/")
-        dnld = try(download.file(url, filedest, mode = "wb"))
-        if (inherits(dnld, "try-error") || file.info(filedest)$size == 
-            0) {
-          warning(paste(url, " does not exist or is empty. \n"), 
-                  sep = "")
-        }
-        else {
-          return(filedest)
-        }
-      })
-      if (!is.null(processedArchive)) {
-        processedArchive = unlist(processedArchive)
-        processedArchive = basename(processedArchive)
-      }
-    }
-  }
-  rawFiles = NULL
-  processedFiles = NULL
-  if (extract) {
-    message("Unpacking data files")
-    if (!is.null(rawArchive)) 
-      rawFiles <- lapply(rawArchive, function(zipfile) {
-        rawfiles = extract.zip(file = paste(path, zipfile, 
-                                            sep = "/"))
-        return(rawfiles)
-      })
-    if (!is.null(processedArchive)) 
-      processedFiles <- lapply(processedArchive, function(zipfile) {
-        procfiles = extract.zip(file = paste(path, zipfile, 
-                                             sep = "/"))
-        return(procfiles)
-      })
-    if (!is.null(rawFiles)) 
-      rawFiles = unlist(rawFiles)
-    if (!is.null(processedFiles)) 
-      processedFiles = unlist(processedFiles)
-  }
-  res = list(path = path, rawFiles = rawFiles, rawArchive = rawArchive, 
-             processedFiles = processedFiles, processedArchive = processedArchive, 
-             sdrf = sdrfFile, idf = idfFile, adf = adfFiles)
-  return(res)
-}
-
-```
 
 
 ```{r getDataEBI, eval=TRUE, results='hide', message=FALSE}
 
-anno_AE <- https_getAE("E-MTAB-2967", path=raw_data_dir, type="raw")
+anno_AE <- getAE("E-MTAB-2967", path=raw_data_dir, type="raw")
 ```
 
 We now import the SDRF file from the raw data folder in order to obtain the sample annotation. 
@@ -492,7 +293,7 @@ dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
 #boxplot(raw_data, target = "core", 
 #        main = "Boxplots of log2-intensities for the raw data")
 
-boxplot(raw_data, target="core", transfo=log2)
+boxplot(raw_data, target="core")
 
 
 ```
@@ -623,7 +424,7 @@ method for background correction, quantile normalization and
 the RMA (robust multichip average) algorithm for summarization.
 
 This series of steps as a whole is commonly referred to as RMA algorithm,
-although strictly speaking RMA is merely a summarization method
+although strictly speaking RMA is merely a summarization method.
 [@Irizarry_2003; @Bolstad_2003; @Irizarry_2003a].
 
 ```{r RMAcalibration, eval=TRUE}
@@ -714,8 +515,7 @@ the `dist` function. We need to transpose the expression values since
 the function computes the distances between the rows (i.e. genes in our case) by
 default. The default distance  is the Euclidean one. However this can  be
 changed and we choose the Manhattan distance here (it uses absolute instead of
-squared distances). We set the diagonal of the distance matrix to ` NA ` in order 
-to increase the contrast of the color coding. Those diagonal entries do 
+squared distances), as it is more robust. We set the diagonal of the distance matrix to ` NA ` in order to increase the contrast of the color coding. Those diagonal entries do 
 not contain information since the distance of a sample to itself is
 always equal to zero.
 
@@ -793,19 +593,7 @@ set of probes in practice. In the histogram of the gene--wise medians, we
 can clearly see an enrichment of low medians on the left hand side. 
 These represent the genes we want to filter. 
 
-In order to infer a cutoff from the data, we inspect the histogram of the median--intensities.
-We visually fit a central normal distribution given by \(0.5 \cdot N(5.1, 1.18)\) 
-to the probe--wise medians, which represents their typical behavior in the data set at hand.
-
-Then we use the 5% quantile of this distribution as a threshold,  We keep
-only those genes that show an expression higher than the threshold in at least
-as many arrays as in  the smallest experimental group.
-
-```{r expGroups, dependson="PCAMetricsCalibrated"}
-no_of_samples <- table(paste0(Biobase::pData(palmieri_eset)$Factor.Value.disease., "_", 
-                        Biobase::pData(palmieri_eset)$Factor.Value.phenotype.))
-no_of_samples 
-```
+In order to infer a cutoff from the data, we inspect the histogram of the median intensities. We visually set a cutoff line to the left of the histogram peak as `man_threshold`, in order to not exclude too many genes.
 
 
 
@@ -816,9 +604,12 @@ hist_res <- hist(palmieri_medians, 100, col="cornsilk1", freq = FALSE,
             main = "Histogram of the median intensities", 
             xlab = "Median intensities")
 
-abline(v=man_threshold, col="coral3", lwd=2)
 
 man_threshold <- 4.5
+
+abline(v=man_threshold, col="coral3", lwd=2)
+
+
 samples_cutoff <- min(no_of_samples)
 
 
@@ -840,6 +631,7 @@ from `r Biocpkg("AnnotationDbi") ` to query the gene symbols and associated
 short descriptions for the transcript clusters. For each cluster, we add the 
 gene symbol and a short description of the gene the cluster represents. 
 
+In a second step, we directly filter out the probes that don't map to a gene, that is that don't have a gene Symbol assigned. 
 
 ```{r annotateData, eval=TRUE, dependson="intensityBasedFiltering", message = FALSE}
 
@@ -847,18 +639,25 @@ anno_palmieri  <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
                                   keys=(featureNames(palmieri_filtered)),
                                   columns = c("SYMBOL", "GENENAME"),
                                   keytype="PROBEID")
+
+anno_palmieri <- (subset(anno_palmieri, !is.na(SYMBOL)))
 ```
 
 
 ## Removing multiple mappings and building custom annotations
 
 Many transcript--cluster identifiers will map to multiple gene symbols.
-We compute a summary table in the code below to see how many there are.
 
+
+We compute a summary table in the code below to see how many there are. First, we group anno_palmieri for their PROBEID; that way, the subsequent operations aren't carried through for each single row, but for each group, that is each PROBEID.
+We then summarize the groups and indicate the number of different genes assigned to a probe in the column `no_of_matches`. 
+Now, we filter for PROBEIDs with multiple matches, that is when `no_of_matches > 1`.
+
+With `dim(probe_stats)`, we can see how many probes have been mapped to multiple genes.
 ```{r multipleMappings, dependson="annotateData"}
 
 anno_grouped <- group_by(anno_palmieri, PROBEID)
-anno_summarized <- summarize(anno_grouped, no_of_matches = n_distinct(SYMBOL))
+anno_summarized <- dplyr::summarize(anno_grouped, no_of_matches = n_distinct(SYMBOL))
 anno_filtered <- filter(anno_summarized, no_of_matches > 1)
 
 probe_stats <- anno_filtered 
@@ -867,26 +666,30 @@ dim(probe_stats)
 ```
 
 
-We have  over 2000 transcript--clusters that map to multiple gene symbols.
+We have close to 2000 transcript clusters that map to multiple gene symbols.
 It is difficult to decide which mapping is "correct". Therefore,
-we exclude these transcript--clusters. Additionally, we also exclude
-transcript--clusters that do not map to gene symbols.
+we exclude these transcript clusters. 
+We also have to exclude the PROBEIDs we have just excluded from the feature data we have generated before in `anno_palmieri`. We name this new feature data `anno_palmieri_new`, and we get it by left-joining `fData(palmieri_final)`and `anno_palmieri`. 
+A left-join keeps the rows and columns of the first argument and adds the columns of the second argument.
+Recall that fData enables us to access the feature data of an expression set.  
+We add the column "PROBEID" to the feature data fData(palmieri_final). By left-joining with anno_palmieri, we add the "SYMBOL" and "GENENAME" columns from anno_palmieri, and thus get the feature Data for the filtered probes.
+
+
 
 
 ```{r excludeMultipleMappings, dependson="multipleMappings", cache=FALSE}
-ids_to_exlude <- ((featureNames(palmieri_manfiltered) %in% probe_stats$PROBEID) |
-               featureNames(palmieri_manfiltered)  %in% subset(anno_palmieri,
-                                                           is.na(SYMBOL))$PROBEID)
+ids_to_exlude <- (featureNames(palmieri_manfiltered) %in% probe_stats$PROBEID)
+
 table(ids_to_exlude)
 
 palmieri_final <- subset(palmieri_manfiltered, !ids_to_exlude)
 
 validObject(palmieri_final)
 
+fData(palmieri_final)$PROBEID <- rownames(fData(palmieri_final))
+fData(palmieri_final)<- left_join(fData(palmieri_final), anno_palmieri)
 
-fData(palmieri_final) <- left_join(fData(palmieri_final), anno_palmieri)
 
-#leftjoin besser erklären!
 
 # restore rownames after left_join
 rownames(fData(palmieri_final)) <-fData(palmieri_final)$PROBEID 
