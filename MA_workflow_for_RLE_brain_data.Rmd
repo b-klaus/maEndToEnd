@@ -1,0 +1,120 @@
+---
+title: "MA_Workflow_for_RLE_sample"
+output: html_document
+---
+
+```{r options, include=FALSE}
+library(BiocStyle)
+library(knitr)
+options(digits=3, width=80)
+opts_chunk$set(echo=TRUE,tidy=FALSE,include=TRUE,
+               dev=c('png', 'pdf'), fig.width = 6, fig.height = 3.5,
+               comment = '  ', dpi = 300,
+cache=FALSE)
+```
+
+
+```{r, echo=FALSE, results="hide", warning=FALSE, eval=TRUE}
+suppressPackageStartupMessages({
+    library("maEndToEnd")
+})
+```
+
+We will store these files in the directory **raw\_data\_dir\_brain** which defaults to the subdirectory
+`rawDataMAWorkflow_RLE` of the current working directory:
+
+```{r generate folder for raw data, echo = TRUE}
+raw_data_dir_brain <- file.path(getwd(), "rawDataMAWorkflow_RLE")
+
+if(!dir.exists(raw_data_dir_brain)){
+    dir.create(raw_data_dir_brain)
+}
+
+```
+
+```{r getDataEBI, eval=TRUE, results='hide', message=FALSE}
+
+anno_AE_brain <- getAE("GSE2164", path=raw_data_dir_brain, type="raw")
+```
+```{r getSDRF from local directory}
+sdrf_location <- file.path(raw_data_dir_brain, "E-GEOD-2164.sdrf.txt")
+SDRF_brain <- read.delim(sdrf_location)
+
+rownames(SDRF_brain) <- SDRF_brain$Array.Data.File
+SDRF_brain <- AnnotatedDataFrame(SDRF_brain)
+
+```
+
+Note in the next step, that we only import the 27 files mentioned in the paper, that is the ones analyzed with the A↵ymetrix HG-U95A microarray, as opposed to the other ones analyzed with a "v2" of the same array.
+```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF from local directory", warning = FALSE }
+raw_data_brain <- oligo::read.celfiles(filenames = file.path(raw_data_dir_brain, 
+                                                SDRF_brain$Array.Data.File[grep("_95A_", SDRF_brain$Scan.Name)]),
+                         verbose = FALSE, phenoData = SDRF_brain[grep("_95A_", SDRF_brain$Scan.Name)])
+validObject(raw_data_brain)
+```
+```{r modify pData}
+
+Biobase::pData(raw_data_brain) <- Biobase::pData(raw_data)[, c("Source.Name",
+                                     "Characteristics.individual.",
+                                     "Factor.Value.disease.",
+                                     "Factor.Value.phenotype.")]
+```
+
+
+
+```{r boxplot data for RLE}
+exp_raw <- log2(exprs(raw_data_brain))
+row_medians_assayData <- rowMedians(as.matrix(exp_raw))
+RLE_data <- sweep(exp_raw, 1, row_medians_assayData)
+#boxplot(RLE_data, target="core") #problem: now not oligo::boxplot is called anymore, because RLE_data is no expression set; transfo=log2 isn't default anymore; also, nsamples isn't set anymore, so that the boxplotting takes FOREVER (literally). Therefore, a random subset of the data has to be generated first:
+
+RLE_data_subset <- (RLE_data[sample(nrow(RLE_data), 10000),])
+
+#RLE_data_subset_stacked <- stack(as.data.frame(RLE_data_subset))
+#ggplot(RLE_data_subset_stacked) + geom_boxplot(aes(x=ind, y=values))
+#https://stackoverflow.com/questions/21508909/create-boxplot-from-matrix-with-ggplot2
+
+
+#boxplot(RLE_data_subset)
+RLE_data_subset_trafo <- as.data.frame(t(RLE_data_subset))
+RLE_data_subset_trafo$group <- rownames(RLE_data_subset_trafo)
+RLE_data_subset_trafo.m <- melt(RLE_data_subset_trafo, id.vars= "group")
+ggplot(RLE_data_subset_trafo.m, aes (group, value)) + geom_boxplot(outlier.shape=NA) +
+  ylim(c(-1.5, 5))
+#https://stackoverflow.com/questions/8510870/boxplot-from-row-values-in-a-dataframe
+
+
+```
+
+```{r RMAcalibration, eval=TRUE}
+normalized_eset_brain <- oligo::rma(raw_data_brain, normalize=FALSE)
+#note: target="core" musste entfernt haben, weil ich ein ExpressionFeatureSet und kein GeneFeatureSet habe; wie ist es dazu gekommen? 
+#class(raw_data_brain)
+#[1] "ExpressionFeatureSet"
+#attr(,"package")
+#[1] "oligoClasses"
+#> class(raw_data)
+#[1] "GeneFeatureSet"
+#attr(,"package")
+#[1] "oligoClasses"
+```
+
+```{r boxplot data for RLE_after RMA without normalization}
+
+log_assay_data <- exprs(normalized_eset_brain)
+row_medians_assayData <- rowMedians(as.matrix(log_assay_data))
+RLE_data <- sweep(log_assay_data, 1, row_medians_assayData)
+#RLE_data_subset_stacked <- stack(as.data.frame(RLE_data_subset))
+#ggplot(RLE_data_subset_stacked) + geom_boxplot(aes(x=ind, y=values))
+#https://stackoverflow.com/questions/21508909/create-boxplot-from-matrix-with-ggplot2
+
+
+#boxplot
+RLE_data_trafo <- as.data.frame(t(RLE_data))
+RLE_data_trafo$group <- rownames(RLE_data_trafo)
+RLE_data_trafo.m <- melt(RLE_data_trafo, id.vars= "group")
+ggplot(RLE_data_trafo.m, aes (group, value)) + geom_boxplot(outlier.shape=NA)  +
+  ylim(c(-1.5, 5))
+
+#https://stackoverflow.com/questions/8510870/boxplot-from-row-values-in-a-dataframe
+```
