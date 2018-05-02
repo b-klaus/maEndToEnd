@@ -161,7 +161,7 @@ will need later to create an `ExpressionSet` for our data [@Bioc].
 sdrf_location <- file.path(raw_data_dir, "E-MTAB-2967.sdrf.txt")
 SDRF2 <- read.delim(sdrf_location)
 
-rownames(SDRF2) <- SDRF$Array.Data.File
+rownames(SDRF2) <- SDRF2$Array.Data.File
 SDRF2 <- AnnotatedDataFrame(SDRF2)
 ```
 
@@ -299,29 +299,6 @@ boxplot(raw_data, target="core")
 ```
 
 
-```{r boxplot data for RLE}
-
-row_medians_assayData <- rowMedians(as.matrix(exp_raw))
-RLE_data <- sweep(exp_raw, 1, row_medians_assayData)
-#boxplot(RLE_data, target="core") #problem: now not oligo::boxplot is called anymore, because RLE_data is no expression set; transfo=log2 isn't default anymore; also, nsamples isn't set anymore, so that the boxplotting takes FOREVER (literally). Therefore, a random subset of the data has to be generated first:
-
-RLE_data_subset <- (RLE_data[sample(nrow(RLE_data), 5000),])
-
-#RLE_data_subset_stacked <- stack(as.data.frame(RLE_data_subset))
-#ggplot(RLE_data_subset_stacked) + geom_boxplot(aes(x=ind, y=values))
-#https://stackoverflow.com/questions/21508909/create-boxplot-from-matrix-with-ggplot2
-
-
-#boxplot(RLE_data_subset)
-RLE_data_subset_trafo <- as.data.frame(t(RLE_data_subset))
-RLE_data_subset_trafo$group <- rownames(RLE_data_subset_trafo)
-RLE_data_subset_trafo.m <- melt(RLE_data_subset_trafo, id.vars= "group")
-ggplot(RLE_data_subset_trafo.m, aes (group, value)) + geom_boxplot()
-#https://stackoverflow.com/questions/8510870/boxplot-from-row-values-in-a-dataframe
-
-
-```
-
 
 The PCA (performed on the log--intensity scale) plot of the raw data shows 
 that the first principal component differentiates  between the diseases. 
@@ -426,42 +403,32 @@ This series of steps as a whole is commonly referred to as RMA algorithm,
 although strictly speaking RMA is merely a summarization method.
 [@Irizarry_2003; @Bolstad_2003; @Irizarry_2003a].
 
-```{r RMAcalibration, eval=TRUE}
-palmieri_eset <- oligo::rma(raw_data, target="core")
+```{r RMAcalibration for RLE, eval=TRUE}
+palmieri_eset <- oligo::rma(raw_data, target="core", normalize=FALSE)
 ```
 
 
 ```{r boxplot data for RLE_after RMA}
 
-log_assay_data <- log2(exprs(palmieri_eset))
+log_assay_data <- exprs(palmieri_eset)
 row_medians_assayData <- rowMedians(as.matrix(log_assay_data))
 RLE_data <- sweep(log_assay_data, 1, row_medians_assayData)
-#RLE_data_subset_stacked <- stack(as.data.frame(RLE_data_subset))
-#ggplot(RLE_data_subset_stacked) + geom_boxplot(aes(x=ind, y=values))
-#https://stackoverflow.com/questions/21508909/create-boxplot-from-matrix-with-ggplot2
-
 
 #boxplot
 RLE_data_trafo <- as.data.frame(t(RLE_data))
-RLE_data_trafo$group <- rownames(RLE_data_trafo)
-RLE_data_trafo.m <- melt(RLE_data_trafo, id.vars= "group")
-ggplot(RLE_data_trafo.m, aes (group, value)) + geom_boxplot(outlier.size=0.2) +
-  ylim(c(-0.75, 0.75))
+RLE_data_trafo$patient_probe <- rownames(RLE_data_trafo)
+RLE_data_trafo.m <- melt(RLE_data_trafo, id.vars= "patient_probe")
+RLE_data_trafo.m <- plyr::rename(RLE_data_trafo.m, c("value"="log2_expression"))
+ggplot(RLE_data_trafo.m, aes (patient_probe, log2_expression)) + geom_boxplot(outlier.shape=NA) + ylim(c(-2, 2)) + theme(axis.text.x= element_text(colour="aquamarine4", angle=60, size=6.5, hjust=1, face="bold"))
 
 #https://stackoverflow.com/questions/8510870/boxplot-from-row-values-in-a-dataframe
 ```
 
-```{r boxplot for non-inflamed tissues}
-RLE_data <- as.data.frame(RLE_data)
-# RLE_data_noninfl <- dplyr::select(RLE_data, contains("_I_"))) # doesn't work, because the files aren't named uniformly; sometimes, they are named I/II, sometimes A/B
 
-RLE_data_noninfl <- RLE_data[,seq(1, ncol(RLE_data),2)]
-RLE_data_noninfl_trafo <- as.data.frame(t(RLE_data_noninfl))
-RLE_data_noninfl_trafo$group <- rownames(RLE_data_noninfl_trafo)
-RLE_data_noninfl_trafo.m <- melt(RLE_data_noninfl_trafo, id.vars= "group")
-ggplot(RLE_data_noninfl_trafo.m, aes (group, value)) + geom_boxplot(outlier.size=0.2) +
-  ylim(c(-0.75, 0.75))
+```{r RMAcalibration WITH normalization, eval=TRUE}
+palmieri_eset <- oligo::rma(raw_data, target="core")
 ```
+
 The parameter `target` defines the degree of summarization, the
 default option of which is "core", using transcript clusters containing
 "safely" annotated genes. Other options for `target` include "extended"
@@ -573,7 +540,20 @@ hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
 
 pheatmap(dists, col = (hmcol), legend=TRUE, legend_breaks=c(min(dists, na.rm=TRUE), max(dists, na.rm=TRUE)), legend_labels=(c("low difference", "high difference")))
 
+
 ```
+```{r alternative_heatmap_with_patient_probes_as_labels, fig.height = 8.5, eval = TRUE}
+
+rownames(dists) <- row.names(pData(palmieri_eset))
+hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
+colnames(dists) <- NULL
+diag(dists) <- NA
+
+pheatmap(dists, col = (hmcol), legend=TRUE, legend_breaks=c(min(dists, na.rm=TRUE), max(dists, na.rm=TRUE)), legend_labels=(c("low difference", "high difference")))
+
+```
+
+
 The second PC roughly separates Crohn's disease from ulcerative colitis, while the first 
 separates the tissues. This is what we expect: the samples cluster by
 their experimental conditions.
@@ -1113,19 +1093,22 @@ the complete data set, however, the two diseases might behave very differently
 so that a joint fit might not be appropriate).
 
 ```{r createDesign, eval=TRUE, dependson="excludeMultipleMappings" }
-individual <- as.character(Biobase::pData(test)$Characteristics.individual.)
+individual <- as.character(Biobase::pData(palmieri_final)$Characteristics.individual.)
 
-tissue <- str_replace_all(Biobase::pData(test)$Factor.Value.phenotype., " ", "_")
+tissue <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.phenotype., " ", "_")
 tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
 
-disease <- str_replace_all(Biobase::pData(test)$Factor.Value.disease., " ", "_")
+disease <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.disease., " ", "_")
 disease <- ifelse(disease == "Crohn's_disease", "CD", "UC")
+
+#muss man disease und tissue nicht noch als factor umwandeln? also z.B.
+#disease <- factor(disease)
 
 
 i <- individual[disease == "CD"]
 design_palmieri_CD <- model.matrix(~ 0  + tissue[disease == "CD"] + i)
 colnames(design_palmieri_CD)[1:2] <- c("I", "nI")
-
+#SR question: look at output matrix. How is it possible that the first two rows don't correspond to any of the individuals? that is, why is ID 164 not listed?
 
 i <- individual[disease == "UC"]
 design_palmieri_UC<- model.matrix(~ 0  + tissue[disease == "UC"] + i)
@@ -1161,13 +1144,13 @@ requiring BH--corrected p--value below a certain threshold.
 ```{r createContrastMatrixAndFitModel, eval=TRUE, dependson="createDesign" }
 contrast_matrix_CD <- makeContrasts(I-nI, levels = design_palmieri_CD)
 
-palmieri_fit_CD <- eBayes(contrasts.fit(lmFit(test[,disease == "CD"],
+palmieri_fit_CD <- eBayes(contrasts.fit(lmFit(palmieri_final[,disease == "CD"],
                                 design = design_palmieri_CD),
                                 contrast_matrix_CD))
 
 contrast_matrix_UC <- makeContrasts(I-nI, levels = design_palmieri_UC)
 
-palmieri_fit_UC <- eBayes(contrasts.fit(lmFit(test[,disease == "UC"],
+palmieri_fit_UC <- eBayes(contrasts.fit(lmFit(palmieri_final[,disease == "UC"],
                                 design = design_palmieri_UC),
                                 contrast_matrix_UC))
 ```
