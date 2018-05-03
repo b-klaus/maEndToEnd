@@ -43,6 +43,7 @@ sed 's/MA-Workflow_files\/figure-latex\///g' > MA-Workflow_clean.tex
      # a list of all required libraries:
      reqlibs = sub(".*library\\(\"(.*?)\"\\).*","\\1",grep("library\\(",readLines("MA-Workflow.Rmd"),value=TRUE))
      find.package(reqlibs)
+     #SR: this does not work for me, I won't find BiocStyle and knitr 
 -->
 
 <script type="text/javascript"
@@ -65,27 +66,25 @@ cache=FALSE)
 In this article, we walk through an end--to--end Affymetrix microarray differential
 expression workflow using Bioconductor packages. This workflow is directly 
 applicable to current "Gene" type arrays, e.g. the HuGene or MoGene arrays
-but can easily adapted to  similar platforms.
+but can easily be adapted to  similar platforms.
 The data re--analyzed is a typical clinical microarray data set that 
 compares inflamed and non--inflamed colon tissue in two disease subtypes. For each disease, the differential gene expression between inflamed-- and non--inflamed colon tissue was analyzed. 
 We will start from the raw data CEL files, show how to import them into a 
 Bioconductor ExpressionSet, perform quality control and normalization and finally
 differential gene expression (DE) analysis, followed by some enrichment 
-analysis. As experimental designs can be complex, a self contained introduction 
-to linear models is also part of the workflow. 
+analysis.
 
 # Introduction
 
 In this article we introduce a complete workflow for a typical (Affymetrix) microarray
 analysis. Data import, preprocessing, differential expression  and
 enrichment analysis are discussed. We also introduce some necessary mathematical
-background on linear models along the way.
+background on linear models along the way. <!-- SR: tbd whether "we introduce some necessary mathematical background on linear models along the way" -->
 
-The data set used [@Palmieri_2015] is from 
-a paper studying the differences in gene expression in inflamed-- and non--inflamed tissue. 
+The data set used [@Palmieri_2015] is from a paper studying the differences in gene expression in inflamed-- and non--inflamed tissue. 
 14 Patients suffering from Ulcerative colitis (UC) and 15 patients with Crohn's disease (CD) were tested, and from each patient inflamed-- and non--inflamed colonic mucosa tissue was obtained via a biopsy. 
 This is a typical clinical data set consisting of 58 probes in total.
-Our aim is to analyze differential expression (DE) between the tissues in the two  diseases. As a proof of concept, we compare our results to the one found in the paper. 
+Our aim is to analyze differential expression (DE) between the tissues. As a proof of concept, we compare our results to the ones found in the paper. 
 
 # Required packages and other preparations
 
@@ -101,7 +100,7 @@ suppressPackageStartupMessages({
 
 The first step of the analysis is to download the raw data CEL files. These files
 are produced by the array scanner software and contain the probe intensities 
-measured. The data have been deposited at [ArrayExpress](https://www.ebi.ac.uk/arrayexpress/)
+measured. The data we use have been deposited at [ArrayExpress](https://www.ebi.ac.uk/arrayexpress/)
 and have the accession code **E-MTAB-2967**.
 
 We will store these files in the directory **raw\_data\_dir** which defaults to the subdirectory
@@ -113,13 +112,14 @@ raw_data_dir <- file.path(getwd(), "rawDataMAWorkflow")
 if(!dir.exists(raw_data_dir)){
     dir.create(raw_data_dir)
 }
-
 ```
 
 
 Each ArrayExpress data set has a landing page summarizing the data set, 
 and we use the `r Biocpkg("ArrayExpress") ` Bioconductor package to obtain the ftp 
 links  to the raw data files ([Data from Palmieri et. al. on ArrayEpress](https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-2967/)).
+
+<!--SR: what do we need this information for? --> 
 
 # Information stored in ArrayExpress
 
@@ -136,12 +136,12 @@ The IDF file contains top level information
 about the experiment including title, description, submitter contact details and
 protocols. The SDRF file contains essential information on the experimental 
 samples, e.g. the experimental group(s) they belong to. 
-
+<!-- SR: is it possible that we never use the IDF file again? We never import it, right? --> 
 # Download the raw data and the annotation data 
 
 With the code below, we download the raw data from
 [ArrayExpress](https://www.ebi.ac.uk/arrayexpress/) [@Kolesnikov_2014] by using the getAE-function.
-It is saved in the `raw_data_dir` created above. The names of the downloaded files are returned as a list.
+The data are saved in the `raw_data_dir` created above. The names of the downloaded files are returned as a list.
 
 
 ```{r getDataEBI, eval=TRUE, results='hide', message=FALSE}
@@ -149,24 +149,24 @@ It is saved in the `raw_data_dir` created above. The names of the downloaded fil
 anno_AE <- getAE("E-MTAB-2967", path=raw_data_dir, type="raw")
 ```
 
-We now import the SDRF file from the raw data folder in order to obtain the sample annotation. 
+We now import the SDRF file from the raw data folder in order to obtain the sample annotation with the `read.delim` function. 
+
 The raw data consists of one CEL file per sample (see below) and
-we use the CEL file names as row names for the imported data. 
-These names are given in a column
-named `Array.Data.File` in the SDRF table. We turn the SDRF table into an
-` AnnotatedDataFrame ` from the `r Biocpkg("Biobase") ` package that we
+we use the CEL file names, thus the sample identifiers, as row names for the imported SDRF data. 
+
+These names are given in a column named `Array.Data.File` in the SDRF table. We turn the SDRF table into an `AnnotatedDataFrame` from the `r Biocpkg("Biobase")` package that we
 will need later to create an `ExpressionSet` for our data [@Bioc].
 
 ```{r getSDRF from local directory}
 sdrf_location <- file.path(raw_data_dir, "E-MTAB-2967.sdrf.txt")
-SDRF2 <- read.delim(sdrf_location)
+SDRF <- read.delim(sdrf_location)
 
-rownames(SDRF2) <- SDRF2$Array.Data.File
-SDRF2 <- AnnotatedDataFrame(SDRF2)
+rownames(SDRF) <- SDRF$Array.Data.File
+SDRF <- AnnotatedDataFrame(SDRF)
 ```
 
 Before we move on to the actual raw data import, we will briefly introduce the
-` ExpressionSet ` class contained in the `r Biocpkg("Biobase")` package.
+`ExpressionSet` class contained in the `r Biocpkg("Biobase")` package.
 It is commonly used to store microarray data in Bioconductor.
 
 ## Bioconductor ExpressionSets
@@ -174,7 +174,7 @@ It is commonly used to store microarray data in Bioconductor.
 Genomic data can be very complex,
 usually consisting of a number of different bits and pieces, e.g. information
 on the experimental samples, annotation of genomic features measured as well
-as the experimental data itself
+as the experimental data itself.
 In Bioconductor the approach is taken that these  pieces should be stored in
 a single structure to easily manage the data.
 
@@ -197,12 +197,14 @@ gene annotations from biomedical databases (annotation).
 + **experimentData**: A flexible structure to describe the experiment.
 
 The ExpressionSet class coordinates all of these data, so that one does not 
-have to worry about the details. However, some constrains have to be met. 
+have to worry about the details. However, some constraints have to be met. 
 In particular, the rownames of the `phenoData` (which holds the content of the
 SDRF file) have to match the column names of the assay data (as they represent the sample
 identifiers), while the row names of the assay data have to match the 
 row names of the `featureData` (as they represent the feature identifiers). This is 
 illustrated in the figure.
+
+<!-- SR: muss man jemals selbst etwas machen, um diese Zeilen/Spalten-Übereinstimmungen aufrecht zu erhalten? -> nachher beim left-join, nachdem man multiple mappings rausgefiltert hat, aber: das versteht man hier noch nicht, finde ich; man kann mit dem Begriff "feature" noch nichts anfangen -->
 
 ```{r sumexp, echo=FALSE, fig.show="asis"}
 par(mar=c(0,0,0,0))
@@ -220,20 +222,43 @@ polygon(c(45,47,47,45),c(75,75,90,90),col=rgb(.5,0,.5,.5),border=NA)
 text(62.5,82.5,"phenoData", cex = 1)
 ```
 
+<!-- SR: die Grafik finde ich nicht verständlich; eigentlich sollen ja Zeilen von phenoData mit Spalten von assayData übereinstimmen, aber bei pheno is eine Spalte markiert und bei assay eine Zeile? feature- und Assay-Data macht sinn, weil hier jeweils eine Zeile markiert ist. -> Vorschlag:--> 
+
+```{r sumexp, echo=FALSE, fig.show="asis"}
+par(mar=c(0,0,0,0))
+plot(1,1,xlim=c(0,100),ylim=c(0, 150),bty="n",
+     type="n",xlab="",ylab="",xaxt="n",yaxt="n")
+
+polygon(c(45,80,80,45),c(70,70,130,130),col=rgb(1,0,0,.5),border=NA)
+polygon(c(45,80,80,45),c(128,128,130,130),col=rgb(1,0,0,.5),border=NA)
+polygon(c(45,46.5, 46.5, 45),c(70,70,130,130),col=rgb(1,0,0,.5),border=NA)
+text(62.5,100,"assay(s)", cex = 1)
+text(62.5,90,"e.g. 'exprs'", cex = 1)
+
+polygon(c(20,40,40,20),c(70,70,130,130),col=rgb(0,0,1,.5),border=NA)
+polygon(c(20,40,40,20),c(128,128,130,130),col=rgb(0,0,1,.5),border=NA)
+text(30,100,"featureData", cex = 1)
+
+polygon(c(45,60, 60, 45),c(60, 60, 0, 0),col=rgb(.5,0,.5,.5),border=NA)
+polygon(c(45,46.5, 46.5, 45),c(60, 60, 0, 0),col=rgb(.5,0,.5,.5),border=NA)
+text(52.5, 30,"phenoData", cex = 1, srt=90)
+```
+
 You can use the functions ` pData ` and ` fData ` to extract
 the sample and feature annotation respectively from an ` ExpressionSet `.
 The function ` exprs ` will return the expression data itself as a matrix.
 
 ## Import of the raw microarray data 
 
-In the first step of the analysis, we create the Expression Set "raw_data", which contains array data, pheno data as well as the information of the correct chip annotation package to use:
+In the first step of the analysis, we create the Expression Set "raw_data", which contains array data, pheno data (from the SDRF file) as well as the information of the correct chip annotation package to use.
+
 
 The analysis of Affymetrix arrays starts with CEL files. These are the result
 of the processing of the raw image files using the Affymetrix software and contain
 estimated probe intensity values. Each CEL file additionally contains some 
 metadata, such as a chip identifier. 
 
-We use the function ` read.celfiles`  from the `r Biocpkg("oligo") ` [@oligo] to import the files. This automatically creates an ExpressionSet, fills the sections "array data" with the data from the CEL files and uses the correct chip annotation package, 
+We use the function ` read.celfiles`  from the `r Biocpkg("oligo") ` package [@oligo] to import the files. This automatically creates an ExpressionSet, fills the sections "array data" with the data from the CEL files and uses the correct chip annotation package, in this case
 `r  Biocannopkg("pd.hugene.1.0.st.v1") `, as the 
 chip--type is also stored in the .CEL files. 
 Further, We specify our `AnnotatedDataFrame` created earlier from the SDRF file as `phenoData`. Thus, We have to be sure that we import the CEL files in the order that corresponds to the SDRF
@@ -242,25 +267,36 @@ table --- to enforce this, we use the column `Array.Data.File` of the `SDRF` tab
 Finally, we check whether the object created is valid (e.g. sample names 
 match between the different tables).
 
-We collect the information about the CEL files and import and them into the variable `raw_data`:
+We collect the information about the CEL files and import them into the variable `raw_data`:
 
 
 ```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF", warning = FALSE }
 raw_data <- oligo::read.celfiles(filenames = file.path(raw_data_dir, 
-                                                SDRF2$Array.Data.File),
-                         verbose = FALSE, phenoData = SDRF2)
+                                                SDRF$Array.Data.File),
+                         verbose = FALSE, phenoData = SDRF)
 validObject(raw_data)
 ```
 
 We now inspect the raw data a bit and retain only those columns that are 
-related to the experimental factors of interest (identifiers of the individuals, 
-disease of the individual and the mucosa type).
+related to the experimental factors of interest.
+
+The pData function of the Biobase package directly accesses the "data" subfolder in the phenoData tab in the table bundle <!--SR: expression set? --> "raw_data". With the `head()` function, we can view the first six lines of the table. 
+
 
 ```{r inspectPhenoData, eval=TRUE }
 head(Biobase::pData(raw_data))
 head(exprs(raw_data))
 stopifnot(validObject(raw_data))
+```
 
+The columns of interest for us are the following:
+**identifiers of the individuals, i.e. columns "Source.Name, "Characteristics.individual."
+**disease of the individual, i.e. "Factor.Value.disease."
+**mucosa type, i.e. "Factor.Value.phenotype."
+
+We reassign the `Biobase::pData(raw_data)`function to the corresponding columns: 
+
+```{r reassign pData, eval=TRUE}
 Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
                                      "Characteristics.individual.",
                                      "Factor.Value.disease.",
@@ -270,10 +306,12 @@ Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
 
 ## Quality control of the raw data
 
-The first step after the intial data import is the quality control of the data.
+The first step after the initial data import is the quality control of the data.
 Here we check for outliers and try to see whether the data clusters as expected, 
-e.g. by the experimental conditions. We use the identifiers of the individuals
-as plotting symbols.
+e.g. by the experimental conditions. The expression intensity values are in the assayData subfolder "exprs" and can be accessed by the `exprs(raw_data)`function. The rows represent the microarray probes, that is the single DNA locations on the chip, while the columns represent one microarray, that is a sample of inflamed- and non-inflamed tissue of every patient, respectively. 
+We take the log2 of `exprs(raw_data)`, as expression data is always analyzed on a logarithmic scale.
+We then perform a principal component analysis (PCA) and plot it. Every point in the plot represents one sample, with the colour indicating the mucosa type (inflamed vs non-inflamed) and the shape indicating the disease (UC or CD).
+We also plot a boxplot graph with boxes for the probe intensities on individual microarrays. Note that the `oligo::boxplot`function, i.e. the boxplot function of the oligo package, can take whole expression sets as argument. It accesses the expression data and performs a log2-transformation by default. We therefore can use `raw_data`as argument here.
 
 ```{r quality_control_raw_data}
 exp_raw <- log2(exprs(raw_data))
@@ -290,25 +328,19 @@ dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
        asp = 1.0)
      + scale_colour_brewer(palette = "Set2"))
 
-#boxplot(raw_data, target = "core", 
-#        main = "Boxplots of log2-intensities for the raw data")
 
-boxplot(raw_data, target="core")
 
+oligo::boxplot(raw_data, target="core", main="Boxplot of log2-intensitites for the raw data")
 
 ```
 
 
-
 The PCA (performed on the log--intensity scale) plot of the raw data shows 
-that the first principal component differentiates  between the diseases. 
-However, the intensity boxplots  show that the  intensity distributions 
+that the first principal component differentiates  between the diseases. This means that the expression data mainly differs between the diseases. This might hinder our analysis, as we want to analyze the differential expression between inflamed- and non-inflamed tissue, independently of the disease a person has. When looking at the boxplot, we see that the  intensity distributions 
 of the individual arrays are quite different,
-indicating the need of an appropriate normalization, which we will discuss next.
+indicating the need for an appropriate normalization, which we will discuss next.
 
-A wide range of quality control plots can be created using the package 
-`r Biocpkg("arrayQualityMetrics") ` [@AQM]. The package  produces an html report, 
-containing the quality control plots together with a description of their
+Until now, we have only performed a very basic quality control; for more elaborate quality control plots, we could use the package `r Biocpkg("arrayQualityMetrics") ` [@AQM]. The package  produces an html report, containing the quality control plots together with a description of their
 aims and an identification of possible outliers. We don't discuss this tool in detail
 here, but the code below can be used to create a report for our raw data. 
 
@@ -324,7 +356,7 @@ arrayQualityMetrics(expressionset = raw_data,
 ## Background adjustment
 
 After the initial import and quality assessment, the next step in processing of
-microarray data is background adjustment. This  is essential because a part of the
+microarray data is background adjustment. This is essential because a part of the
 measured probe intensities are due to non-specific hybridization and the noise 
 in the optical detection system. Therefore, observed intensities need to be adjusted to 
 give accurate measurements of specific hybridization.
@@ -341,13 +373,13 @@ conditions.
 ## Summarization
 
 After normalization, summarization is needed because on the Affymetrix 
-platform transcripts are represented
-by multiple probes. For each gene, the background adjusted and normalized intensities
+platform, transcripts are represented
+by multiple probes, that is multiple locations on the array. For each gene, the background adjusted and normalized intensities of all probes
 need to be summarized into one quantity that estimates an amount proportional to
 the amount of RNA transcript.
 
 After the summarization step, the summarized data can be annotated with various
-information, e.g. gene symbols and EMSEMBL gene identifiers. There is an
+information, e.g. gene symbols and ENSEMBL gene identifiers. There is an
 annotation database available from Bioconductor 
 for our platform, namely the package
 `r Biocannopkg("hugene10sttranscriptcluster.db") `.
@@ -370,27 +402,14 @@ which represented a certain gene or transcript (note however, that a
 gene can be represented by multiple probesets).
 
 The more recent "Gene" and "Exon" Affymetrix arrays are exon based and hence there 
-are two levels of summarization. The exon level summarization 
-leads to "probeset" summary. However,
-these probesets are not the same as the  probesets of the previous
-chips, which usually represented a gene/transcript. Furthermore, there
-are also no longer designated match/mismatch probes present on "Gene" type chips.
-
-For the newer Affymetrix chips a gene/transcript level summary is given 
-by "transcript clusters". Hence the appropriate annotation package is called
+are two levels of summarization to get on the gene level. The "probeset" summarization leads to the exon level. The gene/transcript level is given by "transcript clusters." Hence, the appropriate annotation package for our chip type is called
 `r Biocpkg("hugene10sttranscriptcluster.db") `.
 
-To complicate things even a bit more, note that the "Gene"  arrays  were created
-as affordable versions of the "Exon" arrays by taking the "good"  probes from the Exon
-array. So the notion of a probeset is based on the
-original construction of the probesets on the Exon array, which contains
-usually at least four probes.
-
-But since Affymetrix selected only a the subset of "good" probes for the 
-Gene arrays, a lot of the probesets on the "Gene" arrays are made up of three 
-or fewer probes. Thus, a summarization on the probeset / exon level 
+"Gene" arrays were created as affordable versions of the "Exon" arrays, by only taking the "good" probes from the Exon array. Initially on the exon array, at least four probes were part of one "Exon". With the thinned out "Gene" array, a lot of probesets were made up of three or fewer probes. Thus, a summarization on the probeset / exon level 
 is not recommended for "Gene" arrays but nonetheless possible by using the 
 `r Biocannopkg("hugene10stprobeset.db") ` annotation package.
+
+Note that furthermore, there are also no longer designated match/mismatch probes present on "Gene" <!-- SR: and "Exon" type? --> type chips. The mismatch probe was initially intended as base-level for background correction, but didn't prevail due to more elaborate background correction techniques that didn't require a mismatch probe. 
 
 ## One--go preprocessing in oligo
 
@@ -403,30 +422,37 @@ This series of steps as a whole is commonly referred to as RMA algorithm,
 although strictly speaking RMA is merely a summarization method.
 [@Irizarry_2003; @Bolstad_2003; @Irizarry_2003a].
 
+#Relative Log Expression data quality analysis
+Before calibrating and evaluating the data, we want to perform another means of quality control, namly Relative Log Expression box plots (RLE), as  escribed in the article by Gandolfo et al [@Gandolfo_2018]: To this goal, we first perform an RMA without normalization: 
 ```{r RMAcalibration for RLE, eval=TRUE}
 palmieri_eset <- oligo::rma(raw_data, target="core", normalize=FALSE)
 ```
+Further details on the RMA algorithm will be provided after RLE analysis, when the "full" RMA is carried through, including normalization. 
 
+The RLE is performed by calculating the median log2 intensity of one transcript across all arrays. We do this by calculating the row medians of `exprs(palmieri_eset)`, as the  transcripts are represented by the rows and the single microarrays by the columns. Note that we don't have take the log2 manually, as the output data of the RMA function is in log2 scale by default. 
+We then substract this transcript median intensity from every transcript intensity, respectively, with the `sweep` function. 
+We bring the data into a form in which we can plot a boxplot for each array, as before. Note that on the y-axis, we now see for each microarray the values of variation of expression intensity from the median of the single transcripts. 
+Boxes with a larger extension in y scale therefore indicate an unusual high variation from the median in a lot of transcripts, suggesting decreased reliability of the data. Boxes that are shifted in y direction indicate a systematically higher or lower expression of the majority of transcripts in comparison to the other arrays, and thus also decreased data reliability. If shape and median of the single boxes vary too much from the others, it should be considered to remove the corresponding arrays. 
 
-```{r boxplot data for RLE_after RMA}
+```{r boxplot data for RLE}
 
-log_assay_data <- exprs(palmieri_eset)
-row_medians_assayData <- rowMedians(as.matrix(log_assay_data))
-RLE_data <- sweep(log_assay_data, 1, row_medians_assayData)
+row_medians_assayData <- rowMedians(as.matrix(exprs(palmieri_eset)))
+RLE_data <- sweep(exprs(palmieri_eset), 1, row_medians_assayData)
 
 #boxplot
 RLE_data_trafo <- as.data.frame(t(RLE_data))
 RLE_data_trafo$patient_probe <- rownames(RLE_data_trafo)
+library("reshape2")
 RLE_data_trafo.m <- melt(RLE_data_trafo, id.vars= "patient_probe")
-RLE_data_trafo.m <- plyr::rename(RLE_data_trafo.m, c("value"="log2_expression"))
-ggplot(RLE_data_trafo.m, aes (patient_probe, log2_expression)) + geom_boxplot(outlier.shape=NA) + ylim(c(-2, 2)) + theme(axis.text.x= element_text(colour="aquamarine4", angle=60, size=6.5, hjust=1, face="bold"))
-
-#https://stackoverflow.com/questions/8510870/boxplot-from-row-values-in-a-dataframe
+RLE_data_trafo.m <- plyr::rename(RLE_data_trafo.m, c("value"="log2_expression_variation"))
+ggplot(RLE_data_trafo.m, aes (patient_probe, log2_expression_variation)) + geom_boxplot(outlier.shape=NA) + ylim(c(-2, 2)) + theme(axis.text.x= element_text(colour="aquamarine4", angle=60, size=6.5, hjust=1, face="bold"))
 ```
 
+When looking at the data, 5 arrays could be considered to be outliers: 2826_I, 2826_II, 3262_II, 3302_II and 3332_II are negatively y--shifted. We will keep these samples in mind for heatmap cluster analysis later on in the workflow. Arrays that are confirmed to be outliers by heatmap analysis can be removed for subsequent analysis.
 
+Now, we can apply the full RMA algorithm to our data in order to background-correct, normalize and summarize:
 ```{r RMAcalibration WITH normalization, eval=TRUE}
-palmieri_eset <- oligo::rma(raw_data, target="core")
+palmieri_eset_norm <- oligo::rma(raw_data, target="core")
 ```
 
 The parameter `target` defines the degree of summarization, the
@@ -434,7 +460,6 @@ default option of which is "core", using transcript clusters containing
 "safely" annotated genes. Other options for `target` include "extended"
 and "full". For summarization on the exon level (not recommended for Gene
 arrays), one can use "probeset" as the target option.
-
 Although other methods for background correction and normalization exist,
 RMA is usually a good default choice.
 RMA shares information across arrays and
@@ -447,7 +472,7 @@ ranked (with a single chip) values across arrays. A more detailed
 description can be found on the [Wikipedia page](https://en.wikipedia.org/wiki/Quantile_normalization) 
 about it.
 
-An alternative to quantile normalization is the `r Biocpkg("vsn") ` algorithm,
+An alternative to quantile normalization would be the `r Biocpkg("vsn") ` algorithm,
 that performs background correction and normalization by robustly
 shifting and scaling intensity values within arrays [@vsn] before log--transforming
 them. This is less "severe" than quantile normalization. 
@@ -476,62 +501,60 @@ Here \(\theta\) represents the logarithm of the true abundance,
 nonspecific error.
 This is the additive--multiplicative--error model for microarray data used by RMA
 and also the `r Biocpkg("vsn") ` algorithm [@vsn]. The algorithms differ 
-in the way \(B\) is removed and an estimate of \(\theta\) is obtained.
+in the way that \(B\) is removed and an estimate of \(\theta\) is obtained.
 
 
 ## Quality assessment of the calibrated data
 
-We now produce a clustering and another PCA plot using the calibrated data. In 
-order to display a heatmap of the sample--to--sample distances, we first compute the distances using
-the `dist` function. We need to transpose the expression values since
-the function computes the distances between the rows (i.e. genes in our case) by
-default. The default distance  is the Euclidean one. However this can  be
-changed and we choose the Manhattan distance here (it uses absolute instead of
-squared distances), as it is more robust. We set the diagonal of the distance matrix to ` NA ` in order to increase the contrast of the color coding. Those diagonal entries do 
-not contain information since the distance of a sample to itself is
-always equal to zero.
+We now produce a clustering heatmap and another PCA plot using the calibrated data. 
 
+###PCA analysis
 
+First, we perform a PCA analysis of the calibrated data analogously to the one with the raw data:
 
 ```{r PCAMetricsCalibrated, eval = TRUE }
-exp_palmieri <- exprs(palmieri_eset)
+exp_palmieri <- exprs(palmieri_eset_norm)
 PCA <- prcomp(t(exp_palmieri), scale = FALSE)
 
 dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
-                    Disease = Biobase::pData(palmieri_eset)$Factor.Value.disease.,
-                    Phenotype = Biobase::pData(palmieri_eset)$Factor.Value.phenotype.)
+                    Disease = Biobase::pData(palmieri_eset_norm)$Factor.Value.disease.,
+                    Phenotype = Biobase::pData(palmieri_eset_norm)$Factor.Value.phenotype.)
         
 (qplot(PC1, PC2, data = dataGG, color =  Phenotype, shape =  Disease,
        main = "PCA plot of the calibrated data", size = I(2), asp = 1.0)
        + scale_colour_brewer(palette = "Set2"))
 ```
 
+In comparison to the first PCA analysis before RMA, we see that now the first principal component clusters between tissues types. This indicates that now differential expression between the tissue types can be analyzed quite well.
 
-```{r rownames for heatmap, fig.height = 8.5, eval = TRUE }
+###Heatmap clustering analysis
+
+In order to display a heatmap of the sample--to--sample distances, we first compute the distances using the `dist` function. We need to transpose the expression values since
+the function computes the distances between the rows (i.e. genes in our case) by
+default. The default distance  is the Euclidean one. However this can be
+changed and we choose the Manhattan distance here (it uses absolute distances along rectangular paths instead of squared distances of the direct path), as it is more robust. We set the diagonal of the distance matrix to ` NA ` in order to increase the contrast of the color coding. Those diagonal entries do not contain information since the distance of a sample to itself is always equal to zero.
+```{r rownames for heatmap, fig.height = 8.5, eval = TRUE, echo=FALSE}
 phenotype_names <- c()
 disease_names <- c()
 
-for (i in 1:length(Biobase::pData(palmieri_eset)$Factor.Value.phenotype.)){
-  if(grepl ("non", toString(Biobase::pData(palmieri_eset)$Factor.Value.phenotype.[i])))
+for (i in 1:length(Biobase::pData(palmieri_eset_norm)$Factor.Value.phenotype.)){
+  if(grepl ("non", toString(Biobase::pData(palmieri_eset_norm)$Factor.Value.phenotype.[i])))
     {phenotype_name="non-infl."}
   else {phenotype_name = "infl."}
   phenotype_names <- c(phenotype_names, phenotype_name)
   
-  if (grepl ("Crohn", toString(Biobase::pData(palmieri_eset)$Factor.Value.disease.[i])))
+  if (grepl ("Crohn", toString(Biobase::pData(palmieri_eset_norm)$Factor.Value.disease.[i])))
     {disease_name="CD"}
   else {disease_name="UC"}
   disease_names <- c(disease_names, disease_name)
 }
-
 
 row_names_dataframe <- data.frame("Phenotype"=phenotype_names, "Disease"=disease_names)
 row_names_for_heatmap <- paste(row_names_dataframe$Phenotype, row_names_dataframe$Disease, sep="   ")
 
 ```
 
-
-#Alternative Heatmap without "manhattan" as distance measure between rows and columns; also low and high difference indicated in legend; row names indicate tissue and disease, abbreviated 
-```{r PCAMetricsCalibrated_2, fig.height = 8.5, eval = TRUE }
+```{r clustering heatmap, fig.height = 8.5, eval = TRUE }
 dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 colnames(dists) <- NULL
 diag(dists) <- NA
@@ -542,9 +565,15 @@ pheatmap(dists, col = (hmcol), legend=TRUE, legend_breaks=c(min(dists, na.rm=TRU
 
 
 ```
+<!-- SR: title for heatmap? --> 
+
+On the heatmap plot we also see that the samples do not cluster strongly by tissue, confirming the impression from the PCA plot that the separation
+between the tissues is not perfect. The purple stripes in the heatmap might correspond
+to an outlier that could potentially be removed. We produce the same heatmap again with the sample identifiers as row names in order to see whether the outliers in the heatmap are the same ones as the outliers in the RLE plot beforehand: 
+
 ```{r alternative_heatmap_with_patient_probes_as_labels, fig.height = 8.5, eval = TRUE}
 
-rownames(dists) <- row.names(pData(palmieri_eset))
+rownames(dists) <- row.names(pData(palmieri_eset_norm))
 hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
 colnames(dists) <- NULL
 diag(dists) <- NA
@@ -552,95 +581,110 @@ diag(dists) <- NA
 pheatmap(dists, col = (hmcol), legend=TRUE, legend_breaks=c(min(dists, na.rm=TRUE), max(dists, na.rm=TRUE)), legend_labels=(c("low difference", "high difference")))
 
 ```
+<!-- SR: evtl too much; sollen wir das machen oder rauslassen? -->
+The outliers that could be found here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II. 
+2826_II, 3262_II and 3332_II were found to be outliers in both RLE and heatmap and will therefore be removed.
+Note that more elaborate metrics to identify and remove outliers are provided by the `r Biocpkg("arrayQualityMetrics") `.
 
-
-The second PC roughly separates Crohn's disease from ulcerative colitis, while the first 
-separates the tissues. This is what we expect: the samples cluster by
-their experimental conditions.
-On the heatmap plot we also see that the samples do not cluster strongly by tissue, confirming 
-the impression from the PCA plot that the separation
-between the tissues is not perfect. The stripe in the heatmap might correspond
-to outlier that could potentially remove.  The `r Biocpkg("arrayQualityMetrics") `
-package produces reports that compute several metrics that can be used for outlier 
-removal.
-
+```{r filtering_of_outliers}
+palmieri_eset_filtered <- palmieri_eset_norm[, c(1:17, 19:43, 45:53, 55:58)]
+```
+<!--SR: quick and dirty Methode zum Filtern, weil ich auf Anhieb keine Möglichkeit gefunden habe, column names aus dem ExpressionSet auszuschließen. Möchten wir die drei Samples überhaupt ausschließen, oder geht das zu weit? NOTE: der Rest des Workflows läuft bis jetzt noch mit dem nicht gefilterten "palmieri_eset_norm" --> 
 
 ## Filtering based on intensity 
 
 We now filter out lowly expressed genes. Microarray data commonly show a large number
 of probes in the background intensity range. They also do not change much across arrays. 
-Hence they combine a low variance with a low intensity. Thus, they could end up being detected 
-as differentially expressed although they are barely above the "detection" limit 
+Hence they combine a low variance with a low intensity. Thus, they could end up being detected as differentially expressed although they are barely above the "detection" limit 
 and are not very informative in general. We will perform
 a "soft" intensity based filtering here, since this is recommended by `r Biocpkg("limma")`'s 
 [@limma; @Smyth_2004] user guide (a package we will use below for the differential 
 expression analysis). However, note that 
 a variance based filter might exclude a similar
-set of probes in practice. In the histogram of the gene--wise medians, we 
+set of probes in practice. 
+In the histogram of the gene--wise medians, we 
 can clearly see an enrichment of low medians on the left hand side. 
 These represent the genes we want to filter. 
 
-In order to infer a cutoff from the data, we inspect the histogram of the median intensities. We visually set a cutoff line to the left of the histogram peak as `man_threshold`, in order to not exclude too many genes.
+In order to infer a cutoff from the data, we inspect the histogram of the median intensities. We visually set a cutoff line to the left of the histogram peak as `man_threshold`, in order to not exclude too many genes. Transcripts that don't have intensities over the threshold in at least as many arrays as the smallest experimental group are excluded. 
 
+In order to do so, we first have to get a list with the number of samples (`no_of_samples`) in the experimental groups: 
 
+```{r expGroups, dependson="PCAMetricsCalibrated"}
+no_of_samples <- table(paste0(Biobase::pData(palmieri_eset_norm)$Factor.Value.disease., "_", 
+                        Biobase::pData(palmieri_eset_norm)$Factor.Value.phenotype.))
+no_of_samples 
+```
+Now, we calculate the row--wise medians from the expression data, as they represent the transcript medians, and assign them to `palmieri_medians`. We plot the histogram:
 
 ```{r alternative intensityBasedFiltering manually filtered}
-palmieri_medians <- rowMedians(exprs(palmieri_eset))
+palmieri_medians <- rowMedians(exprs(palmieri_eset_norm))
 
 hist_res <- hist(palmieri_medians, 100, col="cornsilk1", freq = FALSE, 
-            main = "Histogram of the median intensities", 
+            main = "Histogram of the median intensities", border="antiquewhite4",
+            xlab = "Median intensities")
+```
+
+We inspect the histogram and set a manual threshold visually. In our example, we choose a threshold of 4. We plot the same histogram as before and add the threshold line with the `abline()` function. 
+
+```{r set manual threshold}
+man_threshold <- 4
+
+hist_res <- hist(palmieri_medians, 100, col="cornsilk", freq = FALSE, 
+            main = "Histogram of the median intensities", border="antiquewhite4",
             xlab = "Median intensities")
 
+abline(v=man_threshold, col="coral4", lwd=2)
 
-man_threshold <- 4.5
+```
+When we are content with the manual threshold, we filter out all transcripts that don't have intensities over the threshold in at least as many arrays as the smallest experimental group, represented by `min(no_of_samples)`, which we define as `samples_cutoff`. We write a function `idx_man_threshold` that is applied to each row, that is to each transcript across all arrays. It evaluates whether the number of entries that is bigger than man_threshold (`sum(x>man_threshold)`) is bigger than the `samples_cutoff`and gives out TRUE or FALSE for each row, i.e. each transcript. 
+We than create a table of idx_man_threshold in order to summarize the results, in order to get an overview over how many genes are filtered out. 
+In the last step, we subset our expression set and keep the TRUE elements of `idx_man_threshold`.
 
-abline(v=man_threshold, col="coral3", lwd=2)
-
-
+```{r filtering_of_low_intensity_transcripts}
 samples_cutoff <- min(no_of_samples)
 
-
-idx_man_threshold <- apply(exprs(palmieri_eset), 1, function(x){
+idx_man_threshold <- apply(exprs(palmieri_eset_norm), 1, function(x){
   sum(x > man_threshold) >= samples_cutoff})
 table(idx_man_threshold)
 
-palmieri_manfiltered <- subset(palmieri_eset, idx_man_threshold)
+palmieri_manfiltered <- subset(palmieri_eset_norm, idx_man_threshold)
 ```
 
 
 ## Annotation of the transcript clusters
 
 Before we continue with the linear models for microarrays and differential
-expression  we  describe how to add "feature Data", i.e. annotation
+expression,  we  describe how to add "feature Data", i.e. annotation
 information to the transcript cluster identifiers stored in the featureData of
 our ExpressionSet. We use the function `select`
 from `r Biocpkg("AnnotationDbi") ` to query the gene symbols and associated
 short descriptions for the transcript clusters. For each cluster, we add the 
 gene symbol and a short description of the gene the cluster represents. 
 
-In a second step, we directly filter out the probes that don't map to a gene, that is that don't have a gene Symbol assigned. 
+In a second step, we directly filter out the probes that don't map to a gene, that is that don't have a gene symbol assigned. 
 
 ```{r annotateData, eval=TRUE, dependson="intensityBasedFiltering", message = FALSE}
 
 anno_palmieri  <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
-                                  keys=(featureNames(palmieri_filtered)),
+                                  keys=(featureNames(palmieri_manfiltered)),
                                   columns = c("SYMBOL", "GENENAME"),
                                   keytype="PROBEID")
 
-anno_palmieri <- (subset(anno_palmieri, !is.na(SYMBOL)))
+anno_palmieri <- subset(anno_palmieri, !is.na(SYMBOL))
 ```
 
 
 ## Removing multiple mappings and building custom annotations
 
-Many transcript--cluster identifiers will map to multiple gene symbols.
-
+Many transcript--cluster identifiers will map to multiple gene symbols, i.e. they can't be clearly assigned.
 
 We compute a summary table in the code below to see how many there are. First, we group anno_palmieri for their PROBEID; that way, the subsequent operations aren't carried through for each single row, but for each group, that is each PROBEID.
 We then summarize the groups and indicate the number of different genes assigned to a probe in the column `no_of_matches`. 
 Now, we filter for PROBEIDs with multiple matches, that is when `no_of_matches > 1`.
 
 With `dim(probe_stats)`, we can see how many probes have been mapped to multiple genes.
+
 ```{r multipleMappings, dependson="annotateData"}
 
 anno_grouped <- group_by(anno_palmieri, PROBEID)
@@ -656,12 +700,13 @@ dim(probe_stats)
 We have close to 2000 transcript clusters that map to multiple gene symbols.
 It is difficult to decide which mapping is "correct". Therefore,
 we exclude these transcript clusters. 
-We also have to exclude the PROBEIDs we have just excluded from the feature data we have generated before in `anno_palmieri`. We name this new feature data `anno_palmieri_new`, and we get it by left-joining `fData(palmieri_final)`and `anno_palmieri`. 
-A left-join keeps the rows and columns of the first argument and adds the columns of the second argument.
-Recall that fData enables us to access the feature data of an expression set.  
-We add the column "PROBEID" to the feature data fData(palmieri_final). By left-joining with anno_palmieri, we add the "SYMBOL" and "GENENAME" columns from anno_palmieri, and thus get the feature Data for the filtered probes.
 
+We want to remove those probe IDs that match the ones in `probe_stats`, as those are the probes with multiple mappings. We assign these IDs to the variable `ids_to_exclude`. Then, we generate `palmieri_final`, an expression set without the `ids_to_exclude`. 
 
+As we have just excluded probe IDs from the assay data, we now have to also exclude them from the feature data `anno_palmieri`. Recall that fData enables us to access the feature data of an expression set. Until now, no feature data whatsoever is stored in the `fData(palmieri_final)`. Only the row names are named as the row names of the assay data by default, which are the PROBEIDs of the transcripts. <!-- SR: is that true? or why are the row names already there even though we haven't done anything yet? -->
+Therefore, we generate a column PROBEID in `fData(palmieri_final)` and assign the row names of `fData(palmieri_final)` to it. Then, we left--join `fData(palmieri_final)`with `anno_palmieri`, which already contains the columns "SYMBOL" and "GENENAME".
+A left-join keeps the rows and columns of the first argument and adds the corresponding column entries of the second argument.
+By left--joining with anno_palmieri, we thus add the "SYMBOL" and "GENENAME" columns from anno_palmieri for only the PROBEIDs that have been in `fData(palmieri_final)` before the left--joint and thus get the feature Data for the filtered probes.
 
 
 ```{r excludeMultipleMappings, dependson="multipleMappings", cache=FALSE}
@@ -677,13 +722,11 @@ fData(palmieri_final)$PROBEID <- rownames(fData(palmieri_final))
 fData(palmieri_final)<- left_join(fData(palmieri_final), anno_palmieri)
 
 
-
 # restore rownames after left_join
 rownames(fData(palmieri_final)) <-fData(palmieri_final)$PROBEID 
     
 validObject(palmieri_final)
 ```
-
 
 
 Alternatively, one can re--map the probes of the array
@@ -696,7 +739,7 @@ In any case, the package `r Biocpkg("pdInfoBuilder") ` can be used to build cust
 annotation packages for use with `r Biocpkg("oligo") `. In order to do this,
 PGF / CLF files  (called "Library files" on the Affymetrix website) as well
 as the probeset annotations are required. The probesets typically represent
-a small stretches of the genome (such as a single exon) and multiple probesets
+small stretches of the genome (such as a single exon) and multiple probesets
 are then used to form a transcript cluster.
 
 The CLF file contains information about the location of
@@ -709,7 +752,6 @@ clusters.
 
 
 # A short overview of linear models
-
 I am afraid this section is rather technical. However general experience shows that
 most questions on the  Bioconductor support site about packages using using linear models
 like `r Biocpkg("limma") ` [@limma],  `r Biocpkg("DESeq2")` [@Love_2014] and 
@@ -1180,7 +1222,7 @@ table(table_CD$adj.P.Val < 0.05)
 table(table_CD$P.Value < 0.001)
 
 hist(table_CD$P.Value, col = brewer.pal(3, name = "Set2")[1],
-     main = "inflammed vs non-imflamed - Crohn's disease", xlab = "p-values")
+     main = "inflamed vs non-inflamed - Crohn's disease", xlab = "p-values")
 
 
 table_UC <-  topTable(palmieri_fit_UC, number = Inf)
@@ -1191,7 +1233,7 @@ table(table_UC$adj.P.Val < 0.05)
 table(table_UC$P.Value < 0.001)
 
 hist(table_UC$P.Value, col = brewer.pal(3, name = "Set2")[2],
-     main = "inflammed vs non-imflamed - Ulcerative colitis", xlab = "p-values")
+     main = "inflamed vs non-inflamed - Ulcerative colitis", xlab = "p-values")
 
 ```
 
@@ -1259,7 +1301,7 @@ collection of functional gene sets [@Ashburner_2000, @GO_2015, @du_Plessis_2011]
 
 ## Matching the background set of genes
 
-The function ` genefinder ` from the `r Biocpkg("genefilter") ` [@Bourgon_2010] 
+The function ` genefinder ` from the `r Biocpkg("genefilter") ` package [@Bourgon_2010] 
 will be used to find a background set of genes that are similar in expression 
 to the differentially expressed genes. We then check whether 
 the background has roughly the same distribution
@@ -1276,12 +1318,12 @@ expression.
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=FALSE, message=FALSE}
 DE_genes_CD <- subset(table_CD, adj.P.Val < 0.1)$PROBEID
 
-back_genes_idx <- genefinder(test, as.character(DE_genes_CD), 
+back_genes_idx <- genefinder(palmieri_final, as.character(DE_genes_CD), 
                        method="manhattan", scale="none")
 
 back_genes_idx <- sapply(back_genes_idx, function(x)x$indices)
 
-back_genes <-featureNames(test)[back_genes_idx]
+back_genes <-featureNames(palmieri_final)[back_genes_idx]
 back_genes <- setdiff(back_genes, DE_genes_CD)
 
     
