@@ -257,7 +257,7 @@ text(62.5,82.5,"phenoData", cex = 1)
 
 <!-- SR: die Grafik finde ich nicht verständlich; eigentlich sollen ja Zeilen von phenoData mit Spalten von assayData übereinstimmen, aber bei pheno is eine Spalte markiert und bei assay eine Zeile? feature- und Assay-Data macht sinn, weil hier jeweils eine Zeile markiert ist. -> Vorschlag:--> 
 
-```{r sumexp, echo=FALSE, fig.show="asis"}
+```{r sumexp, fig.cap = "Structure of Bioconductor’s ExpressionSet class.", echo=FALSE, fig.show="asis"}
 par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0, 150),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
@@ -346,7 +346,7 @@ We take the log2 of `exprs(raw_data)`, as expression data is always analyzed on 
 We then perform a principal component analysis (PCA) and plot it. Every point in the plot represents one sample, with the colour indicating the mucosa type (inflamed vs non-inflamed) and the shape indicating the disease (UC or CD).
 We also plot a boxplot graph with boxes for the probe intensities on individual microarrays. Note that the `oligo::boxplot`function, i.e. the boxplot function of the oligo package, can take whole expression sets as argument. It accesses the expression data and performs a log2-transformation by default. We therefore can use `raw_data`as argument here.
 
-```{r qualityControlRawData}
+```{r qualityControlRawDataPCA, fig.cap="PCA plot of the log–transformed raw data."}
 exp_raw <- log2(exprs(raw_data))
 PCA_raw <- prcomp(t(exp_raw), scale = FALSE)
 
@@ -363,8 +363,12 @@ dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
 
 
 
-oligo::boxplot(raw_data, target="core", main="Boxplot of log2-intensitites for the raw data")
 
+
+```
+
+```{r qualityControlRawDataBox, fig.cap="Intensity boxplots of the log2–transformed raw data."}
+oligo::boxplot(raw_data, target="core", main="Boxplot of log2-intensitites for the raw data")
 ```
 
 
@@ -545,7 +549,7 @@ We now produce a clustering heatmap and another PCA plot using the calibrated da
 
 First, we perform a PCA analysis of the calibrated data analogously to the one with the raw data:
 
-```{r PCAMetricsCalibrated, eval = TRUE }
+```{r PCAMetricsCalibrated, fig.cap = "PCA plot of the calibrated data.", eval = TRUE }
 exp_palmieri <- exprs(palmieri_eset_norm)
 PCA <- prcomp(t(exp_palmieri), scale = FALSE)
 
@@ -587,7 +591,7 @@ row_names_for_heatmap <- paste(row_names_dataframe$Phenotype, row_names_datafram
 
 ```
 
-```{r clusteringHeatmap, fig.height = 8.5, eval = TRUE }
+```{r clusteringHeatmap, fig.cap = "Heatmap of the sample to sample distances for the calibrated data.", fig.height = 8.5, eval = TRUE }
 dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 colnames(dists) <- NULL
 diag(dists) <- NA
@@ -650,7 +654,7 @@ no_of_samples
 ```
 Now, we calculate the row--wise medians from the expression data, as they represent the transcript medians, and assign them to `palmieri_medians`. We plot the histogram:
 
-```{r alternativeIntensityBasedFilteringManuallyFiltered}
+```{r alternativeIntensityBasedFilteringManuallyFiltered, fig.cap="Histogram of the median intensities per gene"}
 palmieri_medians <- rowMedians(exprs(palmieri_eset_norm))
 
 hist_res <- hist(palmieri_medians, 100, col="cornsilk1", freq = FALSE, 
@@ -906,7 +910,7 @@ higher number of DE genes identified is probably
 due to the increased power from the blocking according to the individuals
 and the moderated variance estimation that `r Biocpkg("limma") ` performs.
 
-```{r extractResults, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE}
+```{r extractResultsC, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for Crohn’s disease."}
 table_CD <-  topTable(palmieri_fit_CD, number = Inf)
 head(table_CD)
 
@@ -916,6 +920,10 @@ table(table_CD$P.Value < 0.001)
 
 hist(table_CD$P.Value, col = brewer.pal(3, name = "Set2")[1],
      main = "inflamed vs non-inflamed - Crohn's disease", xlab = "p-values")
+```
+
+
+```{r extractResultsU, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for ulcerative colitis."}
 
 
 table_UC <-  topTable(palmieri_fit_UC, number = Inf)
@@ -928,7 +936,10 @@ table(table_UC$P.Value < 0.001)
 hist(table_UC$P.Value, col = brewer.pal(3, name = "Set2")[2],
      main = "inflamed vs non-inflamed - Ulcerative colitis", xlab = "p-values")
 
+
 ```
+
+
 
 
 ## Comparison to the paper results
@@ -1008,7 +1019,7 @@ Here we focus on the  CD subset of the  data.
 For every differentially expressed gene, we try to find genes with similar
 expression.
 
-```{r GOAnalysisCreateBackgrounds, eval=TRUE, dependson=c("extractResults", "excludeMultipleMappings"), warning=FALSE, message=FALSE}
+```{r GOAnalysisCreateBackgrounds, eval=TRUE, fig.cap="Selecting a background set of genes for the gene ontology analysis.", warning=FALSE, message=FALSE}
 DE_genes_CD <- subset(table_CD, adj.P.Val < 0.1)$PROBEID
 
 back_genes_idx <- genefinder(palmieri_final, as.character(DE_genes_CD), 
@@ -1116,7 +1127,7 @@ A graph of the results can also be produced. Here we visualize the three most
 significant nodes according to the Fisher elim algorithm in the context of
 the GO hierarchy.
 
-```{r  graphOfResults, fig.height = 6, eval=TRUE, results='hide'}
+```{r  graphOfResults, fig.height = 6, eval=TRUE, fig.cap = "A graphical representation of the topGO results.", results='hide'}
 showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
                useInfo = 'def')
 ```
@@ -1151,7 +1162,7 @@ based on the hypergeoemtric distribution that is the same as a one sided Fisher-
 which `r Biocpkg("topGO")` calls "Fisher--classic".
 Details can be found in the vignette of the `r Biocpkg("DOSE")` package [@Yu_2014].
 
-```{r runReactomeEnrichment, eval = TRUE}
+```{r runReactomeEnrichment, fig.cap="Enriched Reactome pathways and their p–values as a bar chart.", eval = TRUE}
 reactome_enrich <- enrichPathway(gene = entrez_ids[DE_genes_CD], 
                                 universe = entrez_ids[c(DE_genes_CD, 
                                                         back_genes)],
@@ -1175,7 +1186,7 @@ The `r Biocpkg("reactomePA") ` package offers nice visualization capabilities.
 The top pathways can be displayed as a bar char that displays all categories
 with a p--value below the specified cutoff.
 
-```{r reactomeBar, dependson="runReactomeEnrichment", eval = TRUE}
+```{r reactomeBar, dependson="runReactomeEnrichment", fig.cap="Enriched Reactome pathways and their p–values as a bar chart."}
 barplot(reactome_enrich)
 ```
 
@@ -1184,11 +1195,11 @@ a graph, where the color represents the p--value of the pathway and the
 edge--thickness is proportional to the number of overlapping genes between
 two pathways.
 
-```{r enrichMap, dependson="runReactomeEnrichment", fig.width=6, fig.height = 7, eval = TRUE}
+```{r enrichMap, dependson="runReactomeEnrichment", fig.width=6, fig.height = 7, fig.cap="Enriched Reactome pathways enrichment results as a graph."}
 enrichMap(reactome_enrich, n = 10, vertex.label.font = 2)
 ```
 
-Again, we see pathways related to  signalling and immune response. 
+Again, the graph in Figure \@ref(fig:enrichMap) shows pathways related to  signalling and immune response. 
 
 The package `r Biocpkg("clusterProfiler") ` [@Yu_2012] can also perform these analyses 
 using downloaded KEGG data. Furthermore, the package `r Biocpkg("EnrichmentBrowser") `
