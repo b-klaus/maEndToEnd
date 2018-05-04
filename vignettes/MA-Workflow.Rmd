@@ -7,7 +7,7 @@ author:
     affiliation: EMBL Heidelberg, Meyerhofstrasse 1, 69117 Heidelberg, Germany, stefanie.reisenauer@embl.de
 abstract: In this article, we walk through an end--to--end Affymetrix microarray differential expression workflow using Bioconductor packages. This workflow is directly applicable to current "Gene" type arrays, e.g. the HuGene or MoGene arraysbut can easily be adapted to  similar platforms. The data re--analyzed is a typical clinical microarray data set that compares inflamed and non--inflamed colon tissue in two disease subtypes. For each disease, the differential gene expression between inflamed-- and non--inflamed colon tissue was analyzed. We will start from the raw data CEL files, show how to import them into a Bioconductor ExpressionSet, perform quality control and normalization and finally differential gene expression (DE) analysis, followed by some enrichment analysis.
 keywords: Microarry, Gene Expression
-bibliography: MA_end_to_end.bib
+bibliography: MAEndToEnd.bib
 output:
   BiocStyle::html_document:
     self_contained: yes
@@ -38,7 +38,7 @@ output_format = BiocWorkflowTools::f1000_article()) -->
 <!-- https://github.com/LieberInstitute/recountWorkflow/blob/master/vignettes/recount-workflow.Rmd -->
 
 
-```{r bioc_setup, include = FALSE, results="hide", warning=FALSE, echo=FALSE}
+```{r biocSetup, include = FALSE, results="hide", warning=FALSE, echo=FALSE}
 ## Changing the YAML to the following changes the output to 'latex'
 ## output:
 ##   BiocWorkflowTools::f1000_article
@@ -139,7 +139,7 @@ and have the accession code **E-MTAB-2967**.
 We will store these files in the directory **raw\_data\_dir** which defaults to the subdirectory
 `rawDataMAWorkflow` of the current working directory:
 
-```{r generate folder for raw data, echo = TRUE}
+```{r generateFolderForRawData, echo = TRUE}
 raw_data_dir <- file.path(getwd(), "rawDataMAWorkflow")
 
 if(!dir.exists(raw_data_dir)){
@@ -329,7 +329,7 @@ The columns of interest for us are the following:
 
 We reassign the `Biobase::pData(raw_data)`function to the corresponding columns: 
 
-```{r reassign pData, eval=TRUE}
+```{r reassignpData, eval=TRUE}
 Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
                                      "Characteristics.individual.",
                                      "Factor.Value.disease.",
@@ -346,7 +346,7 @@ We take the log2 of `exprs(raw_data)`, as expression data is always analyzed on 
 We then perform a principal component analysis (PCA) and plot it. Every point in the plot represents one sample, with the colour indicating the mucosa type (inflamed vs non-inflamed) and the shape indicating the disease (UC or CD).
 We also plot a boxplot graph with boxes for the probe intensities on individual microarrays. Note that the `oligo::boxplot`function, i.e. the boxplot function of the oligo package, can take whole expression sets as argument. It accesses the expression data and performs a log2-transformation by default. We therefore can use `raw_data`as argument here.
 
-```{r quality_control_raw_data}
+```{r qualityControlRawData}
 exp_raw <- log2(exprs(raw_data))
 PCA_raw <- prcomp(t(exp_raw), scale = FALSE)
 
@@ -419,7 +419,7 @@ for our platform, namely the package
 
 You can view its content like this
 
-```{r annotation data base content, eval = TRUE}
+```{r annotationDataBaseContent, eval = TRUE}
 head(ls("package:hugene10sttranscriptcluster.db"))
 ```
 
@@ -457,7 +457,7 @@ although strictly speaking RMA is merely a summarization method.
 
 #Relative Log Expression data quality analysis
 Before calibrating and evaluating the data, we want to perform another means of quality control, namly Relative Log Expression box plots (RLE), as  escribed in the article by Gandolfo et al [@Gandolfo_2018]: To this goal, we first perform an RMA without normalization: 
-```{r RMAcalibration for RLE, eval=TRUE}
+```{r RMAcalibrationForRLE, eval=TRUE}
 palmieri_eset <- oligo::rma(raw_data, target="core", normalize=FALSE)
 ```
 Further details on the RMA algorithm will be provided after RLE analysis, when the "full" RMA is carried through, including normalization. 
@@ -467,7 +467,7 @@ We then substract this transcript median intensity from every transcript intensi
 We bring the data into a form in which we can plot a boxplot for each array, as before. Note that on the y-axis, we now see for each microarray the values of variation of expression intensity from the median of the single transcripts. 
 Boxes with a larger extension in y scale therefore indicate an unusual high variation from the median in a lot of transcripts, suggesting decreased reliability of the data. Boxes that are shifted in y direction indicate a systematically higher or lower expression of the majority of transcripts in comparison to the other arrays, and thus also decreased data reliability. If shape and median of the single boxes vary too much from the others, it should be considered to remove the corresponding arrays. 
 
-```{r boxplot data for RLE}
+```{r boxplotDataForRLE}
 
 row_medians_assayData <- rowMedians(as.matrix(exprs(palmieri_eset)))
 RLE_data <- sweep(exprs(palmieri_eset), 1, row_medians_assayData)
@@ -484,7 +484,7 @@ ggplot(RLE_data_trafo.m, aes (patient_probe, log2_expression_variation)) + geom_
 When looking at the data, 5 arrays could be considered to be outliers: 2826_I, 2826_II, 3262_II, 3302_II and 3332_II are negatively y--shifted. We will keep these samples in mind for heatmap cluster analysis later on in the workflow. Arrays that are confirmed to be outliers by heatmap analysis can be removed for subsequent analysis.
 
 Now, we can apply the full RMA algorithm to our data in order to background-correct, normalize and summarize:
-```{r RMAcalibration WITH normalization, eval=TRUE}
+```{r RMAcalibrationWITHnormalization, eval=TRUE}
 palmieri_eset_norm <- oligo::rma(raw_data, target="core")
 ```
 
@@ -541,7 +541,7 @@ in the way that \(B\) is removed and an estimate of \(\theta\) is obtained.
 
 We now produce a clustering heatmap and another PCA plot using the calibrated data. 
 
-###PCA analysis
+### PCA analysis
 
 First, we perform a PCA analysis of the calibrated data analogously to the one with the raw data:
 
@@ -566,7 +566,7 @@ In order to display a heatmap of the sample--to--sample distances, we first comp
 the function computes the distances between the rows (i.e. genes in our case) by
 default. The default distance  is the Euclidean one. However this can be
 changed and we choose the Manhattan distance here (it uses absolute distances along rectangular paths instead of squared distances of the direct path), as it is more robust. We set the diagonal of the distance matrix to ` NA ` in order to increase the contrast of the color coding. Those diagonal entries do not contain information since the distance of a sample to itself is always equal to zero.
-```{r rownames for heatmap, fig.height = 8.5, eval = TRUE, echo=FALSE}
+```{r rownamesForHeatmap, fig.height = 8.5, eval = TRUE, echo=FALSE}
 phenotype_names <- c()
 disease_names <- c()
 
@@ -587,7 +587,7 @@ row_names_for_heatmap <- paste(row_names_dataframe$Phenotype, row_names_datafram
 
 ```
 
-```{r clustering heatmap, fig.height = 8.5, eval = TRUE }
+```{r clusteringHeatmap, fig.height = 8.5, eval = TRUE }
 dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 colnames(dists) <- NULL
 diag(dists) <- NA
@@ -604,7 +604,7 @@ On the heatmap plot we also see that the samples do not cluster strongly by tiss
 between the tissues is not perfect. The purple stripes in the heatmap might correspond
 to an outlier that could potentially be removed. We produce the same heatmap again with the sample identifiers as row names in order to see whether the outliers in the heatmap are the same ones as the outliers in the RLE plot beforehand: 
 
-```{r alternative_heatmap_with_patient_probes_as_labels, fig.height = 8.5, eval = TRUE}
+```{r alternativeHeatmapWithPatientProbesAsLabels, fig.height = 8.5, eval = TRUE}
 
 rownames(dists) <- row.names(pData(palmieri_eset_norm))
 hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
@@ -619,7 +619,7 @@ The outliers that could be found here are 2826_II, 3262_II, 3271_I, 2978_II and 
 2826_II, 3262_II and 3332_II were found to be outliers in both RLE and heatmap and will therefore be removed.
 Note that more elaborate metrics to identify and remove outliers are provided by the `r Biocpkg("arrayQualityMetrics") `.
 
-```{r filtering_of_outliers}
+```{r filteringOfOutliers}
 palmieri_eset_filtered <- palmieri_eset_norm[, c(1:17, 19:43, 45:53, 55:58)]
 ```
 <!--SR: quick and dirty Methode zum Filtern, weil ich auf Anhieb keine Möglichkeit gefunden habe, column names aus dem ExpressionSet auszuschließen. Möchten wir die drei Samples überhaupt ausschließen, oder geht das zu weit? NOTE: der Rest des Workflows läuft bis jetzt noch mit dem nicht gefilterten "palmieri_eset_norm" --> 
@@ -650,7 +650,7 @@ no_of_samples
 ```
 Now, we calculate the row--wise medians from the expression data, as they represent the transcript medians, and assign them to `palmieri_medians`. We plot the histogram:
 
-```{r alternative intensityBasedFiltering manually filtered}
+```{r alternativeIntensityBasedFilteringManuallyFiltered}
 palmieri_medians <- rowMedians(exprs(palmieri_eset_norm))
 
 hist_res <- hist(palmieri_medians, 100, col="cornsilk1", freq = FALSE, 
@@ -660,7 +660,7 @@ hist_res <- hist(palmieri_medians, 100, col="cornsilk1", freq = FALSE,
 
 We inspect the histogram and set a manual threshold visually. In our example, we choose a threshold of 4. We plot the same histogram as before and add the threshold line with the `abline()` function. 
 
-```{r set manual threshold}
+```{r setManualThreshold}
 man_threshold <- 4
 
 hist_res <- hist(palmieri_medians, 100, col="cornsilk", freq = FALSE, 
@@ -674,7 +674,7 @@ When we are content with the manual threshold, we filter out all transcripts tha
 We than create a table of idx_man_threshold in order to summarize the results, in order to get an overview over how many genes are filtered out. 
 In the last step, we subset our expression set and keep the TRUE elements of `idx_man_threshold`.
 
-```{r filtering_of_low_intensity_transcripts}
+```{r filteringOfLowIntensity_transcripts}
 samples_cutoff <- min(no_of_samples)
 
 idx_man_threshold <- apply(exprs(palmieri_eset_norm), 1, function(x){
@@ -742,7 +742,7 @@ A left-join keeps the rows and columns of the first argument and adds the corres
 By left--joining with anno_palmieri, we thus add the "SYMBOL" and "GENENAME" columns from anno_palmieri for only the PROBEIDs that have been in `fData(palmieri_final)` before the left--joint and thus get the feature Data for the filtered probes.
 
 
-```{r excludeMultipleMappings, dependson="multipleMappings", cache=FALSE}
+```{r excludeMultipleMappings, dependson="multipleMappings"}
 ids_to_exlude <- (featureNames(palmieri_manfiltered) %in% probe_stats$PROBEID)
 
 table(ids_to_exlude)
@@ -794,346 +794,6 @@ models. It might also be helpful to learn a bit of linear algebra to understand
 the concepts better. The Khan Academy [offers nice (and free) online courses](https://www.khanacademy.org/math/linear-algebra).
 Mike Love's and Michael Irizzary's [genomics class](http://genomicsclass.github.io/book/)
 is also a very good resource, especially its section on [interactions and contrasts](http://genomicsclass.github.io/book/pages/interactions_and_contrasts.html).
-
-## Regression models 
-
-In regression models we use one variable to explain or predict the other. It is
-customary to plot the predictor variable on the x--axis and the predicted variable on
-the y--axis.
-The predictor is also called the independent variable, the explanatory variable, the
-covariate, or simply \(x\). The predicted variable is called the dependent variable, or
-simply \(y\).
-
-In a regression problem the data are pairs \((x_i , y_i)\) for \(i = 1, \dotsc , n\).
-For each \(i, y_i\) is a random variable whose distribution depends on \(x_i\). We write
-
-$$
-y_i = g(x_i) + \varepsilon_i .
-$$
-
-The above  expresses \(y_i\) as a systematic or explainable part \(g(x_i)\) and an unexplained part
-$\varepsilon_i$. Or more informally: response = signal + noise.
-$g$ is called the regression function. 
-Once we have an estimate \(\hat g\) of \(g\), we can compute \(r_i := y_i - g(x_i)\).
-The \(r_i\)'s are called residuals.
-The \(\varepsilon_i\)'s themselves are called errors.
-
-Residuals are used to evaluate and assess the fit of models for g. Usually one 
-makes distributional assumption about them, e.g. that they are independent and 
-identically normally distributed with identical variance
-\(\sigma^2\) and mean zero:
-
-$$
-r_i \sim N(0, \sigma^2)
-$$
-
-This allows to derive statistical tests for model coefficients.
-
-## Linear regression models
-
-Linear regression is a special case of the general regression model. Here,
-we combine the predictors linearly to produce a prediction. If we have only
-single predictor \(x\), the simple linear regression model is:
-
-$$
-y_i = \beta_0 +  \beta_1 x_{i} + \varepsilon_i; \quad
- \varepsilon_i \sim N(0, \sigma);
-$$
-
-We can of course always add more predictors, let their total number be denoted by
-\(p\). Then we get a multiple linear regression:
-
-$$
-y_i= \beta_0 + \sum_{j=1}^p \beta_j x_{i} + \varepsilon_i; \quad  j=1,...,p
-$$
-
-The equation for a multiple linear regression model can also be written in matrix
-form (we will denote matrices and vectors in bold font).
-
-$$
-\mathbf{Y}_{n \times 1} =  \mathbf{X}_{n \times (p+1)}  \mathbf{\beta}_{(p+1) \times 1} + \mathbf{\varepsilon}_{n \times 1}
-$$
-
-With \(\mathbf{X}\) being the so called **design matrix**:
-
-$$
-\mathbf{X}:=  \bigl(\mathbb{1}_n, X_1, \dotsc, X_p\bigr)
-$$
-
-\(\mathbb{1}_n\) is a column vector of ones called the **intercept** and 
-\(\mathbf{X}_p = (x_{p1}, \dotsc, x_{pn})^T\)
-is a column vector of measurements for covariate $p$. The regression
-coefficients are commonly estimated by
-the method of ``ordinary least squares" (OLS):
-
-$$
-\text{OLS:}  \bigl|\bigl| Y - \beta_0 - \sum_{j=1}^p \beta_j X_{j} \bigl|\bigl|_E \rightarrow \min!
-$$
-
-leading to the estimate of the coefficient vector
-
-$$
-\hat \beta = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^TY
-$$
-
-
-## Creating design matrices in R
-
-To get an idea of what design matrices look like, we consider several examples.
-It is important to know some fundamentals
-about design matrices in order to be able to correctly transfer a design of a
-particular study to an appropriate linear model.
-
-We will use the  base R functions:
-
-*   ` formula `
-*   ` model.matrix `
-
-... in order to produce design matrices for a variety of linear models. R uses the formula
-interface to create design matrices automatically. In the first example, we have
-two groups of two samples each. Using `formula`  and  `model.matrix`
-we will create  a model matrix with so called treatment contrast parameterization (the
-default setting in R). This means
-that an intercept is included in the model, i.e. \(X_0 = \mathbb{1}_n\)
-and \(X_1\) is equal to 1 if the samples belongs to group two and zero otherwise
-as we can see in the following code chunk.
-
-
-```{r simple treatment contrast}
-two_groups <- factor(c(1, 1 ,2, 2))
-f <- formula(~ two_groups)
-model.matrix(f)
-```
-
-This design is called treatment contrast parameterization for an obvious reason:
-the first column of the design matrix represents a "base level", i.e the  mean \(\beta_0\)
-for group one and  the second column, corresponding to \(\beta_1\),
-represents the difference between
-the group means since all group two samples have means represented by \(\beta_0 + \beta_1\). 
-As \(\beta_0\)  is the mean of group 1, \(\beta_1\) corresponds to the difference
-of the means of group two and group one and thus shows the effect of a "treatment".
-
-However, this design is not orthogonal, i.e. the columns of the design matrix
-are not independent. We can construct an equivalent
-orthogonal design as follows:
-
-```{r simple orthogonal contrast}
-gr1 <- ifelse(two_groups == 1, 1, 0)
-gr2 <- ifelse(two_groups == 2, 1, 0)
-orth_model <- model.matrix(~ 0 + gr1 + gr2)
-```
-
-Here, we loose the nice direct interpretability of the coefficients. Now
-\(\beta_1\) is simply the mean of the second group. We will discuss the extraction
-of interesting contrasts (i.e. linear combinations of coefficients) from a model 
-like this below.
-
-We explicitly excluded the intercept by specifying it as zero.
-Commonly it makes sense to include an intercept in the model, especially
-in more complex models. We can specify a more complex design pretty easily: 
-if we have two independent
-factors, the base mean now corresponds to the first levels of the two factors.
-
-```{r  basic complex design}
-x <- factor(c(1, 1, 1, 1, 2, 2, 2, 2))
-y <- factor(c("a", "a", "b", "b", "a", "a", "b", "b"))
-two_factors <- model.matrix(~ x + y)
-two_factors
-```
-
-The "drop one" strategy is the default method for creating regression coefficients
-from factors in R. If a factor has \(d\) levels, adding it to the model will give
-you \(d-1\) regression coefficients corresponding to  \(d-1\) columns in a design
-matrix.
-Apart from excluding the intercept, you can also use the `I` function
-to treat a covariate as it is without using the formula syntax.
-The code below includes \(z^2\) as a covariate.
-
-```{r other design related features}
-z <- 1:4
-model.matrix(~ z)
-model.matrix(~ 0 + z)
-model.matrix(~ z + I(z^2))
-```
-
-## Singular model matrices
-
-Whatever your model matrix looks like, you should make sure that it is
-non--singular. Singularity means that the measured variables
-are linearly dependent and leads to  regression coefficients that are not 
-uniquely defined. In linear algebra terms, we say that
-the matrix does not have full rank, which for design matrices means that
-the actual dimension of the space spanned by the column vectors is in fact lower
-than the apparent one. This leads to a redundancy in the model matrix, since
-some columns can be represent by linear combinations of other columns.
-
-For design matrices, which contain factors, this  happens if two conditions 
-are confounded, e.g. in one experimental
-group there are only females and in the other group there are only males.
-Then the effect of sex and experimental group cannot be disentangled.
-
-Let's look at an example. We set three factors, of which the
-third one is nested with the first two. We can check the singularity of
-the model matrix by computing its so called singular value decomposition and check
-it's minimal singular value. If this is zero, the matrix is singular.
-As we can see, this is indeed the case here.
-
-```{r singular model matrix}
-x <- factor(c(1, 1, 1, 1, 2, 2, 2, 2))
-y <- factor(c("a", "a", "b", "b", "a", "a", "b", "b"))
-z <- factor(c("m", "m", "m", "m", "k", "k", "l", "l"))
-sing_model <- model.matrix(~ x+y+z)
-sing_model
-round(min(svd(sing_model)$d))
-```
-
-
-We have one column in the design matrix that can be represented by
-a linear combination of the other columns, thus the column space has actually
-a lower dimension than the apparent one. For example, we can represent column
-5 ("zm") by a linear combination of the first two columns "intercept" and "x2":
-
-```{r singular model matrix lm}
-comb_coefs  <- coef(lm(sing_model[, 5] ~ 0 + sing_model[, -5]))
-comb_coefs <-  ifelse(is.na(comb_coefs), 0L, comb_coefs)
-comb_coefs
-round(sum(sing_model[,-5] %*% comb_coefs - sing_model[,5]))
-```
-
-I.e., in mathematical notation this means
-$$
-    \begin{pmatrix}
-        1\\1\\1\\1\\0\\0\\0\\0
-    \end{pmatrix}
-    = 1\cdot 
-    \begin{pmatrix}
-        1\\1\\1\\1\\1\\1\\1\\1 
-    \end{pmatrix}
-    -1\cdot 
-    \begin{pmatrix}
-        0\\0\\0\\0\\1\\1\\1\\1
-    \end{pmatrix}
-$$
-
-Thus, the corresponding regression coefficients are not uniquely determined
-and the model does not make much sense. Therefore, the non--singularity 
-of the model matrix should
-always be checked beforehand.
-
-## Using contrasts to test hypotheses  in linear regression 
-
-In differential expression analysis, our most important covariates will
-be factors that differentiate between two or more experimental groups, e.g. the
-covariate \(X_p = (\mathbf{x}_{p1}, \dotsc, \mathbf{x}_{pn})\) is either zero or one
-depending on which group the sample belongs to.
-
-We will illustrate this concept using a small data set called `toycars `
-from the `r CRANpkg("DAAG") ` package.
-The data set `toycars` gives  the distance traveled by one of
-three different toy cars on a smooth surface, starting from rest at
-the top of a 16 inch long ramp tilted at varying angles. We have the
-variables:
-
-* `angle`: Angle
-
-* `distance`: Traveled distance
-
-* `car`: Car number (1, 2 or 3)
-
-We transform car into a factor so that R performs the necessary parameterization
-of the contrasts automatically.
-
-```{r toycars_boxplot }
-toycars$car <-  as.factor(toycars$car)
-qplot(car, distance, data = toycars, geom="boxplot") + geom_point()
-```
-
-By looking at the box plots of distance by car, we can clearly see differences
-between the three types of cars. We can now fit a linear model with
-distance as the dependent variable and car and angle as the predictors. As we
-can see from the linear model output, the treatment contrast parameterization
-was used, with car 1 being the base level.
-
-```{r toycars_linear_model }
-lm_car <- lm(distance ~ angle + car, data = toycars)
-summary(lm_car)
-```
-
-
-## Testing general linear hypotheses
-
-The estimated coefficients now give us the difference between the distance
-traveled between car 1 and car 2 (0.11) and car 1 and car 3 (-0.08), and the associated
-t--tests of these coefficients. However we cannot see a test of car 2 vs. car 3.
-This contrast test would correspond to testing the difference between
-the car 2 and car 3 regression coefficients.
-
-Thus, contrasts of interest to us may not readily correspond to coefficients
-in a fitted linear model. However, one can easily test general linear hypotheses
-of the coefficients of the form:
-
-$$
-    H_0: \mathbf{C}_{ q \times (p+1) } \mathbf{\beta}_{ (p+1) \times 1 } = \mathbf{\alpha}_{ q \times 1 }
-$$
-
-Where \(\mathbf{C}\) is the contrast matrix containing the between group differences
-of interest, \(q\) is the total number of comparisons to be performed and
-\(\mathbf{\alpha}\) contains the difference to be tested, this is usually a vector
-of zeros. If one tests multiple coefficients at once (e.g. \(\beta_1 = 0\) and
-\(\beta_2 = 0\) ) the corresponding test statistic is \(F\)--distributed. If one 
-just tests linear combinations of coefficients, e.g.
-\(\beta_1 - \beta_2 = 0\), \(\beta_1 - \beta_2 - 2\beta_3 = 0\) or something 
-similar the test statistic
-has t--distribution. The function `summary` for `lm` reports the results of
-\(\beta_1 = \beta_2 = \dotso = \beta_p = 0\) (F--test) and the t--tests of $\beta_j = 0$
-each of the coefficients.
-
-Note that the model does not actually have to be refitted in order
-to test the contrasts. This makes contrast matrix based testing
-more efficient and convenient than reformulating the model
-using a new paramerization of the factors to obtain the desired tests.
-We can use the function `glht` from the `r CRANpkg("multcomp") ` package
-to test these general linear hypotheses [@mult]. Let us assume we want all pairwise
-comparisons between the cars, this can be achieved by defining a specific contrast
-matrix for our current model as given below.
-
-There are three such comparisons  and we can print
-the results by using the `summary` function. As we can see the estimates
-for the contrasts already contained in the original model agree with the obtained
-results from contrast fit.
-
-```{r toycars contrast test }
-C <- rbind(c(0, 0 , 1 ,0), c(0 , 0 , 0 , 1), c(0, 0 , 1, -1))
-colnames(C) <- rownames(summary(lm_car)$coefficients)
-rownames(C) <- c("car2 - car1", "car3 - car1" , "car2 - car3")
-C
-summary(glht(lm_car, C), test = adjusted(type ="none"))
-```
-
-
-Note that the term "contrast" is  used in the context of (re)parameterization
-of the original model (as in "treatment contrasts") and in the testing of
-linear hypotheses about the model coefficients. This can lead to some confusion,
-however usually it should be clear from the context whether a reparameterization
-or test of linear hypotheses is intended.
-
-We can also fit a linear model without an intercept
-to the toycars data set. Now, the coefficients derived from the "car" factor 
-represent car--wise means. Thus, the contrasts we have to form change, 
-however, the results for the group comparisons do not. 
-
-```{r toycars_no_inter}
-toycars$car <- as.factor(toycars$car)
-lm_car_no_I <- lm(distance~0 + angle + car, data = toycars)
-summary(lm_car_no_I)
-
-C_no_I <-  rbind(c(0, -1, 1, 0), c(0, -1, 0, 1), c(0, 0,  1, -1) )
-colnames(C_no_I) <- rownames(summary(lm_car_no_I)$coefficients)
-rownames(C_no_I) <- c("car2 - car1", "car3 - car1" , "car2 - car3" )
-C_no_I
-summary(glht(lm_car_no_I, C_no_I), test = adjusted(type ="none"))
-```
-
 
 # Linear models for microarrays
 
@@ -1456,7 +1116,7 @@ A graph of the results can also be produced. Here we visualize the three most
 significant nodes according to the Fisher elim algorithm in the context of
 the GO hierarchy.
 
-```{r  graph_of_results, fig.height = 6, eval=TRUE, results='hide'}
+```{r  graphOfResults, fig.height = 6, eval=TRUE, results='hide'}
 showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
                useInfo = 'def')
 ```
@@ -1491,7 +1151,7 @@ based on the hypergeoemtric distribution that is the same as a one sided Fisher-
 which `r Biocpkg("topGO")` calls "Fisher--classic".
 Details can be found in the vignette of the `r Biocpkg("DOSE")` package [@Yu_2014].
 
-```{r runReactomeEnrichment, dependson="mapIDsToEntrez", eval = TRUE, cache=FALSE}
+```{r runReactomeEnrichment, eval = TRUE}
 reactome_enrich <- enrichPathway(gene = entrez_ids[DE_genes_CD], 
                                 universe = entrez_ids[c(DE_genes_CD, 
                                                         back_genes)],
