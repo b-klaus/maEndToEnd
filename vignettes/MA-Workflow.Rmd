@@ -1573,7 +1573,7 @@ provided valuable information on the evolution of Affymetrix arrays in some of
 his posts of on the Biocondctor mailing list/support site. 
 The author would also like to thank him for some friendly personal 
 correspondence about the annotation resources available
-for microarrhays in Bioconductor.
+for microarrays in Bioconductor.
 
 <!--
 Dan Tenenbaum provided helpful technical support on the bioconductor
