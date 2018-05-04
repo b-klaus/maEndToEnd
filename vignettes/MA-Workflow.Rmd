@@ -28,7 +28,7 @@ vignette: >
 
 
 <!-- pdf rendering using to F1000 template from Mike's BiocWorkflowTools  -->
-<!-- render("MA-Workflow.Rmd",
+<!-- rmarkdown::render("MA-Workflow.Rmd",
 output_format = BiocWorkflowTools::f1000_article()) -->
 
 
