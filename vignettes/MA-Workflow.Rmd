@@ -1,78 +1,81 @@
 ---
-output:
-  pdf_document: default
-  html_document: default
----
-author: "Bernd Klaus"
-output: html_document
+title: "An end to end workflow for differential gene expression using Affymetrix microarrays"
+author: 
+  - name: Bernd Klaus
+    affiliation: EMBL Heidelberg, Meyerhofstrasse 1, 69117 Heidelberg, Germany, bernd.klaus@embl.de
+  - name: Stefanie Reisenauer
+    affiliation: EMBL Heidelberg, Meyerhofstrasse 1, 69117 Heidelberg, Germany, stefanie.reisenauer@embl.de
+abstract: In this article, we walk through an end--to--end Affymetrix microarray differential expression workflow using Bioconductor packages. This workflow is directly applicable to current "Gene" type arrays, e.g. the HuGene or MoGene arraysbut can easily be adapted to  similar platforms. The data re--analyzed is a typical clinical microarray data set that compares inflamed and non--inflamed colon tissue in two disease subtypes. For each disease, the differential gene expression between inflamed-- and non--inflamed colon tissue was analyzed. We will start from the raw data CEL files, show how to import them into a Bioconductor ExpressionSet, perform quality control and normalization and finally differential gene expression (DE) analysis, followed by some enrichment analysis.
+keywords: Microarry, Gene Expression
 bibliography: MA_end_to_end.bib
-csl: biometrics.csl
+output:
+  BiocStyle::html_document:
+    self_contained: yes
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    code_folding: show
+csl: f1000-research.csl
+
 vignette: >
   %\VignetteIndexEntry{An end to end workflow for differential gene expression using Affymetrix microarrays}
   %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+  %\VignetteEncoding{UTF-8} 
 ---
 
+<!--Html rendering for Bioc Workflow using BiocStyle-->
+<!-- rmarkdown::render("MA-Workflow.Rmd") -->
 
-<!--
-To compile this document run
-graphics.off();rm(list=ls());rmarkdown::render('MA-Workflow.Rmd');
--->
 
-<!--
-F1000 manuscript compilation
-graphics.off();rm(list=ls());rmarkdown::render('MA-Workflow.Rmd', 
-c("html_document", "pdf_document"), clean=FALSE);
+<!-- pdf rendering using to F1000 template from Mike's BiocWorkflowTools  -->
+<!-- render("MA-Workflow.Rmd",
+output_format = BiocWorkflowTools::f1000_article()) -->
 
-produce tex on command line
 
-pandoc MA-Workflow.utf8.md --output MA-Workflow.tex --to latex \
---from markdown+autolink_bare_uris+ascii_identifiers+tex_math_single_backslash-implicit_figures \
---template /home/bernd/R/x86_64-pc-linux-gnu-library/3.3/rmarkdown/rmd/latex/default.tex \
---highlight-style tango --latex-engine pdflatex --variable 'geometry:margin=1in' \
---bibliography MA_end_to_end.bib --biblatex
+<!--  Conversions between f1000 / BioStyle by Leo Torres -->
+<!-- https://stat.ethz.ch/pipermail/bioc-devel/2018-April/013237.html -->
+<!-- His example recount workflow that compiles to both BioC and F1000  -->
+<!-- https://github.com/LieberInstitute/recountWorkflow/blob/master/vignettes/recount-workflow.Rmd -->
 
-sed 's/\\autocite/\\cite/g' MA-Workflow.tex | \
-sed 's/\\(/$/g' | \
-sed 's/\\)/$/g' | \
-sed 's/\.png/\.pdf/g' | \
-sed 's/MA-Workflow_files\/figure-latex\///g' > MA-Workflow_clean.tex
--->
 
-<!--
-     # a list of all required libraries:
-     reqlibs = sub(".*library\\(\"(.*?)\"\\).*","\\1",grep("library\\(",readLines("MA-Workflow.Rmd"),value=TRUE))
-     find.package(reqlibs)
-     #SR: this does not work for me, I won't find BiocStyle and knitr 
--->
+```{r bioc_setup, include = FALSE, results="hide", warning=FALSE, echo=FALSE}
+## Changing the YAML to the following changes the output to 'latex'
+## output:
+##   BiocWorkflowTools::f1000_article
+## More at:
+## https://stackoverflow.com/questions/35144130/in-knitr-how-can-i-test-for-if-the-output-will-be-pdf-or-word
 
-<script type="text/javascript"
-  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-</script>
+## here, pdf specific adapations can be made
+## on.bioc <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
+#knitr::opts_chunk$set(fig.path = "")
+suppressPackageStartupMessages({library('maEndToEnd')})
 
-```{r options, include=FALSE}
-library(BiocStyle)
-library(knitr)
-options(digits=3, width=80)
-opts_chunk$set(echo=TRUE,tidy=FALSE,include=TRUE,
-               dev=c('png', 'pdf'), fig.width = 6, fig.height = 3.5,
-               comment = '  ', dpi = 300,
-cache=FALSE)
 ```
 
 
-# Abstract
 
-In this article, we walk through an end--to--end Affymetrix microarray differential
-expression workflow using Bioconductor packages. This workflow is directly 
-applicable to current "Gene" type arrays, e.g. the HuGene or MoGene arrays
-but can easily be adapted to  similar platforms.
-The data re--analyzed is a typical clinical microarray data set that 
-compares inflamed and non--inflamed colon tissue in two disease subtypes. For each disease, the differential gene expression between inflamed-- and non--inflamed colon tissue was analyzed. 
-We will start from the raw data CEL files, show how to import them into a 
-Bioconductor ExpressionSet, perform quality control and normalization and finally
-differential gene expression (DE) analysis, followed by some enrichment 
-analysis.
+```{r knitrOptions, include=FALSE}
+library(BiocStyle)
+library(knitr)
+options(digits = 3, width = 80)
+opts_chunk$set(echo=TRUE, 
+               tidy=FALSE, 
+               include=TRUE,
+               dev=c('png', 'pdf'),
+               fig.width = 6, fig.height = 3.5,
+               comment = '  ', 
+               dpi = 300, cache=TRUE)
+```
+
+
+<p>
+**R version**: `r R.version.string`
+<br />
+**Bioconductor version**: `r BiocInstaller::biocVersion()`
+<br />
+**Package version**: `r packageVersion("maEndToEnd")`
+</p>
+
 
 # Introduction
 
@@ -94,6 +97,36 @@ suppressPackageStartupMessages({
 })
 ```
 
+```{r pkgList}
+library(BiocStyle)
+library(oligo)
+library(geneplotter)
+library(ggplot2)
+library(dplyr)
+library(LSD)
+library(gplots)
+library(RColorBrewer)
+library(ArrayExpress)
+library(arrayQualityMetrics)
+library(stringr)
+library(matrixStats)
+library(topGO)
+library(genefilter)
+library(biomaRt)
+library(pd.hugene.1.0.st.v1)
+library(hugene10sttranscriptcluster.db)
+library(pheatmap)
+library(mvtnorm)
+library(DAAG)
+library(multcomp)
+library(limma)
+library(ReactomePA)
+library(clusterProfiler)
+library(openxlsx)
+library(devtools)
+library(biomaRt)
+
+```
 
 
 # Download the raw data from from ArrayExpress
@@ -206,7 +239,7 @@ illustrated in the figure.
 
 <!-- SR: muss man jemals selbst etwas machen, um diese Zeilen/Spalten-Übereinstimmungen aufrecht zu erhalten? -> nachher beim left-join, nachdem man multiple mappings rausgefiltert hat, aber: das versteht man hier noch nicht, finde ich; man kann mit dem Begriff "feature" noch nichts anfangen -->
 
-```{r sumexp, echo=FALSE, fig.show="asis"}
+```{r sumexpOld, echo=FALSE, fig.show="asis"}
 par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0,100),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
@@ -1540,7 +1573,7 @@ provided valuable information on the evolution of Affymetrix arrays in some of
 his posts of on the Biocondctor mailing list/support site. 
 The author would also like to thank him for some friendly personal 
 correspondence about the annotation resources available
-for microarrays in Bioconductor.
+for microarrhays in Bioconductor.
 
 <!--
 Dan Tenenbaum provided helpful technical support on the bioconductor
@@ -1548,5 +1581,4 @@ workflow system.
 -->
 
 # References
-
 
