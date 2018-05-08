@@ -48,7 +48,7 @@ output_format = BiocWorkflowTools::f1000_article()) -->
 ## here, pdf specific adapations can be made
 ## on.bioc <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
 #knitr::opts_chunk$set(fig.path = "")
-suppressPackageStartupMessages({library('maEndToEnd')})
+suppressPackageStartupMessages({library("maEndToEnd")})
 
 ```
 
@@ -1196,7 +1196,9 @@ edge--thickness is proportional to the number of overlapping genes between
 two pathways.
 
 ```{r enrichMap, dependson="runReactomeEnrichment", fig.width=6, fig.height = 7, fig.cap="Enriched Reactome pathways enrichment results as a graph."}
-enrichMap(reactome_enrich, n = 10, vertex.label.font = 2)
+#enrichMap(reactome_enrich, n = 10, vertex.label.font = 2)
+
+emapplot(reactome_enrich, showCategory=10)
 ```
 
 Again, the graph in Figure \@ref(fig:enrichMap) shows pathways related to  signalling and immune response. 
