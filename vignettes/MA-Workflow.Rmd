@@ -64,7 +64,8 @@ opts_chunk$set(echo=TRUE,
                dev=c('png', 'pdf'),
                fig.width = 6, fig.height = 3.5,
                comment = '  ', 
-               dpi = 300, cache=TRUE)
+               dpi = 300, cache=TRUE,
+               out.width="400px")
 ```
 
 
@@ -239,7 +240,7 @@ illustrated in the figure.
 
 <!-- SR: muss man jemals selbst etwas machen, um diese Zeilen/Spalten-Übereinstimmungen aufrecht zu erhalten? -> nachher beim left-join, nachdem man multiple mappings rausgefiltert hat, aber: das versteht man hier noch nicht, finde ich; man kann mit dem Begriff "feature" noch nichts anfangen -->
 
-```{r sumexpOld, echo=FALSE, fig.show="asis"}
+```{r sumexpOld, echo=FALSE, fig.show="asis", out.width="250px"}
 par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0,100),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
@@ -257,7 +258,7 @@ text(62.5,82.5,"phenoData", cex = 1)
 
 <!-- SR: die Grafik finde ich nicht verständlich; eigentlich sollen ja Zeilen von phenoData mit Spalten von assayData übereinstimmen, aber bei pheno is eine Spalte markiert und bei assay eine Zeile? feature- und Assay-Data macht sinn, weil hier jeweils eine Zeile markiert ist. -> Vorschlag:--> 
 
-```{r sumexp, fig.cap = "Structure of Bioconductor’s ExpressionSet class.", echo=FALSE, fig.show="asis"}
+```{r sumexp, fig.cap = "Structure of Bioconductor’s ExpressionSet class.", echo=FALSE, fig.show="asis", out.width="250px"}
 par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0, 150),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
@@ -323,9 +324,9 @@ stopifnot(validObject(raw_data))
 ```
 
 The columns of interest for us are the following:
-**identifiers of the individuals, i.e. columns "Source.Name, "Characteristics.individual."
-**disease of the individual, i.e. "Factor.Value.disease."
-**mucosa type, i.e. "Factor.Value.phenotype."
+* identifiers of the individuals, i.e. columns "Source.Name, "Characteristics.individual."
+* disease of the individual, i.e. "Factor.Value.disease."
+* mucosa type, i.e. "Factor.Value.phenotype."
 
 We reassign the `Biobase::pData(raw_data)`function to the corresponding columns: 
 
@@ -368,7 +369,8 @@ dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
 ```
 
 ```{r qualityControlRawDataBox, fig.cap="Intensity boxplots of the log2–transformed raw data."}
-oligo::boxplot(raw_data, target="core", main="Boxplot of log2-intensitites for the raw data")
+oligo::boxplot(raw_data, target="core", 
+               main="Boxplot of log2-intensitites for the raw data")
 ```
 
 
@@ -598,9 +600,11 @@ diag(dists) <- NA
 rownames(dists) <- row_names_for_heatmap
 hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
 
-pheatmap(dists, col = (hmcol), legend=TRUE, legend_breaks=c(min(dists, na.rm=TRUE), max(dists, na.rm=TRUE)), legend_labels=(c("low difference", "high difference")))
-
-
+pheatmap(dists, col = (hmcol), 
+         legend=TRUE, 
+         legend_breaks=c(min(dists, na.rm=TRUE), 
+                         max(dists, na.rm=TRUE)), 
+         legend_labels=(c("low difference", "high difference")))
 ```
 <!-- SR: title for heatmap? --> 
 
@@ -615,7 +619,11 @@ hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
 colnames(dists) <- NULL
 diag(dists) <- NA
 
-pheatmap(dists, col = (hmcol), legend=TRUE, legend_breaks=c(min(dists, na.rm=TRUE), max(dists, na.rm=TRUE)), legend_labels=(c("low difference", "high difference")))
+pheatmap(dists, col = (hmcol), 
+         legend=TRUE, 
+         legend_breaks=c(min(dists, na.rm=TRUE), 
+                         max(dists, na.rm=TRUE)), 
+         legend_labels=(c("low difference", "high difference")))
 
 ```
 <!-- SR: evtl too much; sollen wir das machen oder rauslassen? -->
@@ -840,8 +848,8 @@ tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
 disease <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.disease., " ", "_")
 disease <- ifelse(disease == "Crohn's_disease", "CD", "UC")
 
-#muss man disease und tissue nicht noch als factor umwandeln? also z.B.
-#disease <- factor(disease)
+#SR: muss man disease und tissue nicht noch als factor umwandeln? also z.B.
+#disease <- factor(disease) -> wahrscheinlich nicht, weil die Werte nicht numerisch sind --> R merkt dann automatisch, dass das Faktoren sind, oder? 
 
 
 i <- individual[disease == "CD"]
@@ -873,7 +881,7 @@ min(svd(design_palmieri_UC)$d)
 We  now fit the linear models and
 define appropriate contrasts to test hypotheses of interest.
 We want to compare the inflamed  to the the non--inflamed tissue.
-Thus, we create a contrast matrix consisting of one row. `r Biocpkg("limma")` 's function
+Thus, we create a contrast matrix consisting of one row. <!-- SR: view contrast matrix contrast_matrix_CD; it has three columns and many rows, so maybe reformulate this part? -->  `r Biocpkg("limma")` 's function
 `makeContrasts` creates this matrix from a synbolic description of the contrast of
 interest. We can fit the linear model, compute the moderated \(t\)--statistics
 by calling the ` eBayes ` function and finally extract the number of
@@ -920,6 +928,8 @@ table(table_CD$P.Value < 0.001)
 
 hist(table_CD$P.Value, col = brewer.pal(3, name = "Set2")[1],
      main = "inflamed vs non-inflamed - Crohn's disease", xlab = "p-values")
+
+#SR: comment on the aj.P.val or don't include it at all; why do we set it to 0.05? In the text below, it is mentioned that in CD, a p value of 0.001 corresponds to an adjusted p value of 0.05 in CD; however, it is also mentioned that for UC it would be 0.02, and still 0.05 is used in the UC chunk
 ```
 
 
@@ -1022,16 +1032,16 @@ expression.
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, fig.cap="Selecting a background set of genes for the gene ontology analysis.", warning=FALSE, message=FALSE}
 DE_genes_CD <- subset(table_CD, adj.P.Val < 0.1)$PROBEID
 
-back_genes_idx <- genefinder(palmieri_final, as.character(DE_genes_CD), 
+back_genes_idx <- genefilter::genefinder(palmieri_final, as.character(DE_genes_CD), 
                        method="manhattan", scale="none")
 
-back_genes_idx <- sapply(back_genes_idx, function(x)x$indices)
+back_genes_idx <- sapply(back_genes_idx, function(x) x$indices)
 
 back_genes <-featureNames(palmieri_final)[back_genes_idx]
-back_genes <- setdiff(back_genes, DE_genes_CD)
+back_genes <- setdiff(back_genes, DE_genes_CD) #SR: so that we don't have any of the differentially expressed genes in the background
 
     
-intersect(back_genes, DE_genes_CD)
+intersect(back_genes, DE_genes_CD) #SR: nur zur Überprüfung ob da noch eine Überschneidung vorhanden ist, oder?
 length(back_genes)
 
 multidensity(list(
@@ -1044,7 +1054,7 @@ multidensity(list(
 ```
 
 We can see that the matching returned a sensible result and can now
-perform the actual testing. For this purpose we use the `r Biocpkg("topGO") ` which
+perform the actual testing. <!-- SR: discuss "sensible result" -->  For this purpose we use the `r Biocpkg("topGO") ` which
 implements a nice interface to Fisher testing and also has additional algorithms
 taking the GO structure into account, by e.g. only reporting the most specific
 gene set in the hierarchy [@Alexa_2006].
@@ -1060,10 +1070,11 @@ our background / universe, whether it is differentially expressed or not.
 
 ```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=TRUE}
 gene_IDs <- rownames(table_CD)
-in_universe <- gene_IDs %in% c(DE_genes_CD ,  back_genes)
+in_universe <- gene_IDs %in% c(DE_genes_CD ,  back_genes) #SR: gives out TRUE/FALSE for each element in gene_ID
 inSelection <-  gene_IDs %in% DE_genes_CD 
-all_genes <- factor(as.integer(inSelection[in_universe]))
-names(all_genes) <- gene_IDs[in_universe]
+all_genes <- factor(as.integer(inSelection[in_universe])) #SR: array mit Eintrag 1 falls TRUE und 0 falls FALSE; aber ist inSelection[in_universe] nicht exakt dasselbe wie inSelection? (setequal(inSelection, inSelection[in_universe])=TRUE)
+names(all_genes) <- gene_IDs[in_universe] 
+#SR: all_genes is prepared as described in the instruction  by Alexa on https://bioconductor.org/packages/release/bioc/vignettes/topGO/inst/doc/topGO.pdf, 4.4 
 ```
 
 We now initialize the `r Biocpkg("topGO") ` data set, using the GO annotations 
@@ -1076,11 +1087,11 @@ categories with less than 10 genes are not included in the testing.
 ont <- "BP"
 
 top_GO_data <- new("topGOdata", ontology = ont, allGenes = all_genes,
- nodeSize = 10, annot=annFUN.db, affyLib = "hugene10sttranscriptcluster.db")
+ nodeSize = 10, annot=annFUN.db, affyLib = "hugene10sttranscriptcluster.db") #SR: https://bioconductor.org/packages/release/bioc/vignettes/topGO/inst/doc/topGO.pdf is an instruction on how to use topGOdata, and it says that the argument for ontology should be "BP, MF or CC" -> what is ont then? 
 ```
 
 Now the tests can be run. `r Biocpkg("topGO") ` offers a wide range of options,
-for details see the paper or the package vignette.
+for details see the paper <!-- SR: Verweis auf Paper! --> or the package vignette.
 
 We run two common tests: an ordinary Fisher test for every GO category, and the
 "elim" algorithm, which tries to incorporate the hierarchical structure of the
@@ -1117,7 +1128,7 @@ genes_top_GO <- printGenes(top_GO_data, whichTerms = res_top_GO$GO.ID,
 res_top_GO$sig_genes <- sapply(genes_top_GO, function(x){
                 str_c(paste0(x[x$'raw p-value' == 2, "Symbol.id"],";"), collapse = "")
     })
-
+#bedeutet raw p-value == 2, dass das die Gruppe der p-values ist, die signifikant sind? 
 head(res_top_GO[,1:8], 20)
 ```
 
@@ -1126,6 +1137,8 @@ head(res_top_GO[,1:8], 20)
 A graph of the results can also be produced. Here we visualize the three most
 significant nodes according to the Fisher elim algorithm in the context of
 the GO hierarchy.
+
+<!-- SR: why do we take Fisher classic here for the three most significant nodes? -->
 
 ```{r  graphOfResults, fig.height = 6, eval=TRUE, fig.cap = "A graphical representation of the topGO results.", results='hide'}
 showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
@@ -1154,11 +1167,12 @@ entrez_ids <- mapIds(hugene10sttranscriptcluster.db,
       keys = rownames(table_CD), 
       keytype="PROBEID",
       column = "ENTREZID")
+#SR: discuss: what das keytype = "PROBEID" do? 
 ```
 
 
 We can now run the enrichment analysis that performs a statistical test
-based on the hypergeoemtric distribution that is the same as a one sided Fisher--test, 
+based on the hypergeoemtric distribution that is the same as a one sided Fisher--test, <!-- SR: for more than two dimensions, right? -->
 which `r Biocpkg("topGO")` calls "Fisher--classic".
 Details can be found in the vignette of the `r Biocpkg("DOSE")` package [@Yu_2014].
 
@@ -1179,6 +1193,7 @@ head(summary(reactome_enrich))[1:6]
 ```
 
 Note that we trimmed pathway names to 20 characters.
+<!--SR: discuss with Bernd: what was it that you wanted to implement right in the beginning and we took it out because the max amount of TLLs was reached? It had to do with reactome and enrichment analysis, right? -->
 
 ## Visualizing the reactome based analysis results 
 
@@ -1195,20 +1210,22 @@ a graph, where the color represents the p--value of the pathway and the
 edge--thickness is proportional to the number of overlapping genes between
 two pathways.
 
-```{r enrichMap, dependson="runReactomeEnrichment", fig.width=6, fig.height = 7, fig.cap="Enriched Reactome pathways enrichment results as a graph."}
+<!-- SR: edge thickness refers to the thickness of the lines between two pathways? and size refers to the number of genes participating in one pathway? -->
+
+```{r emapplot, dependson="runReactomeEnrichment", fig.width=6, fig.height = 7, fig.cap="Enriched Reactome pathways enrichment results as a graph."}
 #enrichMap(reactome_enrich, n = 10, vertex.label.font = 2)
 
 emapplot(reactome_enrich, showCategory=10)
+#it was suggested to use emapplot bcs enrichMap will be removed in the next version 
 ```
 
-Again, the graph in Figure \@ref(fig:enrichMap) shows pathways related to  signalling and immune response. 
+Again, the graph in Figure \@ref(fig:emapplot) shows pathways related to  signalling and immune response. 
 
 The package `r Biocpkg("clusterProfiler") ` [@Yu_2012] can also perform these analyses 
 using downloaded KEGG data. Furthermore, the package `r Biocpkg("EnrichmentBrowser") `
 [@Geistlinger_2016] additionally offers network--based enrichment analysis of individual 
 pathways. This allows the mapping of the expression data at hand to known
 regulatory interactions.
-
 
 # Session information
 
