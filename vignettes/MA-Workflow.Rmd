@@ -23,6 +23,9 @@ vignette: >
   %\VignetteEncoding{UTF-8} 
 ---
 
+<!-- latest version from github -->
+<!-- install_github("Steffireise/maEndToEnd", ref = "first_changes_steffi") -->
+
 <!--Html rendering for Bioc Workflow using BiocStyle-->
 <!-- rmarkdown::render("MA-Workflow.Rmd") -->
 
@@ -819,6 +822,10 @@ across genes for the residual variance estimation leading to a "moderated" \(t\)
 and stabilizing the analysis for experiments 
 with just a small number of arrays [@Smyth_2004].
 
+Typical experimental designs are disussed in chapter 9 of `r Biocpkg("limma") `
+"User Guide", which can be found on the Bioconductor landing page 
+of `r Biocpkg("limma") `. 
+
 In the following, we use appropriate design and contrast matrices for
 our linear models and fit a linear model to each gene separately.
 
@@ -828,14 +835,19 @@ The original paper is interested in changes in transcription that occur
 between inflamed and adjacent non--inflamed mucosal areas of the colon.
 This is studied in both inflammatory bowel disease types.
 
-Since we have two arrays per individual, the first factor we need
+Since we have two arrays per individual patient, we have a "Paired Samples" design
+(see section 9.4 of the user guide). Thus, the first factor we need
 is a blocking factor for the individuals that will absorb differences between
-them. Then we create a factors that give us the grouping for the diseases and
+them. 
+
+Then we create a factors that give us the grouping for the diseases and
 the tissue types. We furthermore simplify the names of the
-diseases to UC and DC, respectively. Then, we create two design matrices, 
-one for each of the two diseases
-as we will analyze them separately in order to follow the  analysis 
-strategy of the original paper closely (one could also fit a joint model to 
+diseases to UC and DC, respectively. 
+
+Finally, we create two design matrices, 
+one for each of the two diseases as we will analyze them separately 
+in order to follow the  analysis  strategy of the original paper 
+closely (one could also fit a joint model to 
 the complete data set, however, the two diseases might behave very differently 
 so that a joint fit might not be appropriate).
 
@@ -852,15 +864,16 @@ disease <- ifelse(disease == "Crohn's_disease", "CD", "UC")
 #disease <- factor(disease) -> wahrscheinlich nicht, weil die Werte nicht numerisch sind --> R merkt dann automatisch, dass das Faktoren sind, oder? 
 
 
-i <- individual[disease == "CD"]
-design_palmieri_CD <- model.matrix(~ 0  + tissue[disease == "CD"] + i)
+i_CD <- individual[disease == "CD"]
+design_palmieri_CD <- model.matrix(~ 0  + tissue[disease == "CD"] + i_CD)
 colnames(design_palmieri_CD)[1:2] <- c("I", "nI")
+rownames(design_palmieri_CD) <- i_CD 
 #SR question: look at output matrix. How is it possible that the first two rows don't correspond to any of the individuals? that is, why is ID 164 not listed?
 
-i <- individual[disease == "UC"]
-design_palmieri_UC<- model.matrix(~ 0  + tissue[disease == "UC"] + i)
+i_UC <- individual[disease == "UC"]
+design_palmieri_UC<- model.matrix(~ 0  + tissue[disease == "UC"] + i_UC )
 colnames(design_palmieri_UC)[1:2] <- c("I", "nI")
-
+rownames(design_palmieri_UC) <- i_UC 
 ```
 
 We can inspect the design matrices and test their rank.
@@ -875,6 +888,22 @@ dim(design_palmieri_UC)
 min(svd(design_palmieri_UC)$d)
 ```
 
+In the acutal modell fitting every "1" in the model matrix corresponds to
+a fitted model coefficient that represents a fitted mean or fold change,
+whild the rows of the model matrix correspond to the different individuals.
+
+For example, the first two rows of the model matrix `design_palmieri_CD` 
+correspond to the two arrays for individual "164"
+
+The first two columns, "I", and "nI" correspond to mean expression in inflammed
+/ non--inflamed tissue respectively, while all the other columns correspond to
+the "blocking" factors for all the other individuals. Here, individual "164"
+corresponds to a baseline, so there are only blocking factors that adjust
+the mean expression values for the other individuals. For example, individual
+"183" has two ones in the first blocking factor column `i_CD183` corresponding
+to the change in mean expression compared to individual "164".
+
+We will illustrate this below using actual numbers. 
 
 ## Contrasts and hypotheses tests
 
