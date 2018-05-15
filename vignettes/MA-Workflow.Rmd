@@ -839,9 +839,20 @@ Since we have two arrays per individual patient, we have a "Paired Samples" desi
 is a blocking factor for the individuals that will absorb differences between
 them. 
 
-Then we create a factors that give us the grouping for the diseases and
+Then we create factors that give us the grouping for the diseases and
 the tissue types. We furthermore simplify the names of the
 diseases to UC and DC, respectively. 
+
+```{r createFactors, eval=TRUE, dependson="excludeMultipleMappings" }
+
+individual <- as.character(Biobase::pData(palmieri_final)$Characteristics.individual.)
+
+tissue <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.phenotype., " ", "_")
+tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
+
+disease <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.disease., " ", "_")
+disease <- ifelse(disease == "Crohn's_disease", "CD", "UC")
+```
 
 Finally, we create two design matrices, 
 one for each of the two diseases as we will analyze them separately 
@@ -851,23 +862,12 @@ the complete data set, however, the two diseases might behave very differently
 so that a joint fit might not be appropriate).
 
 ```{r createDesign, eval=TRUE, dependson="excludeMultipleMappings" }
-individual <- as.character(Biobase::pData(palmieri_final)$Characteristics.individual.)
-
-tissue <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.phenotype., " ", "_")
-tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
-
-disease <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.disease., " ", "_")
-disease <- ifelse(disease == "Crohn's_disease", "CD", "UC")
-
-#SR: muss man disease und tissue nicht noch als factor umwandeln? also z.B.
-#disease <- factor(disease) -> wahrscheinlich nicht, weil die Werte nicht numerisch sind --> R merkt dann automatisch, dass das Faktoren sind, oder? 
 
 
 i_CD <- individual[disease == "CD"]
 design_palmieri_CD <- model.matrix(~ 0  + tissue[disease == "CD"] + i_CD)
 colnames(design_palmieri_CD)[1:2] <- c("I", "nI")
 rownames(design_palmieri_CD) <- i_CD 
-#SR question: look at output matrix. How is it possible that the first two rows don't correspond to any of the individuals? that is, why is ID 164 not listed?
 
 i_UC <- individual[disease == "UC"]
 design_palmieri_UC<- model.matrix(~ 0  + tissue[disease == "UC"] + i_UC )
@@ -887,7 +887,7 @@ dim(design_palmieri_UC)
 min(svd(design_palmieri_UC)$d)
 ```
 
-In the acutal modell fitting every "1" in the model matrix corresponds to
+In the actual model fitting every "1" in the model matrix corresponds to
 a fitted model coefficient that represents a fitted mean or fold change,
 whild the rows of the model matrix correspond to the different individuals.
 
@@ -908,13 +908,13 @@ We will illustrate this below using actual numbers.
 
 We  now fit the linear models and
 define appropriate contrasts to test hypotheses of interest.
+
 We want to compare the inflamed  to the the non--inflamed tissue.
-Thus, we create a contrast matrix consisting of one row. <!-- SR: view contrast matrix contrast_matrix_CD; it has three columns and many rows, so maybe reformulate this part? -->  `r Biocpkg("limma")` 's function
-`makeContrasts` creates this matrix from a synbolic description of the contrast of
-interest. We can fit the linear model, compute the moderated \(t\)--statistics
-by calling the ` eBayes ` function and finally extract the number of
-differentially expressed genes while controlling the FDR by
-requiring BH--corrected p--value below a certain threshold.
+Thus, we create a contrast matrix consisting of only one contrast "I-nI": `r Biocpkg("limma")` 's function
+`makeContrasts` creates this matrix from a symbolic description of the contrast of
+interest. 
+We can fit the linear model and compute the moderated \(t\)--statistics
+by calling the ` eBayes ` function.
 
 ```{r createContrastMatrixAndFitModel, eval=TRUE, dependson="createDesign" }
 contrast_matrix_CD <- makeContrasts(I-nI, levels = design_palmieri_CD)
@@ -932,19 +932,13 @@ palmieri_fit_UC <- eBayes(contrasts.fit(lmFit(palmieri_final[,disease == "UC"],
 
 ## Extracting results
 
-Results can be extracted by use of the `topTable` function. We extract
-the comparisons for both Crohn's disease  as well as ulcerative colitis and
-sort the results by their absolute \(t\)--statistics. As a diagnostic check, we also
-plot the  p--value histogram: We expect a uniform distribution for the
-p--values that correspond to true null hypotheses, while the a peak near zero
-shows a enrichment for low p--values corresponding to differentially expressed (DE)
-genes.  A p--value less than 0.001 was used in the original paper as a significance
-cutoff leading to 298 (CD) and 520 (UC) DE--genes for the two diseases.
+Finally, we extract the number of differentially expressed genes. 
 
-We call around 500/1000 genes in the two conditions at the same cutoff, this 
-higher number of DE genes identified is probably
-due to the increased power from the blocking according to the individuals
-and the moderated variance estimation that `r Biocpkg("limma") ` performs.
+Results can be extracted by use of the `topTable` function. We extract the results for both Crohn's disease as well as ulcerative colitis, and the results are sorted by their absolute \(t\)--statistics.
+As a diagnostic check, we also plot the  p--value histogram: We expect a uniform distribution for the
+p--values that correspond to true null hypotheses, while the a peak near zero
+shows an enrichment for low p--values corresponding to differentially expressed (DE)
+genes.  
 
 ```{r extractResultsC, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for Crohn’s disease."}
 table_CD <-  topTable(palmieri_fit_CD, number = Inf)
@@ -960,7 +954,6 @@ hist(table_CD$P.Value, col = brewer.pal(3, name = "Set2")[1],
 #SR: comment on the aj.P.val or don't include it at all; why do we set it to 0.05? In the text below, it is mentioned that in CD, a p value of 0.001 corresponds to an adjusted p value of 0.05 in CD; however, it is also mentioned that for UC it would be 0.02, and still 0.05 is used in the UC chunk
 ```
 
-
 ```{r extractResultsU, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for ulcerative colitis."}
 
 
@@ -974,26 +967,26 @@ table(table_UC$P.Value < 0.001)
 hist(table_UC$P.Value, col = brewer.pal(3, name = "Set2")[2],
      main = "inflamed vs non-inflamed - Ulcerative colitis", xlab = "p-values")
 
-
 ```
 
-
-
-
 ## Comparison to the paper results
+When exploring the output of the topTable() function, we can see that there is a column called "P.Value" and one called "adj.P.Val". The latter describes the BH-corrected p-value that allows to control for the FDR, while the former is just the "normal"p-value.
+A p--value of less than 0.001 was used in the original paper as a significance
+cutoff.
+However, it is highly recommended to control for the FDR (false discovery rate) instead of the p-value, which can be done by using the adjusted p-value:
+The FDR describes the percentage of false positives among all positive test results, while the p-value describes the probability that a certain event occurs under the assumption that the null hypothesis H0 is true; in a setup where all samples fulfill H0, p is therefore the probability to get a false positive result and thus describes the rate of false positives among all samples. H0 in our case is that a gene is not differentially expressed between inflamed and non-inflamed tissue. Even if we didn't have any differential expression among all genes, we would still expect a percentage of p false positives. This means that the absolute number of false positives would increase with the sample size. This problem called "multiple testing problem" occures a lot with biological data. In order to avoid the multiple testing problem, one should control for the FDR instead of the p-value: we don't get more positives merely because of increasing sample sizes, and the share of false positives among all positives doesn't increase but stays below the FDR. This can be done by adjusting the p-value according to the Benjamini-Hochberg-procedure (BH--correction). These BH-corrected p-value takes into account sample size and allow us to control the FDR.
 
-We now compare our list of differentially expressed genes to the results obtained
-in the paper. The paper results can be downloaded as excel files  from
-[http://links.lww.com/IBD/A795](http://links.lww.com/IBD/A795). We save it 
-in an .xlsx file named `palmieri_DE_res.xlsx`. The paper results are  given
-as identified differentially expressed genes
-with a p--value less than 0.001, which corresponds to an FDR of 0.05 in Crohn's
-disease and 0.02 <!-- SR: aus den Paper results tables, die FDR Werte; wir benutzen einheitlichen FDR von 0.05, weil das sinnvoller ist --> in ulcerative colitis. There are four tables in total giving
+Nevertheless, in order to be able to compare our workflow results to the paper results, for now we also set a p-value cutoff at 0.001, as done in the paper. The paper results can be downloaded as excel files  from
+[http://links.lww.com/IBD/A795](http://links.lww.com/IBD/A795) and should be saved as an .xlsx file named `palmieri_DE_res.xlsx` in your working directory. 
+
+The paper results are  given as identified differentially expressed genes
+with a p--value less than 0.001. The corresponding FDRs are also listed in the results file and are 0.05 in Crohn's
+disease and 0.02 in ulcerative colitis. There are four tables in total giving
 the list of up and downregulated genes in CD and UC respectively.
+
 In the code below, we extract the gene symbols from the excel table and then
 compare them to the differentially expressed genes we identify at a p--value
 of 0.001.
-
 
 ```{r compareDEgenes, dependson="extractResults"}
 fpath <- system.file("extdata", "palmieri_DE_res.xlsx", package="maEndToEnd")
@@ -1020,16 +1013,18 @@ total_genenumber_UC <- length(subset(table_UC, P.Value < 0.001)$SYMBOL)
 
 total_genenumber_CD
 total_genenumber_UC
-
-
 ```
-
+We find 415 (CD) and 947 (UC) differentially expressed genes ("DE--genes").
+In the paper, 298 (CD) and 520 (UC) DE--genes were found for the two diseases at the same cutoff. This 
+higher number of DE--genes identified is probably
+due to the increased power of the blocking according to the individuals
+and the moderated variance estimation that `r Biocpkg("limma") ` performs.
 
 We see that we get a moderate overlap of `r overlap_CD` for CD and
-`r overlap_UC` for UC. Note that is recommended to always to choose an
-FDR cutoff instead of a p--value cutoff, since this way you control an
-explicitly defined error rate and the results are easier to interpret and
-to compare. In what follows, we choose an FDR cutoff of 10\%.
+`r overlap_UC` for UC, showing us that roughly the same genes were found. 
+
+As mentioned before, it is recommended to use an FDR cutoff rather than a p--value cutoff, since this way you control an explicitly defined error rate and the results are easier to interpret and
+to compare. In the following enrichment analysis, we choose an FDR cutoff of 10\%.
 
 
 # Gene ontology (GO) based enrichment analysis
