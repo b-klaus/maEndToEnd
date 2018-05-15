@@ -1222,7 +1222,7 @@ head(summary(reactome_enrich))[1:6]
 ```
 
 Note that we trimmed pathway names to 20 characters.
-<!--SR: discuss with Bernd: what was it that you wanted to implement right in the beginning and we took it out because the max amount of TLLs was reached? It had to do with reactome and enrichment analysis, right? -->
+<!--SR: discuss with Bernd: what was it that you wanted to implement right in the beginning and we took it out because the max amount of DLLs was reached? It had to do with reactome and enrichment analysis, right? -->
 
 ## Visualizing the reactome based analysis results 
 
