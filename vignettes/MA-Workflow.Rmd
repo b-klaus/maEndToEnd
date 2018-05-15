@@ -78,7 +78,6 @@ opts_chunk$set(echo=TRUE,
 **Bioconductor version**: `r BiocInstaller::biocVersion()`
 <br />
 **Package version**: `r packageVersion("maEndToEnd")`
-</p>
 
 
 # Introduction
@@ -989,7 +988,7 @@ in the paper. The paper results can be downloaded as excel files  from
 in an .xlsx file named `palmieri_DE_res.xlsx`. The paper results are  given
 as identified differentially expressed genes
 with a p--value less than 0.001, which corresponds to an FDR of 0.05 in Crohn's
-disease and 0.02 in ulcerative colitis. There are four tables in total giving
+disease and 0.02 <!-- SR: aus den Paper results tables, die FDR Werte; wir benutzen einheitlichen FDR von 0.05, weil das sinnvoller ist --> in ulcerative colitis. There are four tables in total giving
 the list of up and downregulated genes in CD and UC respectively.
 In the code below, we extract the gene symbols from the excel table and then
 compare them to the differentially expressed genes we identify at a p--value
@@ -1113,10 +1112,9 @@ parameter specifies a minimum size of a GO category we want to use: i.e. here
 categories with less than 10 genes are not included in the testing.
 
 ```{r createTopGODataSet, dependson="createFactorOfInterestingGenes", eval=TRUE, message = FALSE }
-ont <- "BP"
 
-top_GO_data <- new("topGOdata", ontology = ont, allGenes = all_genes,
- nodeSize = 10, annot=annFUN.db, affyLib = "hugene10sttranscriptcluster.db") #SR: https://bioconductor.org/packages/release/bioc/vignettes/topGO/inst/doc/topGO.pdf is an instruction on how to use topGOdata, and it says that the argument for ontology should be "BP, MF or CC" -> what is ont then? 
+top_GO_data <- new("topGOdata", ontology = "BP", allGenes = all_genes,
+ nodeSize = 10, annot=annFUN.db, affyLib = "hugene10sttranscriptcluster.db") 
 ```
 
 Now the tests can be run. `r Biocpkg("topGO") ` offers a wide range of options,
@@ -1157,7 +1155,7 @@ genes_top_GO <- printGenes(top_GO_data, whichTerms = res_top_GO$GO.ID,
 res_top_GO$sig_genes <- sapply(genes_top_GO, function(x){
                 str_c(paste0(x[x$'raw p-value' == 2, "Symbol.id"],";"), collapse = "")
     })
-#bedeutet raw p-value == 2, dass das die Gruppe der p-values ist, die signifikant sind? 
+#bedeutet raw p-value == 2, dass das die Gruppe der p-values ist, die signifikant sind? --> 2 sind die differential expressed genes, 1 die nicht
 head(res_top_GO[,1:8], 20)
 ```
 
@@ -1167,7 +1165,7 @@ A graph of the results can also be produced. Here we visualize the three most
 significant nodes according to the Fisher elim algorithm in the context of
 the GO hierarchy.
 
-<!-- SR: why do we take Fisher classic here for the three most significant nodes? -->
+<!-- SR: why do we take Fisher classic here for the three most significant nodes?; Bernd: man könnte auch elim nehmen, aber typischerweise wird der Standardfischertest genommen -->
 
 ```{r  graphOfResults, fig.height = 6, eval=TRUE, fig.cap = "A graphical representation of the topGO results.", results='hide'}
 showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
@@ -1196,7 +1194,7 @@ entrez_ids <- mapIds(hugene10sttranscriptcluster.db,
       keys = rownames(table_CD), 
       keytype="PROBEID",
       column = "ENTREZID")
-#SR: discuss: what das keytype = "PROBEID" do? 
+#SR: discuss: what das keytype = "PROBEID" do? --> erklärt bei annotation workflow auf bioconductor in help-section 
 ```
 
 
@@ -1222,7 +1220,7 @@ head(summary(reactome_enrich))[1:6]
 ```
 
 Note that we trimmed pathway names to 20 characters.
-<!--SR: discuss with Bernd: what was it that you wanted to implement right in the beginning and we took it out because the max amount of TLLs was reached? It had to do with reactome and enrichment analysis, right? -->
+<!--SR: discuss with Bernd: what was it that you wanted to implement right in the beginning and we took it out because the max amount of DLLs was reached? It had to do with reactome and enrichment analysis, right? -> stellen wir erst noch hinten an-->
 
 ## Visualizing the reactome based analysis results 
 
