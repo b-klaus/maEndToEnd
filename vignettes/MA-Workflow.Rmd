@@ -832,7 +832,7 @@ Since we have two arrays per individual patient, we have a "Paired Samples" desi
 is a blocking factor for the individuals that will absorb differences between
 them. 
 
-Then we create a factors that give us the grouping for the diseases and
+Then we create a factors <!-- SR: what are a factors? --> that give us the grouping for the diseases and
 the tissue types. We furthermore simplify the names of the
 diseases to UC and DC, respectively. 
 
@@ -1129,6 +1129,7 @@ We then create a vector `back_genes` containing all background gene PROBEIDs.
 In order to eliminate foreground genes, that is DE--genes from the `back_genes`set, we use the `setdiff`function. It returns all elements from the first argument (`back_genes`) that are not part of the second argument (`DE_genes_CD`). With the `intersect`function, we verify what we did: it should return 0, as there shouldn't be any intersect anymore between `back_genes`and `DE_genes_CD`. 
 
 We create a multidensity plot with mean expression on the x-axis for all genes, foreground genes and background genes, respectively. We want to see whether the background genes show a plot similar to the foreground genes so that the background is not biased for the gene enrichment analysis. 
+
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, fig.cap="Selecting a background set of genes for the gene ontology analysis.", warning=FALSE, message=FALSE}
 
 back_genes_idx <- genefinder(palmieri_final, as.character(DE_genes_CD), 
@@ -1170,9 +1171,9 @@ topGO requires a topGOdata object containing the necessary information for the a
 1) we create an `in_universe`vector by using the `%in%`matching function. We want to know which elements from `gene_IDs`are also contained in `DE_genes_CD`and `back_genes`, as the latter two are our gene universe we use for enrichment analysis. We get a vector with the length of `gene_IDs`that has the entry `TRUE`when the corresponding gene in `gene_IDs`could be also found in `DE_genes_CD`or `back_genes`and `FALSE`otherwise.
 2) We do the same for our DE--genes and call this vector `inSelection`.
 3) We create the `all_genes` vector: 
-a) First, we select all the elements from `inSelection` that are `TRUE`in `in_universe` by applying `all_genes <- inSelection[in_universe]`.
+a)First, we select all the elements from `inSelection` that are `TRUE`in `in_universe` by applying `all_genes <- inSelection[in_universe]`.
 b) Then, we convert the elements in `all_genes` from `TRUE`and `FALSE` to 0 and 1 by converting the vector to an integer vector. Also, we convert the vector to a factor. <!-- SR: why do we do that? in the vignette description it says that it could also be a numeric vector -->
-c) We name the vector elements with the corresponding `gene_IDs`and each element is a 0 if the corresponding gene is a background gene and a 1 if the corresponding gene is a DE--gene.
+c) We name the vector elements with the corresponding `gene_IDs`, and each element in the vector is a 0 if the corresponding gene is a background gene and a 1 if the corresponding gene is a DE--gene.
 
 ```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=TRUE}
 gene_IDs <- rownames(table_CD)
@@ -1182,6 +1183,7 @@ inSelection <-  gene_IDs %in% DE_genes_CD
 all_genes <- inSelection[in_universe]
 all_genes <- factor(as.integer(inSelection[in_universe])) #SR: array mit Eintrag 1 falls TRUE und 0 falls FALSE
 names(all_genes) <- gene_IDs[in_universe] 
+```
 
 We now initialize the `r Biocpkg("topGO") ` data set, using the GO annotations 
 contained in the annotation data base for the chip we are using. The `nodeSize`
@@ -1189,9 +1191,8 @@ parameter specifies a minimum size of a GO category we want to use: i.e. here
 categories with less than 10 genes are not included in the testing.
 
 ```{r createTopGODataSet, dependson="createFactorOfInterestingGenes", eval=TRUE, message = FALSE }
-ont <- "BP"
 
-top_GO_data <- new("topGOdata", ontology = ont, allGenes = all_genes,
+top_GO_data <- new("topGOdata", ontology = "BP", allGenes = all_genes,
  nodeSize = 10, annot=annFUN.db, affyLib = "hugene10sttranscriptcluster.db")
 ```
 
@@ -1210,7 +1211,7 @@ all of its genes  are marked as removed in all ancestor nodes.
 This way, the "elim" algorithm aims at finding the most specific node
 for every gene.
 
-The test uses a 0.01 p--value cutoff by default.
+The test uses a 0.01 p--value cutoff by default. <!-- SR: is that true? look into Alexa 2006 paper, it says "this threshold is set to be 0.01 divided by the number of nodes in the GO graph with at least one annotated gene. This corresponds to a Bonferronie adjustment of the p-values" -->
 
 ```{r runtopGOTests, results='hide', eval=TRUE, dependson = "createTopGODataSet",  message = FALSE}
 result_top_GO_elim <- runTest(top_GO_data, algorithm = "elim", statistic = "Fisher")
@@ -1220,7 +1221,7 @@ result_top_GO_classic <- runTest(top_GO_data, algorithm = "classic", statistic =
 We can now inspect the results.  We look at the top 100 GO categories according
 to the "Fisher elim" algorithm. The function `GenTable` produces
 a table of significant GO categories, the function `printGenes`
-gives genes annotated to them; the significant ones are denoted with a "2" in the "raw p-value" column, the not--significant ones with a "1". We therefore select `raw p-value == 2`. 
+gives genes annotated to them; the significant ones are denoted with a "2" in the "raw p-value" column, the not--significant ones with a "1". We therefore select `raw p-value == 2`. Note that we don't get the actual p--values here because our ` all_genes` vector doesn't contain this information; it only tells us whether a gene is differentially expressed or not.
 
 ```{r processtopGOResults, eval=TRUE, dependson="runtopGOTests"}
 res_top_GO <- GenTable(top_GO_data, Fisher.elim = result_top_GO_elim,
@@ -1234,7 +1235,6 @@ res_top_GO$sig_genes <- sapply(genes_top_GO, function(x){
                 str_c(paste0(x[x$'raw p-value' == 2, "Symbol.id"],";"), collapse = "")
     })
 
-#bedeutet raw p-value == 2, dass das die Gruppe der p-values ist, die signifikant sind? --> 2 sind die differential expressed genes, 1 die nicht; aber ich verstehe immer noch nicht, warum wir keine normalen p-values bekommen
 head(res_top_GO[,1:8], 20)
 ```
 
@@ -1263,7 +1263,7 @@ of specific pathways using the free, open-source, curated and peer reviewed
 pathway [Reactome](http://www.reactome.org/s) pathway database [@Croft_2013; @Fabregat_2015]. 
 The package requires entrez identifiers, so we convert our PROBEIDs (trancript cluster identifiers) 
 to entrez identifiers using the function `mapIDs` from  the package `r Biocpkg("AnnotationDbi")`. 
-This will create a named vector that maps the PROBEIDs to the entrez ones.
+This will create a named vector that maps the PROBEIDs to the entrez ones, with the PROBEIDs as names and the entrez ids as vector elements.
 
 
 ```{r mapIDsToEntrez, dependson="createFactorOfInterestingGenes", message = FALSE}
@@ -1271,12 +1271,6 @@ entrez_ids <- mapIds(hugene10sttranscriptcluster.db,
       keys = rownames(table_CD), 
       keytype="PROBEID",
       column = "ENTREZID")
-
-entrez_ids2 <- mapIds(hugene10sttranscriptcluster.db, 
-      keys = table_CD$PROBEID, 
-      keytype="PROBEID",
-      column = "ENTREZID")
-#SR: discuss: what das keytype = "PROBEID" do? --> erklärt bei annotation workflow auf bioconductor in help-section 
 
 ```
 
@@ -1307,7 +1301,7 @@ Note that we trimmed pathway names to 20 characters.
 ## Visualizing the reactome based analysis results 
 
 The `r Biocpkg("reactomePA") ` package offers nice visualization capabilities.
-The top pathways can be displayed as a bar char that displays all categories
+The top pathways can be displayed as a bar chart that displays all categories
 with a p--value below the specified cutoff.
 
 ```{r reactomeBar, dependson="runReactomeEnrichment", fig.cap="Enriched Reactome pathways and their p–values as a bar chart."}
@@ -1316,11 +1310,11 @@ barplot(reactome_enrich)
 
 The "enrichment map" displays the results of the enrichment analysis as 
 a graph, where the color represents the p--value of the pathway and the
-edge--thickness is proportional to the number of overlapping genes between
+edge--thickness (that is the line connecting two pathways) is proportional to the number of overlapping genes between
 two pathways.
 
-```{r enrichMap, dependson="runReactomeEnrichment", fig.width=6, fig.height = 7, fig.cap="Enriched Reactome pathways enrichment results as a graph."}
-#enrichMap(reactome_enrich, n = 10, vertex.label.font = 2)
+```{r emapplot, dependson="runReactomeEnrichment", fig.width=6, fig.height = 7, fig.cap="Enriched Reactome pathways enrichment results as a graph."}
+#enrichMap(reactome_enrich, n = 10, vertex.label.font = 2) 
 
 emapplot(reactome_enrich, showCategory=10)
 ```
@@ -1328,7 +1322,7 @@ emapplot(reactome_enrich, showCategory=10)
 Again, the graph in Figure \@ref(fig:enrichMap) shows pathways related to  signalling and immune response. 
 
 The package `r Biocpkg("clusterProfiler") ` [@Yu_2012] can also perform these analyses 
-using downloaded KEGG data. Furthermore, the package `r Biocpkg("EnrichmentBrowser") `
+using downloaded KEGG data. <!-- SR: explain what KEGG is --> Furthermore, the package `r Biocpkg("EnrichmentBrowser")`
 [@Geistlinger_2016] additionally offers network--based enrichment analysis of individual 
 pathways. This allows the mapping of the expression data at hand to known
 regulatory interactions.
