@@ -940,7 +940,7 @@ p--values that correspond to true null hypotheses, while the a peak near zero
 shows an enrichment for low p--values corresponding to differentially expressed (DE)
 genes.  
 
-```{r extractResultsC, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for Crohn’s disease."}
+```{r extractResultsCD, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for Crohn’s disease."}
 table_CD <-  topTable(palmieri_fit_CD, number = Inf)
 head(table_CD)
 
@@ -954,7 +954,7 @@ hist(table_CD$P.Value, col = brewer.pal(3, name = "Set2")[1],
 #SR: comment on the aj.P.val or don't include it at all; why do we set it to 0.05? In the text below, it is mentioned that in CD, a p value of 0.001 corresponds to an adjusted p value of 0.05 in CD; however, it is also mentioned that for UC it would be 0.02, and still 0.05 is used in the UC chunk
 ```
 
-```{r extractResultsU, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for ulcerative colitis."}
+```{r extractResultsUC, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for ulcerative colitis."}
 
 
 table_UC <-  topTable(palmieri_fit_UC, number = Inf)
@@ -988,7 +988,7 @@ In the code below, we extract the gene symbols from the excel table and then
 compare them to the differentially expressed genes we identify at a p--value
 of 0.001.
 
-```{r compareDEgenes, dependson="extractResults"}
+```{r compareDEgenes, dependson=c("extractResultsUC", "extractResultsCD")}
 fpath <- system.file("extdata", "palmieri_DE_res.xlsx", package="maEndToEnd")
 palmieri_DE_res <- sapply(1:4, function(i) read.xlsx(cols = 1, fpath, 
                                                      sheet = i, startRow = 4))
@@ -1024,17 +1024,18 @@ We see that we get a moderate overlap of `r overlap_CD` for CD and
 `r overlap_UC` for UC, showing us that roughly the same genes were found. 
 
 As mentioned before, it is recommended to use an FDR cutoff rather than a p--value cutoff, since this way you control an explicitly defined error rate and the results are easier to interpret and
-to compare. In the following enrichment analysis, we choose an FDR cutoff of 10\%.
+to compare. For the following enrichment analysis, we create tables with differentially expressed genes for CD and UC, respectively, and choose an FDR cutoff of 10\%. Here we focus on the  CD subset of the  data.
 
+```{r FDRcontrolledDEgenes, dependson=c("extractResultsUC", "extractResultsCD"), eval=TRUE}
+DE_genes_CD <- subset(table_CD, adj.P.Val < 0.1)$PROBEID
 
+```
 # Gene ontology (GO) based enrichment analysis
 
 We can now try characterize the identified differentially expressed genes
-a bit better by performing an GO enrichment analysis. Essentially the
+a bit better by performing a GO enrichment analysis. Essentially the
 gene ontology ([http://www.geneontology.org/](http://www.geneontology.org/)) is 
-a hierarchically organized
-collection of functional gene sets [@Ashburner_2000, @GO_2015, @du_Plessis_2011]. 
-
+a hierarchically organized collection of functional gene sets [@Ashburner_2000, @GO_2015, @du_Plessis_2011]. 
 
 ## Matching the background set of genes
 
@@ -1047,13 +1048,16 @@ of average expression strength as the foreground.
 We do this in order not to select a biased background since the gene set testing
 is performed by a simple Fisher test on a 2x2 table. Note that this approach
 is very similar to commonly used web tools like GOrilla [@Eden_2009]. 
-Here we focus on the  CD subset of the  data.
 
 For every differentially expressed gene, we try to find genes with similar
-expression.
+expression with `genefinder `. As the genefinder function gives out two lists for each gene for which background genes should be found, one with the indices of the background genes found and one with the distances to the DE--genes, we have to extract the PROBEIDs, which correspond to the indices. We do that by using the `sapply`function, which gives us a single table with the DE--genes as column names and the PROBEIDs of the corresponding background genes in the cells below. 
 
+We then create a vector `back_genes` containing all background gene PROBEIDs.
+
+In order to eliminate foreground genes, that is DE--genes from the `back_genes`set, we use the `setdiff`function. It returns all elements from the first argument (`back_genes`) that are not part of the second argument (`DE_genes_CD`). With the `intersect`function, we verify what we did: it should return 0, as there shouldn't be any intersect anymore between `back_genes`and `DE_genes_CD`. 
+
+We create a multidensity plot with mean expression on the x-axis for all genes, foreground genes and background genes, respectively. We want to see whether the background genes show a plot similar to the foreground genes so that the background is not biased for the gene enrichment analysis. 
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, fig.cap="Selecting a background set of genes for the gene ontology analysis.", warning=FALSE, message=FALSE}
-DE_genes_CD <- subset(table_CD, adj.P.Val < 0.1)$PROBEID
 
 back_genes_idx <- genefilter::genefinder(palmieri_final, as.character(DE_genes_CD), 
                        method="manhattan", scale="none")
@@ -1076,8 +1080,10 @@ multidensity(list(
    main = "DE genes for CD - background - matching")
 ```
 
-We can see that the matching returned a sensible result and can now
-perform the actual testing. <!-- SR: discuss "sensible result" -->  For this purpose we use the `r Biocpkg("topGO") ` which
+When comparing the "background gene" curve to the "foreground gene" curve, we see a similar curve form, indicating a sensible background matching. Note that the right-shift of the "foreground-gene" curve in comparison to the "background-gene" curve indicates that DE--genes are generally very highly expressed, so that it wasn't possible to find background-genes with an equally high expression.
+The "all gene" curve has its maximum at the lowest mean expression of the three. This can be explained by a high number of lowly expressed genes among all samples. 
+
+For the actual testing, we use the `r Biocpkg("topGO") ` which
 implements a nice interface to Fisher testing and also has additional algorithms
 taking the GO structure into account, by e.g. only reporting the most specific
 gene set in the hierarchy [@Alexa_2006].
@@ -1088,21 +1094,25 @@ to the BP category here.
 
 ## Running topGO
 
-We first create a factor `all_genes` which indicates for every gene in
-our background / universe, whether it is differentially expressed or not.
+topGO requires a topGOdata object containing the necessary information for the analysis. We follow the steps described in the topGO vignettes: First, we will create a named vector `all_genes` with all genes to be analyzed, i.e. DE--genes and background genes: 
+1) we create an `in_universe`vector by using the `%in%`matching function. We want to know which elements from `gene_IDs`are also contained in `DE_genes_CD`and `back_genes`, as the latter two are our gene universe we use for enrichment analysis. We get a vector with the length of `gene_IDs`that has the entry `TRUE`when the corresponding gene in `gene_IDs`could be also found in `DE_genes_CD`or `back_genes`and `FALSE`otherwise.
+2) We do the same for our DE--genes and call this vector `inSelection`.
+3) We create the `all_genes` vector: 
+a) First, we select all the elements from `inSelection` that are `TRUE`in `in_universe` by applying `all_genes <- inSelection[in_universe]`.
+b) Then, we convert the elements in `all_genes` from `TRUE`and `FALSE` to 0 and 1 by converting the vector to an integer vector. Also, we convert the vector to a factor. <!-- SR: why do we do that? in the vignette description it says that it could also be a numeric vector -->
+c) We name the vector elements with the corresponding `gene_IDs`and each element is a 0 if the corresponding gene is a background gene and a 1 if the corresponding gene is a DE--gene.
 
 ```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=TRUE}
 gene_IDs <- rownames(table_CD)
 in_universe <- gene_IDs %in% c(DE_genes_CD ,  back_genes) #SR: gives out TRUE/FALSE for each element in gene_ID
 inSelection <-  gene_IDs %in% DE_genes_CD 
-all_genes <- factor(as.integer(inSelection[in_universe])) #SR: array mit Eintrag 1 falls TRUE und 0 falls FALSE; aber ist inSelection[in_universe] nicht exakt dasselbe wie inSelection? (setequal(inSelection, inSelection[in_universe])=TRUE)
+all_genes <- inSelection[in_universe]
+all_genes <- factor(as.integer(inSelection[in_universe])) #SR: array mit Eintrag 1 falls TRUE und 0 falls FALSE
 names(all_genes) <- gene_IDs[in_universe] 
-#SR: all_genes is prepared as described in the instruction  by Alexa on https://bioconductor.org/packages/release/bioc/vignettes/topGO/inst/doc/topGO.pdf, 4.4 
 ```
 
 We now initialize the `r Biocpkg("topGO") ` data set, using the GO annotations 
-contained
-in the annotation data base for the chip we are using. The `nodeSize`
+contained in the annotation data base for the chip we are using. The `nodeSize`
 parameter specifies a minimum size of a GO category we want to use: i.e. here
 categories with less than 10 genes are not included in the testing.
 
@@ -1113,11 +1123,11 @@ top_GO_data <- new("topGOdata", ontology = "BP", allGenes = all_genes,
 ```
 
 Now the tests can be run. `r Biocpkg("topGO") ` offers a wide range of options,
-for details see the paper <!-- SR: Verweis auf Paper! --> or the package vignette.
+for details see the paper [@Alexa_2006] or the package vignette.
 
 We run two common tests: an ordinary Fisher test for every GO category, and the
 "elim" algorithm, which tries to incorporate the hierarchical structure of the
-GO and tries "decorrelate" it in order to report the most specific significant 
+GO and tries to "decorrelate" it in order to report the most specific significant 
 term in the hierarchy.
 
 The algorithm starts processing the nodes/GO categories
@@ -1127,7 +1137,7 @@ all of its genes  are marked as removed in all ancestor nodes.
 This way, the "elim" algorithm aims at finding the most specific node
 for every gene.
 
-The tests uses a 0.01 p--value cutoff by default.
+The test uses a 0.01 p--value cutoff by default.
 
 ```{r runtopGOTests, results='hide', eval=TRUE, dependson = "createTopGODataSet",  message = FALSE}
 result_top_GO_elim <- runTest(top_GO_data, algorithm = "elim", statistic = "Fisher")
@@ -1137,7 +1147,7 @@ result_top_GO_classic <- runTest(top_GO_data, algorithm = "classic", statistic =
 We can now inspect the results.  We look at the top 100 GO categories according
 to the "Fisher elim" algorithm. The function `GenTable` produces
 a table of significant GO categories, the function `printGenes`
-gives significant genes annotated to them.
+gives genes annotated to them; the significant ones are denoted with a "2" in the "raw p-value" column, the not--significant ones with a "1". We therefore select `raw p-value == 2`. 
 
 ```{r processtopGOResults, eval=TRUE, dependson="runtopGOTests"}
 res_top_GO <- GenTable(top_GO_data, Fisher.elim = result_top_GO_elim,
@@ -1150,7 +1160,7 @@ genes_top_GO <- printGenes(top_GO_data, whichTerms = res_top_GO$GO.ID,
 res_top_GO$sig_genes <- sapply(genes_top_GO, function(x){
                 str_c(paste0(x[x$'raw p-value' == 2, "Symbol.id"],";"), collapse = "")
     })
-#bedeutet raw p-value == 2, dass das die Gruppe der p-values ist, die signifikant sind? --> 2 sind die differential expressed genes, 1 die nicht
+#bedeutet raw p-value == 2, dass das die Gruppe der p-values ist, die signifikant sind? --> 2 sind die differential expressed genes, 1 die nicht; aber ich verstehe immer noch nicht, warum wir keine normalen p-values bekommen
 head(res_top_GO[,1:8], 20)
 ```
 
@@ -1187,6 +1197,11 @@ This will create a named vector that maps the PROBEIDs to the entrez ones.
 ```{r mapIDsToEntrez, dependson="createFactorOfInterestingGenes", message = FALSE}
 entrez_ids <- mapIds(hugene10sttranscriptcluster.db, 
       keys = rownames(table_CD), 
+      keytype="PROBEID",
+      column = "ENTREZID")
+
+entrez_ids2 <- mapIds(hugene10sttranscriptcluster.db, 
+      keys = table_CD$PROBEID, 
       keytype="PROBEID",
       column = "ENTREZID")
 #SR: discuss: what das keytype = "PROBEID" do? --> erklärt bei annotation workflow auf bioconductor in help-section 
