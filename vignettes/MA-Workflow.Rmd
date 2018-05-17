@@ -820,7 +820,8 @@ for simple experiments. The main idea is to fit a linear model to the expression
 data for each gene. Empirical Bayes and other shrinkage methods are used to borrow information
 across genes for the residual variance estimation leading to a "moderated" \(t\)--statistics, 
 and stabilizing the analysis for experiments 
-with just a small number of arrays [@Smyth_2004].
+with just a small number of arrays [@Smyth_2004]. Conceptually, the final per gene variance
+is a mix of the median variance of all genes and the per gene variance.
 
 Typical experimental designs are disussed in chapter 9 of `r Biocpkg("limma") `
 "User Guide", which can be found on the Bioconductor landing page 
@@ -889,7 +890,7 @@ a fitted model coefficient that represents a fitted mean or fold change,
 whild the rows of the model matrix correspond to the different individuals.
 
 For example, the first two rows of the model matrix `design_palmieri_CD` 
-correspond to the two arrays for individual "164"
+correspond to the two arrays for individual "164".
 
 The first two columns, "I", and "nI" correspond to mean expression in inflammed
 / non--inflamed tissue respectively, while all the other columns correspond to
@@ -899,8 +900,110 @@ the mean expression values for the other individuals. For example, individual
 "183" has two ones in the first blocking factor column `i_CD183` corresponding
 to the change in mean expression compared to individual "164".
 
-We will compare the actual gene expression to the model fits for a single
-gene below.
+Before heading on to find all differentially expressed genes for both diseases, we will first have a look on how this works in principle for one gene. We will fit the linear model for one gene and run a t--test in order to see whether it is differentially expressed or not.
+
+# Illustration of the fitted linear models
+
+We pick one of the PROBEIDs in the vector of differentially expressed genes `DE_genes_CD`and have a closer look at the linear model fitted to this gene. 
+We choose the **CRAT** gene (probe ID 8164535) in CD. 
+Before fitting the linear model, we have a look at the expression intensities of this gene for each patient in non--inflamed and inflamed tissue, respectively: 
+
+```{r visualizeExpressionChanges}
+
+
+ggplot(data = crat_data, aes(x = tissue, y = org_value, 
+                             group = individual, color = individual)) +
+      geom_line() +
+      ggtitle("Expression changes for the CRAT gene")
+  
+
+```
+
+We see that overall, this gene is expressed lower in inflamed tissue. For building our linear model, we have to think about which variables we are interested in. As we want to find differential expression in non--inflamed-- vs inflamed tissue, those two are the only variables we would have to include. 
+However, we see that the absolute expression intensities vary a lot between patients. Therefore, we block on patients, i.e. the patient IDs become variables of the linear model. The design matrix has the different patient samples in its rows and the linear model variables in its columns. It has the entries 0 and 1 and thus tells us which variables are "active" for which sample: 
+
+```{r showDesignMatrix}
+
+head(design_palmieri_CD)
+
+```
+patient 164 is the baseline for the linear model and thus isn't a variable. If we have a look at the third line, we see that the variables "nI" as well as "i_CD183" are active. We now generate the variable coefficients `crat_coef` by fitting a linear model: 
+
+```{r obtainFitCRAT}
+table_CD["8164535", ]
+
+crat_expr <- exprs(palmieri_final)["8164535", disease == "CD"]
+crat_coef <- lmFit(palmieri_final[,disease == "CD"],
+                design = design_palmieri_CD)$coefficients["8164535",]
+
+#lin.fit <- lmFit(palmieri_final[,disease == "CD"],
+#                         design = design_palmieri_CD)
+
+#crat_all <- eBayes(lmFit(palmieri_final[,disease == "CD"],
+#             design = design_palmieri_CD))
+
+
+#ordinary.t <- lin.fit$coef[,2] / lin.fit$stdev.unscaled[,2] / lin.fit$sigma
+#ordinary.t["8164535"]
+
+#ordinary.t2 <- crat_all$coef[,2] / crat_all$stdev.unscaled[,2] / crat_all$sigma
+#ordinary.t2["8164535"]
+
+#ordinary.t <- fit$coef[,2] / fit$stdev.unscaled[,2] / fit$sigma --> mit contrast_fit ohne eBayes, also palmieri_fit_CD
+
+#ordinary.t und ordinary.t2 geben das selbe Ergebnis: 57.9
+
+```
+
+In order to now obtain the expression values fitted by the model, we multiplicate the design matrix with this vector: 
+```{r obtainFitCRAT2}
+crat_fitted <- design_palmieri_CD %*% crat_coef
+
+rownames(crat_fitted) <- names(crat_expr)
+colnames(crat_fitted) <- "fitted_value"
+
+```
+
+This way, for every row (i.e., sample) only the variables with a 1 in the design matrix are taken into account for calculating the fitted expression value. Two variables are selected for each row: one of "I" or "nI", and one sample variable. Note that this way the difference of the fitted expression values between inflamed-- and non--inflamed samples of one patient always are the same for all patients and is determined by the difference between the variable coefficients of `I` (6.77) and `nI` (7.19), which is -0.425. Note that this "difference" actually is a log fold change, as our expression data is on the log scale. -0.425 therefore is our log fold change. The same sample variable is turned on for both samples from one patient, and thus only corrects the fitted expression values towards the original ones measured from the patients: 
+
+```{r obtainFitCRAT3}
+
+crat_data <- as.data.frame(crat_fitted) 
+crat_data <- tibble::rownames_to_column(crat_data, var = "sample_id")
+crat_data <- mutate(crat_data, org_value = crat_expr,
+                               tissue =  tissue[disease == "CD"],
+                               individual = i_CD)
+
+crat_data$tissue <- factor(crat_data$tissue, levels = c("nI", "I"))
+
+
+ggplot(data = crat_data, aes(x = tissue, y = fitted_value, 
+                             group = individual, color = individual)) +
+      geom_line() +
+      ggtitle("Expression changes for the CRAT gene")
+  
+```
+
+If we hadn't blocked for individuals, all of these lines would have collapsed to one single fitted line with a much higher variance.
+
+In order to test whether the gene is differentially expressed or not, a t--test with the hypothesis that the difference between non--inflamed and inflamed tissue is zero. The t--test value depends on the variance of the sample: 
+
+$$
+ t = \frac{\bar{x} – \mu}{s/\sqrt{n}}
+$$
+
+We thus have made our t--test more sensible by reducing the variance by blocking on individuals.
+
+We now conduct the t--test on the linear model in order to find out whether the difference between non--inflamed-- and inflamed tissue differs significantly from 0: 
+
+```{r tTest}
+y1 <- na.exclude(crat_data$org_value[tissue=="nI"])
+y2 <- na.exclude(crat_data$org_value[tissue=="I"])
+res_t <- t.test(y1,y2,paired=TRUE)
+#andere df als beim linearen Modell, deswegen anderer p-Wert
+
+```
+
 
 
 ## Contrasts and hypotheses tests
@@ -999,8 +1102,6 @@ total_genenumber_UC <- length(subset(table_UC, P.Value < 0.001)$SYMBOL)
 
 total_genenumber_CD
 total_genenumber_UC
-
-
 ```
 
 We find 415 (CD) and 947 (UC) differentially expressed genes ("DE--genes").
@@ -1021,12 +1122,13 @@ DE_genes_CD <- subset(table_CD, adj.P.Val < 0.1)$PROBEID
 
 ```
 
-# Illustration of the fitted linear models
 
-We pick one of the PROBEIDs in the vector of differentially expressed genes `DE_genes_CD`and have a closer look at the linear model fitted to this gene. 
-<!-- SR: what exactly would be the linear model for this gene? explain this in more detail! --> 
-We choose the 
- **CRAT** gene (probe ID 8164535) in CD. The first plot we prodcue is a scatterplot that compares
+
+
+
+
+<!--
+The first plot we prodcue is a scatterplot that compares
 the fitted (as returned by the linear model) to the actual values.
 
 The fitted values are obtained by
@@ -1052,6 +1154,7 @@ crat_data <- mutate(crat_data, org_value = crat_expr,
 crat_data$tissue <- factor(crat_data$tissue, levels = c("nI", "I"))
 ```
 
+
 ```{r scatterFittedVsActual}
 ggplot(data = crat_data, aes(x = org_value, y = fitted_value, 
                               color = individual)) +
@@ -1065,16 +1168,7 @@ We see that the actual expression values are reasonably similar to
 the fitted ones. They scatter around a 45° degree line.
 <!-- SR: what does this actually mean? That the values of the slopes/differences between I/nI are reasonably close to each other? -->
 
-```{r visualizeExpressionChanges}
-
-
-ggplot(data = crat_data, aes(x = tissue, y = org_value, 
-                             group = individual, color = individual)) +
-      geom_line() +
-      ggtitle("Expression changes for the CRAT gene")
-  
-
-```
+<!--
 
 ```{r visualizeExpressionChanges}
 
@@ -1104,7 +1198,7 @@ fcs <-  crat_data %>%
         summarize(fc = diff(org_value))
 
 #summarize(group_by(crat_data, individual), fc = diff(org_value))
-#SR: discuss whether this can be called fold-change or shouldn't rather be described as a difference --> https://en.wikipedia.org/wiki/Fold_change
+#SR: discuss whether this can be called fold-change or shouldn't rather be described as a difference https://en.wikipedia.org/wiki/Fold_change ; eig log fold change 
 
 ggplot(data = fcs, aes(x = "individual fold changes", y = fc, color = individual)) +
       geom_jitter(height = 0, width = 0.1) +
