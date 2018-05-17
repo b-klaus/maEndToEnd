@@ -1023,11 +1023,13 @@ DE_genes_CD <- subset(table_CD, adj.P.Val < 0.1)$PROBEID
 
 # Illustration of the fitted linear models
 
-We illustrate use the linear models fitted using the **CRAT** gene (probe ID 
-8164535) in CD. The first plot we prodcue is a scatterplot that compares
+We pick one of the PROBEIDs in the vector of differentially expressed genes `DE_genes_CD`and have a closer look at the linear model fitted to this gene. 
+<!-- SR: what exactly would be the linear model for this gene? explain this in more detail! --> 
+We choose the 
+ **CRAT** gene (probe ID 8164535) in CD. The first plot we prodcue is a scatterplot that compares
 the fitted (as returned by the linear model) to the actual values.
 
-The fitted values are obtained 
+The fitted values are obtained by
 
 ```{r obtainFitCRAT}
 table_CD["8164535", ]
@@ -1059,8 +1061,9 @@ ggplot(data = crat_data, aes(x = org_value, y = fitted_value,
       ggtitle("Actual expression vs fitted values")
 ```
 
-We see that the actuall expression values are reasonably similar to
+We see that the actual expression values are reasonably similar to
 the fitted ones. They scatter around a 45° degree line.
+<!-- SR: what does this actually mean? That the values of the slopes/differences between I/nI are reasonably close to each other? -->
 
 ```{r visualizeExpressionChanges}
 
@@ -1073,12 +1076,22 @@ ggplot(data = crat_data, aes(x = tissue, y = org_value,
 
 ```
 
+```{r visualizeExpressionChanges}
+
+
+ggplot(data = crat_data, aes(x = tissue, y = fitted_value, 
+                             group = individual, color = individual)) +
+      geom_line() +
+      ggtitle("Expression changes for the CRAT gene")
+  
+
+```
 We can see that indeed the expression for the CRAT gene is
 indeed reduced in inflamed tissue 
 for most indiviudals (Although not for all of them,
 2209 is a notable outlier here).
 
-Ther is substantial between-subject variation here, as indicated
+There is substantial between-subject variation here, as indicated
 by the quite different line intercepts. Thus, blocking for every 
 individual is indeed warranted to capture the relatively similar
 fold changes between the different tissues within each subject.
@@ -1089,6 +1102,9 @@ We now vizualize the individual fold changes.
 fcs <-  crat_data %>%
         group_by(individual) %>%
         summarize(fc = diff(org_value))
+
+#summarize(group_by(crat_data, individual), fc = diff(org_value))
+#SR: discuss whether this can be called fold-change or shouldn't rather be described as a difference --> https://en.wikipedia.org/wiki/Fold_change
 
 ggplot(data = fcs, aes(x = "individual fold changes", y = fc, color = individual)) +
       geom_jitter(height = 0, width = 0.1) +
@@ -1102,6 +1118,7 @@ ggplot(data = fcs, aes(x = "individual fold changes", y = fc, color = individual
 We see that the fold changes within each individual do indeed scatter around
 the fitted value of -0.425.
 
+<!-- SR: it would be really interesting to know now how significance of the difference was tested --> 
 
 # Gene ontology (GO) based enrichment analysis
 
