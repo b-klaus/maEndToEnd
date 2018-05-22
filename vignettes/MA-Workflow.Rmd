@@ -176,6 +176,7 @@ about the experiment including title, description, submitter contact details and
 protocols. The SDRF file contains essential information on the experimental 
 samples, e.g. the experimental group(s) they belong to. 
 <!-- SR: is it possible that we never use the IDF file again? We never import it, right? --> 
+
 # Download the raw data and the annotation data 
 
 With the code below, we download the raw data from
@@ -323,7 +324,6 @@ validObject(raw_data)
 
 We now inspect the raw data a bit.
 
-
 The pData function of the Biobase package directly accesses the "data" subfolder in the phenoData tab in the ExpressionSet `raw_data`. With the `head()` function, we can view the first six lines of the table. We have a look at the columns included and retain only those columns that are related to the experimental factors of interest.
 
 ```{r inspectPhenoData, eval=TRUE }
@@ -347,7 +347,6 @@ Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
                                      "Factor.Value.phenotype.")]
 
 ```
-
 
 ## Quality control of the raw data
 
@@ -638,7 +637,7 @@ dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
 
 In comparison to the first PCA analysis before RMA, we see that now the first principal component clusters between tissues types. This indicates that now differential expression between the tissue types can be analyzed quite well.
 
-###Heatmap clustering analysis
+### Heatmap clustering analysis
 
 In order to display a heatmap of the sample--to--sample distances, we first compute the distances using the `dist` function. We need to transpose the expression values since
 the function computes the distances between the rows (i.e. genes in our case) by
@@ -711,7 +710,7 @@ palmieri_eset_filtered <- palmieri_eset_norm[, c(1:17, 19:43, 45:53, 55:58)]
 
 <!--SR: quick and dirty Methode zum Filtern, weil ich auf Anhieb keine Möglichkeit gefunden habe, column names aus dem ExpressionSet auszuschließen. Möchten wir die drei Samples überhaupt ausschließen, oder geht das zu weit? NOTE: der Rest des Workflows läuft bis jetzt noch mit dem nicht gefilterten "palmieri_eset_norm" --> 
 
-## Filtering based on intensity 
+# Filtering based on intensity 
 
 We now filter out lowly expressed genes. Microarray data commonly show a large number
 of probes in the background intensity range. They also do not change much across arrays. 
@@ -776,7 +775,7 @@ palmieri_manfiltered <- subset(palmieri_eset_norm, idx_man_threshold)
 ```
 
 
-## Annotation of the transcript clusters
+# Annotation of the transcript clusters
 
 Before we continue with the linear models for microarrays and differential
 expression, we describe how to add "feature Data", i.e. annotation
@@ -1108,7 +1107,6 @@ res_t
 ```
 
 We get a p--value of 1.943e-06, and thus have found that the *CRAT* gene is differentially expressed between non--inflamed and inflamed tissue. Note that the p--value isn't exactly the same one as below when analyzing the differential expression of all genes. The reason is a variance correction called "empirical Bayes" which we will implement later, leading to slightly different p--values. The method will be explained more in detail when applied.
-
 
 ## Contrasts and hypotheses tests
 
