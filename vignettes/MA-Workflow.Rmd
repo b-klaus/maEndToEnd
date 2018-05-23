@@ -61,7 +61,7 @@ suppressPackageStartupMessages({library("maEndToEnd")})
 ```{r knitrOptions, include=FALSE}
 library(BiocStyle)
 library(knitr)
-options(digits = 3, width = 80)
+options(digits = 4, width = 80)
 opts_chunk$set(echo=TRUE, 
                tidy=FALSE, 
                include=TRUE,
@@ -144,7 +144,7 @@ and have the accession code **E-MTAB-2967**.
 We will store these files in the directory **raw\_data\_dir** which defaults to the subdirectory
 `rawDataMAWorkflow` of the current working directory:
 
-```{r generateFolderForRawData, echo = TRUE}
+```{r generateFolderForRawData}
 raw_data_dir <- file.path(getwd(), "rawDataMAWorkflow")
 
 if(!dir.exists(raw_data_dir)){
@@ -157,8 +157,6 @@ if(!dir.exists(raw_data_dir)){
 Each ArrayExpress data set has a landing page summarizing the data set, 
 and we use the `r Biocpkg("ArrayExpress") ` Bioconductor package to obtain the ftp 
 links to the raw data files ([Data from Palmieri et. al. on ArrayEpress](https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-2967/)).
-
-<!--SR: what do we need this information for? --> 
 
 # Information stored in ArrayExpress
 
@@ -244,7 +242,7 @@ In particular, the rownames of the `phenoData` (which holds the content of the
 SDRF file) have to match the column names of the assay data (as they represent the sample
 identifiers), while the row names of the assay data have to match the 
 row names of the `featureData` (as they represent the feature identifiers). This is 
-illustrated in the figure.
+illustrated in \@ref(fig:sumexp).
 
 
 
@@ -415,12 +413,9 @@ oligo::boxplot(raw_data, target="core",
 
 ```
 
-The PCA (performed on the log--intensity scale) plot of the raw data shows 
-that the first principal component differentiates between the diseases. This means that the expression data mainly differs between the diseases. This might hinder our analysis, as we want to analyze the differential expression between inflamed- and non-inflamed tissue, independently of the disease a person has. When looking at the boxplot, we see that the intensity distributions 
-of the individual arrays are quite different,
-indicating the need for an appropriate normalization, which we will discuss next.
+The PCA (see \@ref(fig:qualityControlRawDataPCA)) (performed on the log--intensity scale) plot of the raw data shows that the first principal component differentiates between the diseases. This means that the expression data mainly differs between the diseases. This might hinder our analysis, as we want to analyze the differential expression between inflamed- and non-inflamed tissue, independently of the disease a person has. When looking at the boxplot (\@ref(fig:qualityControlRawDataBox)), we see that the intensity distributions of the individual arrays are quite different, indicating the need for an appropriate normalization, which we will discuss next.
 
-Until now, we have only performed a very basic quality control; for more elaborate quality control plots, we could use the package `r Biocpkg("arrayQualityMetrics") ` [@AQM]. The package produces an html report, containing the quality control plots together with a description of their
+Until now, we have only performed a very basic quality control; for more elaborate quality control plots, we could use the package `r Biocpkg("arrayQualityMetrics")` [@AQM]. The package produces an html report, containing the quality control plots together with a description of their
 aims and an identification of possible outliers. We don't discuss this tool in detail
 here, but the code below can be used to create a report for our raw data. 
 
@@ -545,7 +540,7 @@ RLE_data_gathered <- gather(RLE_data, patient_probe, log2_expression_variation)
 ggplot2::ggplot(RLE_data_gathered, aes(patient_probe, log2_expression_variation)) + geom_boxplot(outlier.shape=NA) + ylim(c(-2, 2)) + theme(axis.text.x= element_text(colour="aquamarine4", angle=60, size=6.5, hjust=1, face="bold"))
 ```
 
-When looking at the data, 5 arrays could be considered to be outliers: 2826_I, 2826_II, 3262_II, 3302_II and 3332_II are negatively y--shifted. We will keep these samples in mind for heatmap cluster analysis later on in the workflow. Arrays that are confirmed to be outliers by heatmap analysis can be removed for subsequent analysis.
+When looking at the boxplot in (\@ref(fig:boxplotDataForRLETidy), 5 arrays could be considered to be outliers: 2826_I, 2826_II, 3262_II, 3302_II and 3332_II are negatively y--shifted. We will keep these samples in mind for heatmap cluster analysis later on in the workflow. Arrays that are confirmed to be outliers by heatmap analysis can be removed for subsequent analysis.
 
 #RMA calibration of the data
 
@@ -694,7 +689,7 @@ pheatmap(dists, col = (hmcol),
 ```
 <!-- SR: title for heatmap? --> 
 
-On the heatmap plot we also see that the samples do not cluster strongly by tissue, confirming the impression from the PCA plot that the separation
+On the heatmap plot ((\@ref(fig:clusteringHeatmap)) we also see that the samples do not cluster strongly by tissue, confirming the impression from the PCA plot that the separation
 between the tissues is not perfect. The purple stripes in the heatmap might correspond
 to an outlier that could potentially be removed. We produce the same heatmap again with the sample identifiers as row names in order to see whether the outliers in the heatmap are the same ones as the outliers in the RLE plot beforehand: 
 
@@ -712,7 +707,7 @@ pheatmap(dists, col = (hmcol), legend=TRUE,
 
 ```
 <!-- SR: evtl too much; sollen wir das machen oder rauslassen? -->
-The outliers that could be found here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II. 
+The outliers that could be found here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II ((\@ref(fig:alternativeHeatmapWithPatientProbesAsLabels)). 
 2826_II, 3262_II and 3332_II were found to be outliers in both RLE and heatmap and will therefore be removed.
 Note that more elaborate metrics to identify and remove outliers are provided by the `r Biocpkg("arrayQualityMetrics") `.
 
@@ -1039,7 +1034,7 @@ ggplot(data = crat_data, aes(x = tissue_CD, y = org_value,
 
 ```
 
-We see that overall, this gene is expressed lower in inflamed tissue. We also see that the absolute expression intensities vary a lot between patients; if we hadn't blocked for individuals, the linear model would fit one single line to all of these lines would collapse to one single fitted line, resulting in a very high variance.
+We see that overall, this gene is expressed lower in inflamed tissue ((see \@ref(fig:visualizeExpressionChanges)). We also see that the absolute expression intensities vary a lot between patients; if we hadn't blocked for individuals, the linear model would fit one single line to all of these lines would collapse to one single fitted line, resulting in a very high variance.
 However, we have already taken care of this problem by introducing blocking factors on the individuals, which allows us to fit one line to each individual.
 
 We now generate the variable coefficients by fitting a linear model. We get a vector `crat_coef` with one entry for each variable.
@@ -1095,7 +1090,7 @@ ggplot(data = crat_data, aes(x = tissue_CD, y = fitted_value,
 ```
 
 
-Note that the differences of the fitted expression values between inflamed-- and non--inflamed samples of one patient always are the same for all patients and is determined by the difference between the variable coefficients of `I` (6.77) and `nI` (7.19), which is -0.425. This is the case because the same sample variable is activated by the design matrix for both samples from one patient, and thus only corrects the fitted expression values towards the original ones measured from the patients. 
+Note that the differences of the fitted expression values between inflamed-- and non--inflamed samples of one patient always are the same for all patients and is determined by the difference between the variable coefficients of `I` (6.77) and `nI` (7.19), which is -0.425 ((see \@ref(fig:3obtainFitCRAT)). This is the case because the same sample variable is activated by the design matrix for both samples from one patient, and thus only corrects the fitted expression values towards the original ones measured from the patients. 
 This "difference" between non--inflamed and inflamed tissue of -0.425 actually is a log fold change, as our expression data is on the log scale. -0.425 therefore is our log fold change. 
 
 ### Differential expression analysis of the CRAT gene
@@ -1115,7 +1110,6 @@ crat_noninflamed <- na.exclude(crat_data$org_value[tissue=="nI"])
 crat_inflamed <- na.exclude(crat_data$org_value[tissue=="I"])
 res_t <- t.test(crat_noninflamed ,crat_inflamed ,paired=TRUE)
 res_t
-#andere df als beim linearen Modell, deswegen anderer p-Wert
 
 ```
 
@@ -1283,7 +1277,7 @@ The fitted values are obtained by
 
 We see that the actual expression values are reasonably similar to
 the fitted ones. They scatter around a 45° degree line.
-<!-- SR: what does this actually mean? That the values of the slopes/differences between I/nI are reasonably close to each other? -->
+
 
 <!--
 
@@ -1315,7 +1309,6 @@ We now vizualize the individual fold changes.
 #        summarize(fc = diff(org_value))
 
 #summarize(group_by(crat_data, individual), fc = diff(org_value))
-#SR: discuss whether this can be called fold-change or shouldn't rather be described as a difference #https://en.wikipedia.org/wiki/Fold_change ; eig log fold change 
 
 #ggplot(data = fcs, aes(x = "individual fold changes", y = fc, color = individual)) +
 #      geom_jitter(height = 0, width = 0.1) +
@@ -1328,8 +1321,7 @@ We now vizualize the individual fold changes.
 
 We see that the fold changes within each individual do indeed scatter around
 the fitted value of -0.425.
-
-<!-- SR: it would be really interesting to know now how significance of the difference was tested --> 
+-->
 
 # Gene ontology (GO) based enrichment analysis
 
@@ -1386,7 +1378,7 @@ multidensity(list(
 
 ```
 
-When comparing the "background gene" curve to the "foreground gene" curve, we see a similar curve form, indicating a sensible background matching. Note that the right-shift of the "foreground-gene" curve in comparison to the "background-gene" curve indicates that DE--genes are generally very highly expressed, so that it wasn't possible to find background--genes with an equally high expression.
+When comparing the "background gene" curve to the "foreground gene" curve, we see a similar curve form, indicating a sensible background matching ((see \@ref(fig:multidensityPlot)). Note that the right-shift of the "foreground-gene" curve in comparison to the "background-gene" curve indicates that DE--genes are generally very highly expressed, so that it wasn't possible to find background--genes with an equally high expression.
 The "all gene" curve has its maximum at the lowest mean expression of the three. This can be explained by a high number of lowly expressed genes among all samples. 
 
 For the actual testing which GO gene sets are enriched in inflamed tissue, we use the `r Biocpkg("topGO") ` which implements a nice interface to Fisher testing and also has additional algorithms
@@ -1413,7 +1405,7 @@ in_universe <- gene_IDs %in% c(DE_genes_CD , back_genes)
 inSelection <- gene_IDs %in% DE_genes_CD 
 
 all_genes <- inSelection[in_universe]
-all_genes <- factor(as.integer(inSelection[in_universe])) #SR: array mit Eintrag 1 falls TRUE und 0 falls FALSE
+all_genes <- factor(as.integer(inSelection[in_universe])) 
 names(all_genes) <- gene_IDs[in_universe] 
 
 ```
@@ -1480,14 +1472,14 @@ A graph of the results can also be produced. Here we visualize the three most
 significant nodes according to the Fisher elim algorithm in the context of
 the GO hierarchy.
 
-```{r graphOfResults, fig.height = 6, eval=TRUE, fig.cap = "A graphical representation of the topGO results.", results='hide'}
+```{r graphOfResults, fig.height = 6, eval=TRUE, fig.cap = "A graphical representation of the topGO results.", results='hide', dpi = 300, cache=TRUE, out.width="400px")}
 showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
                useInfo = 'def')
 
 ```
 
 We can see that indeed GO categories related to inflammation, signalling and 
-immune response show up as significant.
+immune response show up as significant ((see \@ref(fig:graphOfResults)))
 Gene set enrichment analysis has been a field of very extensive
 research in bioinformatics. For additional approaches see the `r Biocpkg("topGO") `
 vignette and the references therein and also in the [GeneSetEnrichment view](http://bioconductor.org/packages/release/BiocViews.html#___GeneSetEnrichment). 
@@ -1539,7 +1531,7 @@ Note that we trimmed pathway names to 20 characters.
 
 The `r Biocpkg("reactomePA") ` package offers nice visualization capabilities.
 The top pathways can be displayed as a bar chart that displays all categories
-with a p--value below the specified cutoff.
+with a p--value below the specified cutoff ((see \@ref(fig:reactomeBar)).
 
 ```{r reactomeBar, dependson="runReactomeEnrichment", fig.cap="Enriched Reactome pathways and their p–values as a bar chart."}
 barplot(reactome_enrich)
