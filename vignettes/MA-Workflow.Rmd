@@ -365,22 +365,22 @@ We also plot a boxplot graph with boxes for the probe intensities on individual 
 
 
 <!--
-```{r qualityControlRawDataPCAold, fig.cap="PCA plot of the log–transformed raw data."}
-exp_raw <- log2(exprs(raw_data))
-PCA_raw <- prcomp(t(exp_raw), scale. = FALSE)
+# ```{r qualityControlRawDataPCAold, fig.cap="PCA plot of the log–transformed raw data."}
+#exp_raw <- log2(exprs(raw_data))
+#PCA_raw <- prcomp(t(exp_raw), scale. = FALSE)
 
-dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
-                    Disease = Biobase::pData(raw_data)$Factor.Value.disease.,
-                    Phenotype = Biobase::pData(raw_data)$Factor.Value.phenotype.,
-                    Individual = Biobase::pData(raw_data)$Characteristics.individual.)
+#dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
+#                    Disease = Biobase::pData(raw_data)$Factor.Value.disease.,
+#                    Phenotype = Biobase::pData(raw_data)$Factor.Value.phenotype.,
+#                    Individual = Biobase::pData(raw_data)$Characteristics.individual.)
 
 
-(qplot(PC1, PC2, data = dataGG, 
-       color = Phenotype, 
-       shape = Disease,
-       main = "PCA plot of the raw data (log-transformed)", size = I(2), 
-       asp = 1.0)
-     + scale_colour_brewer(palette = "Set2"))
+#(qplot(PC1, PC2, data = dataGG, 
+#       color = Phenotype, 
+#       shape = Disease,
+#       main = "PCA plot of the raw data (log-transformed)", size = I(2), 
+#       asp = 1.0)
+#     + scale_colour_brewer(palette = "Set2"))
 
 ```
 -->
@@ -516,20 +516,33 @@ The RLE is performed by calculating the median log2 intensity of one transcript 
 We then substract this transcript median intensity from every transcript intensity, respectively, with the `sweep` function. 
 We bring the data into a form in which we can plot a boxplot for each array, as before. Note that on the y-axis, we now see for each microarray the values of variation of expression intensity from the median of the single transcripts. 
 Boxes with a larger extension in y scale therefore indicate an unusually high variation from the median in a lot of transcripts, suggesting decreased reliability of the data. Boxes that are shifted in y direction indicate a systematically higher or lower expression of the majority of transcripts in comparison to the other arrays, and thus also decreased data reliability. If shape and median of the single boxes vary too much from the others, it should be considered to remove the corresponding arrays. 
-
+<!--
 ```{r boxplotDataForRLE}
 
-row_medians_assayData <- rowMedians(as.matrix(Biobase::exprs(palmieri_eset)))
-RLE_data <- sweep(Biobase::exprs(palmieri_eset), 1, row_medians_assayData)
+#row_medians_assayData <- Biobase::rowMedians(as.matrix(Biobase::exprs(palmieri_eset)))
+#RLE_data <- sweep(Biobase::exprs(palmieri_eset), 1, row_medians_assayData)
 
 #boxplot
-RLE_data_trafo <- as.data.frame(t(RLE_data))
-RLE_data_trafo$patient_probe <- rownames(RLE_data_trafo)
-library("reshape2")
-RLE_data_trafo.m <- melt(RLE_data_trafo, id.vars= "patient_probe")
-RLE_data_trafo.m <- plyr::rename(RLE_data_trafo.m, c("value"="log2_expression_variation"))
-ggplot(RLE_data_trafo.m, aes (patient_probe, log2_expression_variation)) + geom_boxplot(outlier.shape=NA) + ylim(c(-2, 2)) + theme(axis.text.x= element_text(colour="aquamarine4", angle=60, size=6.5, hjust=1, face="bold"))
+#RLE_data_trafo <- as.data.frame(t(RLE_data))
+#RLE_data_trafo$patient_probe <- rownames(RLE_data_trafo)
 
+#library("reshape2")
+#RLE_data_trafo.m <- melt(RLE_data_trafo, id.vars= "patient_probe")
+#RLE_data_trafo.m <- plyr::rename(RLE_data_trafo.m, c("value"="log2_expression_variation"))
+#ggplot(RLE_data_trafo.m, aes (patient_probe, log2_expression_variation)) + geom_boxplot(outlier.shape=NA) + #ylim(c(-2, 2)) + theme(axis.text.x= element_text(colour="aquamarine4", angle=60, size=6.5, hjust=1, #face="bold"))
+
+```
+-->
+```{r boxplotDataForRLETidy}
+
+
+row_medians_assayData <- Biobase::rowMedians(as.matrix(Biobase::exprs(palmieri_eset)))
+RLE_data <- sweep(Biobase::exprs(palmieri_eset), 1, row_medians_assayData)
+
+RLE_data <- as.data.frame(RLE_data)
+RLE_data_gathered <- gather(RLE_data, patient_probe, log2_expression_variation)
+
+ggplot2::ggplot(RLE_data_gathered, aes(patient_probe, log2_expression_variation)) + geom_boxplot(outlier.shape=NA) + ylim(c(-2, 2)) + theme(axis.text.x= element_text(colour="aquamarine4", angle=60, size=6.5, hjust=1, face="bold"))
 ```
 
 When looking at the data, 5 arrays could be considered to be outliers: 2826_I, 2826_II, 3262_II, 3302_II and 3332_II are negatively y--shifted. We will keep these samples in mind for heatmap cluster analysis later on in the workflow. Arrays that are confirmed to be outliers by heatmap analysis can be removed for subsequent analysis.
@@ -599,18 +612,18 @@ We now produce a clustering heatmap and another PCA plot using the calibrated da
 
 First, we perform a PCA analysis of the calibrated data analogously to the one with the raw data:
 <!--
-```{r PCAMetricsCalibrated, fig.cap = "PCA plot of the calibrated data.", eval = TRUE }
-exp_palmieri <- exprs(palmieri_eset_norm)
-PCA <- prcomp(t(exp_palmieri), scale = FALSE)
+# ```{r PCAMetricsCalibrated2, fig.cap = "PCA plot of the calibrated data.", eval = TRUE }
+#exp_palmieri <- exprs(palmieri_eset_norm)
+#PCA <- prcomp(t(exp_palmieri), scale = FALSE)
 
-dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
-                    Disease = Biobase::pData(palmieri_eset_norm)$Factor.Value.disease.,
-                    Phenotype = Biobase::pData(palmieri_eset_norm)$Factor.Value.phenotype.)
+#dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
+#                    Disease = Biobase::pData(palmieri_eset_norm)$Factor.Value.disease.,
+#                    Phenotype = Biobase::pData(palmieri_eset_norm)$Factor.Value.phenotype.)
         
-(qplot(PC1, PC2, data = dataGG, color = Phenotype, shape = Disease,
-       main = "PCA plot of the calibrated data", size = I(2), asp = 1.0)
-       + scale_colour_brewer(palette = "Set2"))
-```
+#(qplot(PC1, PC2, data = dataGG, color = Phenotype, shape = Disease,
+#       main = "PCA plot of the calibrated data", size = I(2), asp = 1.0)
+#       + scale_colour_brewer(palette = "Set2"))
+#```
 -->
 ```{r PCAMetricsCalibrated, fig.cap = "PCA plot of the calibrated data.", eval = TRUE }
 exp_palmieri <- Biobase::exprs(palmieri_eset_norm)
@@ -985,26 +998,26 @@ For linear model fitting and subsequent testing for differential expression by t
 
 Before fitting the linear model, we have a look at the expression intensities of this gene for each patient in non--inflamed and inflamed tissue, respectively: 
 
-<!--```{r visualizeExpressionChanges}
-crat_coef <- lmFit(palmieri_final[,disease == "CD"],
-                design = design_palmieri_CD)$coefficients["8164535",]
+<!--```{r visualizeExpressionChangesOld}
+#crat_coef <- lmFit(palmieri_final[,disease == "CD"],
+#                design = design_palmieri_CD)$coefficients["8164535",]
 
-crat_expr <- Biobase::exprs(palmieri_final)["8164535", disease == "CD"]
+#crat_expr <- Biobase::exprs(palmieri_final)["8164535", disease == "CD"]
 
-crat_fitted <- design_palmieri_CD %*% crat_coef
+#crat_fitted <- design_palmieri_CD %*% crat_coef
 
-rownames(crat_fitted) <- names(crat_expr)
-colnames(crat_fitted) <- "fitted_value"
+#rownames(crat_fitted) <- names(crat_expr)
+#colnames(crat_fitted) <- "fitted_value"
 
-table_CD["8164535", ]
+#table_CD["8164535", ]
 
 
 
-crat_data <- as.data.frame(crat_fitted) 
-crat_data <- tibble::rownames_to_column(crat_data, var = "sample_id")
-crat_data <- mutate(crat_data, org_value = crat_expr,
-                               tissue = tissue[disease == "CD"],
-                               individual = i_CD)
+#crat_data <- as.data.frame(crat_fitted) 
+#crat_data <- tibble::rownames_to_column(crat_data, var = "sample_id")
+#crat_data <- mutate(crat_data, org_value = crat_expr,
+#                               tissue = tissue[disease == "CD"],
+#                               individual = i_CD)
 
 
 ```-->
@@ -1060,7 +1073,7 @@ In order to now obtain the expression values fitted by the model, we multiplicat
 This means that as output of the multiplication, we get a vector `crat_fitted` whose entries are the sum of relevant variable coefficients for each sample, respectively.
 For example, the fitted value for patient sample `2114_I.CEL` is 6.97: it is the sum of the respective activated variable coefficients "nI" (7.1917 ) and "i_CD2114" (-0.2215). 
 
-```{r obtainFitCRAT2}
+```{r 2obtainFitCRAT}
 crat_fitted <- design_palmieri_CD %*% crat_coef
 rownames(crat_fitted) <- names(crat_expr)
 colnames(crat_fitted) <- "fitted_value"
@@ -1071,7 +1084,7 @@ crat_fitted
 
 Let's visualize the difference between non--inflamed and inflamed tissue again after fitting: 
 
-```{r obtainFitCRAT3}
+```{r 3obtainFitCRAT}
 crat_data$fitted_value <- crat_fitted
 
 ggplot(data = crat_data, aes(x = tissue_CD, y = fitted_value, 
@@ -1237,35 +1250,35 @@ the fitted (as returned by the linear model) to the actual values.
 
 The fitted values are obtained by
 
-```{r obtainFitCRAT}
-table_CD["8164535", ]
+ ```{r obtainFitCRAT2}
+#table_CD["8164535", ]
 
-crat_expr <- exprs(palmieri_final)["8164535", disease == "CD"]
-crat_coef <- eBayes(lmFit(palmieri_final[,disease == "CD"],
-                         design = design_palmieri_CD))$coefficients["8164535",]
+#crat_expr <- exprs(palmieri_final)["8164535", disease == "CD"]
+#crat_coef <- eBayes(lmFit(palmieri_final[,disease == "CD"],
+#                         design = design_palmieri_CD))$coefficients["8164535",]
 
-crat_fitted <- design_palmieri_CD %*% crat_coef
+#crat_fitted <- design_palmieri_CD %*% crat_coef
 
-rownames(crat_fitted) <- names(crat_expr)
-colnames(crat_fitted) <- "fitted_value"
+#rownames(crat_fitted) <- names(crat_expr)
+#colnames(crat_fitted) <- "fitted_value"
   
-crat_data <- as.data.frame(crat_fitted) 
-crat_data <- tibble::rownames_to_column(crat_data, var = "sample_id")
-crat_data <- mutate(crat_data, org_value = crat_expr,
-                               tissue =  tissue[disease == "CD"],
-                               individual = i_CD)
+#crat_data <- as.data.frame(crat_fitted) 
+#crat_data <- tibble::rownames_to_column(crat_data, var = "sample_id")
+#crat_data <- mutate(crat_data, org_value = crat_expr,
+#                               tissue =  tissue[disease == "CD"],
+#                               individual = i_CD)
 
-crat_data$tissue <- factor(crat_data$tissue, levels = c("nI", "I"))
-```
+#crat_data$tissue <- factor(crat_data$tissue, levels = c("nI", "I"))
+#```
 
 
-```{r scatterFittedVsActual}
-ggplot(data = crat_data, aes(x = org_value, y = fitted_value, 
-                              color = individual)) +
-      geom_abline(slope = 1, intercept = 0) +
-      geom_point() +
-      coord_fixed() +
-      ggtitle("Actual expression vs fitted values")
+# ```{r scatterFittedVsActual}
+#ggplot(data = crat_data, aes(x = org_value, y = fitted_value, 
+#                              color = individual)) +
+#      geom_abline(slope = 1, intercept = 0) +
+#      geom_point() +
+#      coord_fixed() +
+#      ggtitle("Actual expression vs fitted values")
 ```
 
 We see that the actual expression values are reasonably similar to
@@ -1274,13 +1287,13 @@ the fitted ones. They scatter around a 45° degree line.
 
 <!--
 
-```{r visualizeExpressionChanges}
+# ```{r visualizeExpressionChangesOld2}
 
 
-ggplot(data = crat_data, aes(x = tissue, y = fitted_value, 
-                             group = individual, color = individual)) +
-      geom_line() +
-      ggtitle("Expression changes for the CRAT gene")
+#ggplot(data = crat_data, aes(x = tissue, y = fitted_value, 
+#                             group = individual, color = individual)) +
+#      geom_line() +
+#      ggtitle("Expression changes for the CRAT gene")
   
 
 ```
@@ -1296,20 +1309,20 @@ fold changes between the different tissues within each subject.
 
 We now vizualize the individual fold changes.
 
-```{r visualizeIndividualFoldChanges}
-fcs <-  crat_data %>%
-        group_by(individual) %>%
-        summarize(fc = diff(org_value))
+ ```{r visualizeIndividualFoldChanges}
+#fcs <-  crat_data %>%
+#        group_by(individual) %>%
+#        summarize(fc = diff(org_value))
 
 #summarize(group_by(crat_data, individual), fc = diff(org_value))
-#SR: discuss whether this can be called fold-change or shouldn't rather be described as a difference https://en.wikipedia.org/wiki/Fold_change ; eig log fold change 
+#SR: discuss whether this can be called fold-change or shouldn't rather be described as a difference #https://en.wikipedia.org/wiki/Fold_change ; eig log fold change 
 
-ggplot(data = fcs, aes(x = "individual fold changes", y = fc, color = individual)) +
-      geom_jitter(height = 0, width = 0.1) +
-      ggtitle("Fold changes for the CRAT gene") +
-      geom_segment(aes(x = 0.8, y = -0.425, xend = 1.2, 
-                       yend = -0.425), colour = I("coral3")
-                   )
+#ggplot(data = fcs, aes(x = "individual fold changes", y = fc, color = individual)) +
+#      geom_jitter(height = 0, width = 0.1) +
+#      ggtitle("Fold changes for the CRAT gene") +
+#      geom_segment(aes(x = 0.8, y = -0.425, xend = 1.2, 
+#                       yend = -0.425), colour = I("coral3")
+#                   )
 
 ```
 
