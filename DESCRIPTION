@@ -14,7 +14,7 @@ Description: In this article, we walk through an end--to--end Affymetrix microar
     differential gene expression (DE) analysis, followed by some enrichment 
     analysis. As experimental designs can be complex, a self contained introduction 
     to linear models is also part of the workflow. 
-Depends: R (>= 3.3.0),
+Depends: R (>= 3.5.0),
     AnnotationDbi,
     Biobase,
     oligoClasses,
@@ -44,7 +44,8 @@ Depends: R (>= 3.3.0),
     clusterProfiler,
     openxlsx,
     devtools,
-    RCurl
+    RCurl,
+    tidyr
 License: Artistic-2.0
 Encoding: UTF-8
 LazyData: true

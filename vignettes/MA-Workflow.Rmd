@@ -1,6 +1,8 @@
 ---
 title: "An end to end workflow for differential gene expression using Affymetrix microarrays"
 author: 
+header-includes:
+   - \usepackage{float}
   - name: Bernd Klaus
     affiliation: EMBL Heidelberg, Meyerhofstrasse 1, 69117 Heidelberg, Germany, bernd.klaus@embl.de
   - name: Stefanie Reisenauer
@@ -22,17 +24,20 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8} 
 ---
+<!-- command to compile the vignette using Rscript to check the mem usage -->
+<!-- Rscript --vanilla test_mem.R -->
 
 <!-- latest version from github -->
-<!-- install_github("Steffireise/maEndToEnd", ref = "first_changes_steffi") -->
+<!-- devtools::install_github("Steffireise/maEndToEnd", ref = "first_changes_steffi") -->
 
 <!--Html rendering for Bioc Workflow using BiocStyle-->
 <!-- rmarkdown::render("MA-Workflow.Rmd") -->
 
 
 <!-- pdf rendering using to F1000 template from Mike's BiocWorkflowTools  -->
+<!-- also keeps .tex files for overleaf submission -->
 <!-- rmarkdown::render("MA-Workflow.Rmd",
-output_format = BiocWorkflowTools::f1000_article()) -->
+output_format = BiocWorkflowTools::f1000_article(keep_tex = TRUE)) -->
 
 
 <!--  Conversions between f1000 / BioStyle by Leo Torres -->
@@ -54,6 +59,14 @@ on.bioc <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
 knitr::opts_chunk$set(fig.path = "")
 ## here, pdf specific adapations can be made
 
+## add figures to current directory if Rmd is converted to LaTeX
+## This simplifies processing on overleaf
+on.bioc <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
+if (!on.bioc) {
+  knitr::opts_chunk$set(fig.path = "")
+} 
+knitr::opts_chunk$set(fig.path = "")
+
 suppressPackageStartupMessages({library("maEndToEnd")})
 
 ```
@@ -67,7 +80,7 @@ options(digits = 4, width = 80)
 opts_chunk$set(echo=TRUE, 
                tidy=FALSE, 
                include=TRUE,
-               dev=c('png', 'pdf'),
+               dev=c('png'),
                fig.width = 6, fig.height = 3.5,
                comment = '  ', 
                dpi = 300, cache=TRUE,
@@ -431,7 +444,8 @@ oligo::boxplot(raw_data, target="core",
 
 ```
 
-The PCA (see Figure \@ref(fig:qualityControlRawDataPCA)) (performed on the log--intensity scale) plot of the raw data shows that the first principal component differentiates between the diseases. This means that the expression data mainly differs between the diseases. This might hinder our analysis, as we want to analyze the differential expression between inflamed- and non-inflamed tissue, independently of the disease a person has. When looking at the boxplot (Figure \@ref(fig:qualityControlRawDataBox)), we see that the intensity distributions of the individual arrays are quite different from each other, indicating the need for an appropriate normalization, which we will discuss next.
+
+The PCA (see Figure \@ref(fig:qualityControlRawDataPCA)) (performed on the log--intensity scale) plot of the raw data shows that the first principal component differentiates between the diseases. This means that the expression data mainly differs between the diseases. This might hinder our analysis, as we want to analyze the differential expression between inflamed- and non-inflamed tissue, independently of the disease a person has. When looking at the boxplot (Figure \@ref(fig:qualityControlRawDataBox)), we see that the intensity distributions of the individual arrays are quite different, indicating the need for an appropriate normalization, which we will discuss next.
 
 Until now, we have only performed a very basic quality control; for more elaborate quality control plots, we could use the package `r Biocpkg("arrayQualityMetrics")` [@AQM]. The package produces an html report, containing the quality control plots together with a description of their
 aims and an identification of possible outliers. We don't discuss this tool in detail
@@ -565,7 +579,8 @@ When looking at the boxplot in Figure \@ref(fig:boxplotDataForRLETidy), 5 arrays
 Now, we can apply the full RMA algorithm to our data in order to background-correct, normalize and summarize:
 ```{r RMAcalibrationWITHnormalization, eval=TRUE}
 palmieri_eset_norm <- oligo::rma(raw_data, target="core")
-
+rm(raw_data)
+gc()
 ```
 
 The parameter `target` defines the degree of summarization, the
@@ -711,7 +726,8 @@ On the heatmap plot (Figure \@ref(fig:clusteringHeatmap)) we also see that the s
 between the tissues is not perfect. The purple stripes in the heatmap might correspond
 to outliers that could potentially be removed. We produce the same heatmap again with the sample identifiers as row names in order to see whether the outliers in the heatmap are the same ones as the outliers in the RLE plot beforehand: 
 
-```{r alternativeHeatmapWithPatientProbesAsLabels, fig.cap = "Heatmap with sample IDs", fig.height = 8.5, eval = TRUE}
+
+```{r alternativeHeatmapWithPatientProbesAsLabels, fig.cap="Heatmap with sample IDs", fig.height = 8.5, eval = TRUE}
 
 rownames(dists) <- row.names(pData(palmieri_eset_norm))
 hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
@@ -1111,7 +1127,7 @@ This "difference" between non--inflamed and inflamed tissue of - 0.425 actually 
 In order to test whether the gene is differentially expressed or not, a \(t\)--test with the null hypothesis that there is no difference in the expression between non--inflamed and inflamed tissue is carried through. A look at the formula of the \(t\)--test shows us that the \(t\)--value depends on the variance of the sample: 
 
 $$
- t = \frac{\bar{x} – \mu}{s/\sqrt{n}}
+ t = \frac{\bar{x} - \mu}{s/\sqrt{n}}
 $$
 
 We thus have made our \(t\)--test more sensible by reducing the variance by blocking on individuals.
@@ -1499,7 +1515,9 @@ A graph of the results can also be produced. Here we visualize the three most
 significant nodes according to the Fisher elim algorithm in the context of
 the GO hierarchy.
 
-```{r graphOfResults, fig.height = 6, eval=TRUE, results='hide', dpi=600, fig.cap="Significantly enriched GO nodes in the GO hierarchy"}
+
+```{r graphOfResults, fig.height = 6, eval=TRUE, fig.cap = "A graphical representation of the topGO results.", results='hide', dpi=300, cache=TRUE, out.width="400px"}
+
 showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
                useInfo = 'def')
 
