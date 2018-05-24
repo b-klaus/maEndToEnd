@@ -22,6 +22,8 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8} 
 ---
+<!-- command to compile the vignette using Rscript to check the mem usage -->
+<!-- Rscript --vanilla test_mem.R -->
 
 <!-- latest version from github -->
 <!-- devtools::install_github("Steffireise/maEndToEnd", ref = "first_changes_steffi") -->
@@ -54,6 +56,9 @@ output_format = BiocWorkflowTools::f1000_article(keep_tex = TRUE)) -->
 ## add figures to current directory if Rmd is converted to LaTeX
 ## This simplifies processing on overleaf
 on.bioc <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
+if (!on.bioc) {
+  knitr::opts_chunk$set(fig.path = "")
+} 
 knitr::opts_chunk$set(fig.path = "")
 suppressPackageStartupMessages({library("maEndToEnd")})
 
@@ -550,7 +555,8 @@ When looking at the boxplot in (\@ref(fig:boxplotDataForRLETidy), 5 arrays could
 Now, we can apply the full RMA algorithm to our data in order to background-correct, normalize and summarize:
 ```{r RMAcalibrationWITHnormalization, eval=TRUE}
 palmieri_eset_norm <- oligo::rma(raw_data, target="core")
-
+rm(raw_data)
+gc()
 ```
 
 The parameter `target` defines the degree of summarization, the
