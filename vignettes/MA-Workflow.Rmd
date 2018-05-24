@@ -31,7 +31,9 @@ vignette: >
 
 
 <!-- pdf rendering using to F1000 template from Mike's BiocWorkflowTools  -->
-<!-- rmarkdown::render("MA-Workflow.Rmd",
+<!-- also keeps .tex files for overleaf submission -->
+<!-- rmarkdown::render("MA-Workflow.Rmd", clean = FALSE, 
+                       intermediates_dir = "tmp",
 output_format = BiocWorkflowTools::f1000_article()) -->
 
 
@@ -1472,7 +1474,7 @@ A graph of the results can also be produced. Here we visualize the three most
 significant nodes according to the Fisher elim algorithm in the context of
 the GO hierarchy.
 
-```{r graphOfResults, fig.height = 6, eval=TRUE, fig.cap = "A graphical representation of the topGO results.", results='hide', dpi = 300, cache=TRUE, out.width="400px")}
+```{r graphOfResults, fig.height = 6, eval=TRUE, fig.cap = "A graphical representation of the topGO results.", results='hide', dpi=300, cache=TRUE, out.width="400px"}
 showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
                useInfo = 'def')
 
