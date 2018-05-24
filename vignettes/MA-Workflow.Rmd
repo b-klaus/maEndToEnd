@@ -24,7 +24,7 @@ vignette: >
 ---
 
 <!-- latest version from github -->
-<!-- install_github("Steffireise/maEndToEnd", ref = "first_changes_steffi") -->
+<!-- devtools::install_github("Steffireise/maEndToEnd", ref = "first_changes_steffi") -->
 
 <!--Html rendering for Bioc Workflow using BiocStyle-->
 <!-- rmarkdown::render("MA-Workflow.Rmd") -->
@@ -32,9 +32,8 @@ vignette: >
 
 <!-- pdf rendering using to F1000 template from Mike's BiocWorkflowTools  -->
 <!-- also keeps .tex files for overleaf submission -->
-<!-- rmarkdown::render("MA-Workflow.Rmd", clean = FALSE, 
-                       intermediates_dir = "tmp",
-output_format = BiocWorkflowTools::f1000_article()) -->
+<!-- rmarkdown::render("MA-Workflow.Rmd", clean = FALSE,
+output_format = BiocWorkflowTools::f1000_article(keep_tex = TRUE)) -->
 
 
 <!--  Conversions between f1000 / BioStyle by Leo Torres -->
@@ -67,7 +66,7 @@ options(digits = 4, width = 80)
 opts_chunk$set(echo=TRUE, 
                tidy=FALSE, 
                include=TRUE,
-               dev=c('png', 'pdf'),
+               dev=c('png'),
                fig.width = 6, fig.height = 3.5,
                comment = '  ', 
                dpi = 300, cache=TRUE,
