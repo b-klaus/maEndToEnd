@@ -24,6 +24,10 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8} 
 ---
+<!-- header-includes: -->
+<!--   - \usepackage{float} -->
+
+
 <!-- command to compile the vignette using Rscript to check the mem usage -->
 <!-- Rscript --vanilla test_mem.R -->
 
@@ -65,7 +69,6 @@ on.bioc <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
 if (!on.bioc) {
   knitr::opts_chunk$set(fig.path = "")
 } 
-knitr::opts_chunk$set(fig.path = "")
 
 suppressPackageStartupMessages({library("maEndToEnd")})
 
@@ -1324,7 +1327,7 @@ significant nodes according to the Fisher elim algorithm in the context of
 the GO hierarchy.
 
 
-```{r graphOfResults, fig.height = 6, eval=TRUE, fig.cap = "A graphical representation of the topGO results.", results='hide', dpi=300, cache=TRUE, out.width="400px"}
+```{r graphOfResults, fig.height = 6, eval=TRUE, results='hide', dpi=600, fig.cap="Significantly enriched GO nodes in the GO hierarchy"}
 
 showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
                useInfo = 'def')
