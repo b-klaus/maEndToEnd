@@ -17,6 +17,7 @@ Description: In this article, we walk through an end--to--end Affymetrix microar
 Depends: R (>= 3.5.0),
     AnnotationDbi,
     Biobase,
+    DelayedArray,
     oligoClasses,
     BiocStyle,
     oligo,
@@ -30,9 +31,11 @@ Depends: R (>= 3.5.0),
     arrayQualityMetrics,
     stringr,
     matrixStats,
+    GO.db,
     topGO,
     genefilter,
     biomaRt,
+    GenomeInfoDbData,
     pd.hugene.1.0.st.v1,
     hugene10sttranscriptcluster.db,
     pheatmap,
@@ -40,12 +43,15 @@ Depends: R (>= 3.5.0),
     DAAG,
     multcomp,
     limma,
+    DO.db,
+    reactome.db,
     ReactomePA,
     clusterProfiler,
     openxlsx,
     devtools,
     RCurl,
-    tidyr
+    tidyr,
+    Rgraphviz
 License: Artistic-2.0
 Encoding: UTF-8
 LazyData: true
@@ -56,3 +62,4 @@ NeedsCompilation: no
 URL: https://www.bioconductor.org/help/workflows/
 Workflow: True
 RoxygenNote: 6.0.1
+
