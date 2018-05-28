@@ -114,6 +114,33 @@ Our aim is to analyze differential expression (DE) between the tissues. As a pro
 # Required packages and other preparations
 
 ```{r, echo=FALSE, results="hide", warning=FALSE, eval=TRUE}
+install.packages("devtools")
+library(devtools)
+source("https://bioconductor.org/biocLite.R")
+biocLite("DelayedArray")
+source("https://bioconductor.org/biocLite.R")
+biocLite("DO.db")
+source("https://bioconductor.org/biocLite.R")
+biocLite("GenomeInfoDbData")
+source("https://bioconductor.org/biocLite.R")
+biocLite("GO.db")
+source("https://bioconductor.org/biocLite.R")
+biocLite("hugene10sttranscriptcluster.db")
+source("https://bioconductor.org/biocLite.R")
+biocLite("pd.hugene.1.0.st.v1")
+source("https://bioconductor.org/biocLite.R")
+biocLite("reactome.db")
+
+library(DelayedArray)
+library(DO.db)
+library(GenomeInfoDbData)
+library(GO.db)
+library(hugene10sttranscriptcluster.db)
+library(pd.hugene.1.0.st.v1)
+library(reactome.db)
+
+install_github("Steffireise/maEndToEnd", ref="master")
+
 suppressPackageStartupMessages({
     library("maEndToEnd")
 })
@@ -518,10 +545,11 @@ RLE_data <- as.data.frame(RLE_data)
 RLE_data_gathered <- 
   tidyr::gather(RLE_data, patient_probe, log2_expression_variation)
 
-ggplot2::ggplot(RLE_data_gathered, aes(patient_probe, log2_expression_variation)) 
-+ geom_boxplot(outlier.shape=NA) 
-+ ylim(c(-2, 2)) 
-+ theme(axis.text.x= element_text(colour="aquamarine4", 
+ggplot2::ggplot
+(RLE_data_gathered, aes(patient_probe, log2_expression_variation)) + 
+  geom_boxplot(outlier.shape=NA) + 
+  ylim(c(-2, 2)) + 
+  theme(axis.text.x= element_text(colour="aquamarine4", 
                                   angle=60, size=6.5, hjust=1, face="bold"))
 ```
 
@@ -927,7 +955,8 @@ individual <-
   as.character(Biobase::pData(palmieri_final)$Characteristics.individual.)
 
 tissue <- 
-  str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.phenotype., " ", "_")
+  str_replace_all
+(Biobase::pData(palmieri_final)$Factor.Value.phenotype., " ", "_")
 tissue <- 
   ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
 
