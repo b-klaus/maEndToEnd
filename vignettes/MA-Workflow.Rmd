@@ -826,16 +826,16 @@ We inspect the histogram and set a manual threshold visually. In our example, we
 man_threshold <- 4
 
 hist_res <- hist(palmieri_medians, 100, col = "cornsilk", freq = FALSE, 
-            main = "Histogram of the median intensities", border="antiquewhite4",
+            main = "Histogram of the median intensities", border = "antiquewhite4",
             xlab = "Median intensities")
 
-abline(v = man_threshold, col="coral4", lwd = 2)
+abline(v = man_threshold, col = "coral4", lwd = 2)
 
 ```
 
-When we are content with the manual threshold, we filter out all transcripts 
+Once we are content with the manual threshold, we filter out all transcripts 
 that don't have intensities greater than the threshold in at least 
-as many arrays as the smallest experimental group (4 `r min(no_of_samples)`,) which we 
+as many arrays as the smallest experimental group (`r min(no_of_samples)`,) which we 
 define as `samples_cutoff`. 
 
 A function `idx_man_threshold` is then applied to each row, i.e. to each transcript 
@@ -851,9 +851,10 @@ In the last step, we subset our expression set to `palmieri_manfiltered` and kee
 ```{r filteringOfLowIntensity_transcripts}
 samples_cutoff <- min(no_of_samples)
 
-idx_man_threshold <- apply(Biobase::exprs(palmieri_eset_norm), 1, function(x){
-  sum(x > man_threshold) >= samples_cutoff})
-table(idx_man_threshold)
+idx_man_threshold <- apply(Biobase::exprs(palmieri_eset_norm), 1,
+                           function(x){
+                          sum(x > man_threshold) >= samples_cutoff})
+                          table(idx_man_threshold)
 
 palmieri_manfiltered <- subset(palmieri_eset_norm, idx_man_threshold)
 
@@ -863,21 +864,22 @@ palmieri_manfiltered <- subset(palmieri_eset_norm, idx_man_threshold)
 # Annotation of the transcript clusters
 
 Before we continue with the linear models for microarrays and differential
-expression, we describe how to add "feature Data", i.e. annotation
+expression, we describe how to add "feature data", i.e. annotation
 information to the transcript cluster identifiers stored in the featureData of
 our ExpressionSet. We use the function `select`
 from `r Biocpkg("AnnotationDbi") ` to query the gene symbols and associated
 short descriptions for the transcript clusters. For each cluster, we add the 
 gene symbol (`SYMBOL`) and a short description of the gene the cluster represents (`GENENAME`). 
 
-In a second step, we filter out the probes that don't map to a gene, i.e. that don't have a gene symbol assigned. 
+In a second step, we filter out the probes that don't map to a gene,
+i.e. that don't have a gene symbol assigned. 
 
 ```{r annotateData, eval=TRUE, dependson="intensityBasedFiltering", message = FALSE}
 
 anno_palmieri <- AnnotationDbi::select(hugene10sttranscriptcluster.db,
-                                  keys=(featureNames(palmieri_manfiltered)),
+                                  keys = (featureNames(palmieri_manfiltered)),
                                   columns = c("SYMBOL", "GENENAME"),
-                                  keytype="PROBEID")
+                                  keytype = "PROBEID")
 
 anno_palmieri <- subset(anno_palmieri, !is.na(SYMBOL))
 
@@ -886,13 +888,19 @@ anno_palmieri <- subset(anno_palmieri, !is.na(SYMBOL))
 
 ## Removing multiple mappings and building custom annotations
 
-Many transcript--cluster identifiers will map to multiple gene symbols, i.e. they can't be clearly assigned.
+Many transcript--cluster identifiers will map to multiple gene symbols, i.e. 
+they can't be unambigously assigned.
 
-We compute a summary table in the code below to see how many there are. First, we group `anno_palmieri` for their PROBEID; that way, the subsequent operations aren't carried through for each single row, but for each group, i.e. each PROBEID.
-We then summarize the groups and indicate the number of different genes assigned to a probe in the column `no_of_matches`. 
-Now, we filter for PROBEIDs with multiple matches, i.e. `no_of_matches > 1`.
+We compute a summary table in the code below to see how many there are. 
+First, we group `anno_palmieri` for their PROBEID; that way, 
+the subsequent operations aren't carried through for each single row, but for each 
+group, i.e. each PROBEID.
+We then summarize the groups and indicate the number of different genes 
+assigned to a transcript cluster in the column `no_of_matches`. 
+Finally, we filter for PROBEIDs with multiple matches, i.e. `no_of_matches > 1`.
 
-With `dim(probe_stats)`, we can see how many probes have been mapped to multiple genes.
+With `dim(probe_stats)`, we can see how many 
+probes have been mapped to multiple genes.
 
 ```{r multipleMappings, dependson="annotateData"}
 
@@ -912,7 +920,10 @@ We have close to 2000 transcript clusters that map to multiple gene symbols.
 It is difficult to decide which mapping is "correct". Therefore,
 we exclude these transcript clusters. 
 
-We want to remove those probe IDs that match the ones in `probe_stats`, as those are the probes with multiple mappings. We assign these IDs to the variable `ids_to_exclude`. Then, we generate `palmieri_final`, an expression set without the `ids_to_exclude`. 
+We want to remove those probe IDs that match the ones in `probe_stats`, 
+as those are the probes with multiple mappings. We assign these IDs 
+to the variable `ids_to_exclude`. Then, we generate `palmieri_final`, 
+an expression set without the `ids_to_exclude`. 
 
 ```{r excludeMultipleMappingsFromAssayData, dependson="multipleMappings"}
 ids_to_exlude <- (featureNames(palmieri_manfiltered) %in% probe_stats$PROBEID)
@@ -925,10 +936,20 @@ validObject(palmieri_final)
 
 ```
 
-As we have just excluded probe IDs from the assay data, we now have to also exclude them from the feature data `anno_palmieri`. Recall that fData enables us to access the feature data of an expression set. Until now, no feature data whatsoever is stored in the `fData(palmieri_final)`. Only the row names are named as the row names of the assay data by default, which are the PROBEIDs of the transcripts.
-Therefore, we generate a column PROBEID in `fData(palmieri_final)` and assign the row names of `fData(palmieri_final)` to it. Then, we left--join `fData(palmieri_final)`with `anno_palmieri`, which already contains the columns "SYMBOL" and "GENENAME".
-A left-join keeps the rows and columns of the first argument and adds the corresponding column entries of the second argument.
-By left--joining with `anno_palmieri`, we thus add the "SYMBOL" and "GENENAME" columns from `anno_palmieri for only the PROBEIDs that have been in `fData(palmieri_final)` and thus get the feature Data for the filtered probes.
+As we have just excluded probe IDs from the assay data, we now have 
+to also exclude them from the feature data `anno_palmieri`. Recall that 
+`fData` enables us to access the feature data of an expression set. Until now, no feature data whatsoever is stored in the `fData(palmieri_final)`. Only 
+the row names are named as the row names of the assay data by default, which are the PROBEIDs of the transcripts.
+
+Therefore, we generate a column PROBEID in `fData(palmieri_final)` and 
+assign the row names of `fData(palmieri_final)` to it. Then, we left--join `fData(palmieri_final)`with `anno_palmieri`, which already contains 
+the columns "SYMBOL" and "GENENAME".
+A left-join keeps the rows and columns of the first argument 
+and adds the corresponding column entries of the second argument.
+
+By left--joining with `anno_palmieri`, we thus add the "SYMBOL" and "GENENAME" 
+columns from `anno_palmieri for only the PROBEIDs that are in 
+`fData(palmieri_final)` and thus get the feature Data for the filtered probes.
 
 
 ```{r excludeMultipleMappingsFromFeatureData}
