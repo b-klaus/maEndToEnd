@@ -718,7 +718,7 @@ the function computes the distances between the rows (i.e. genes in our case) by
 default. The default distance is the Euclidean one. However this can be
 changed and we choose the Manhattan distance here (it uses absolute distances along rectangular paths instead of squared distances of the direct path), as it is more robust. We set the diagonal of the distance matrix to ` NA ` in order to increase the contrast of the color coding. Those diagonal entries do not contain information since the distance of a sample to itself is always equal to zero.
 
-```{r rownamesForHeatmap, fig.height = 8.5, eval = TRUE, echo=TRUE}
+```{r rownamesForHeatmap, fig.height = 8.5, fig.width = 7, eval = TRUE, echo=TRUE}
 phenotype_names <- ifelse(str_detect(pData
                                     (palmieri_eset_norm)$Factor.Value.phenotype.,
                              "non"), "non-infl.", "infl.")
@@ -734,7 +734,7 @@ row_names_for_heatmap <-
 
 ```
 
-```{r clusteringHeatmap, fig.cap = "Heatmap of the sample to sample distances for the calibrated data.", fig.height = 8.5, eval = TRUE }
+```{r clusteringHeatmap, fig.cap = "Heatmap of the sample to sample distances for the calibrated data.", fig.height = 8.5, fig.width = 7, eval = TRUE }
 
 dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 colnames(dists) <- NULL
@@ -763,51 +763,59 @@ hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
 colnames(dists) <- NULL
 diag(dists) <- NA
 
-pheatmap(dists, col = (hmcol), legend=TRUE, 
-         legend_breaks=c(min(dists, na.rm=TRUE), 
-                         max(dists, na.rm=TRUE)), 
+pheatmap(dists, col = (hmcol), legend = TRUE, 
+         legend_breaks=c(min(dists, na.rm = TRUE), 
+                         max(dists, na.rm = TRUE)), 
          legend_labels=(c("low difference", "high difference")),
          main = "Distance clustering heatmap for the calibrated samples")
 
 ```
 
 The outliers that could be found here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II (see Figure \@ref(fig:alternativeHeatmapWithPatientProbesAsLabels)). 
-2826_II, 3262_II and 3332_II were found to be outliers in both RLE and heatmap and could therefore considered to be removed; however, to stay as close as possible to the paper results we want to compare our results to, we continue with the complete set of samples.
-Note that more elaborate metrics to identify and remove outliers are provided by the `r Biocpkg("arrayQualityMetrics") `.
+2826_II, 3262_II and 3332_II were found to be outliers in both RLE and heatmap and could therefore considered to be removed; however, to stay as close as possible to the
+original paper, we continue with the complete set of samples.
+Note again that more elaborate metrics to identify and remove outliers 
+are provided by the `r Biocpkg("arrayQualityMetrics") ` package.
 
 
 # Filtering based on intensity 
 
 We now filter out lowly expressed genes. Microarray data commonly show a large number
-of probes in the background intensity range. They also do not change much across arrays. 
-Hence they combine a low variance with a low intensity. Thus, they could end up being detected as differentially expressed although they are barely above the "detection" limit 
-and are not very informative in general. We will perform
-a "soft" intensity based filtering here, since this is recommended by `r Biocpkg("limma")`'s 
-[@limma; @Smyth_2004] user guide (a package we will use below for the differential 
-expression analysis). However, note that 
-a variance based filter might exclude a similar
-set of probes in practice. 
-We calculate the row--wise medians from the expression data, as they represent the transcript medians, and assign them to `palmieri_medians`. We plot a histogram: 
+of probes in the background intensity range. These probes also do not 
+change much across arrays. Hence they combine a low variance with a low intensity.
+Thus, they could end up being detected as differentially expressed although they are 
+barely above the "detection" limit  and are not very informative in general. 
+
+We will perform a "soft" intensity based filtering here, since this 
+is recommended by `r Biocpkg("limma")`'s [@limma; @Smyth_2004] user guide 
+(a package we will use below for the differential 
+expression analysis). 
+
+However, note that  a variance based filter might exclude a similar set of 
+probes in practice. 
+We calculate the row--wise medians from the expression data, as they represent the transcript medians, and assign them to `palmieri_medians`. From this we create
+a histogram: 
 
 ```{r IntensityBasedManualFiltering, fig.cap="Histogram of the median intensities per gene"}
 palmieri_medians <- rowMedians(Biobase::exprs(palmieri_eset_norm))
 
 hist_res <- hist(palmieri_medians, 100, col="cornsilk1", freq = FALSE, 
-            main = "Histogram of the median intensities", border="antiquewhite4",
+            main = "Histogram of the median intensities", 
+            border = "antiquewhite4",
             xlab = "Median intensities")
 
 ```
 
-In the histogram of the gene--wise medians (see Figure \@ref(fig:IntensityBasedManualFiltering)), we 
+In the histogram of the gene--wise medians (Figure \@ref(fig:IntensityBasedManualFiltering)), we 
 can clearly see an enrichment of low medians on the left hand side. 
-These represent the genes we want to filter. In order to infer a cutoff from the data, we inspect the histogram. We visually set a cutoff line `man_threshold` to the left of the histogram peak in order to not exclude too many genes. Transcripts that don't have intensities over the threshold in at least as many arrays as the smallest experimental group are excluded. 
+These represent the genes we want to filter. In order to infer a cutoff from the data, we inspect the histogram. We visually set a cutoff line `man_threshold` to the left of the histogram peak in order not to exclude too many genes. Transcripts that don't have intensities larger than the threshold in at least as many arrays as the smallest experimental group are excluded. 
 
 In order to do so, we first have to get a list with the number of samples (=arrays) (`no_of_samples`) in the experimental groups: 
 
 ```{r expGroups, dependson="PCAMetricsCalibrated"}
 no_of_samples <- 
-  table(paste0(Biobase::pData(palmieri_eset_norm)$Factor.Value.disease., "_", 
-                  Biobase::pData(palmieri_eset_norm)$Factor.Value.phenotype.))
+  table(paste0(pData(palmieri_eset_norm)$Factor.Value.disease., "_", 
+                  pData(palmieri_eset_norm)$Factor.Value.phenotype.))
 no_of_samples 
 
 ```
@@ -817,16 +825,27 @@ We inspect the histogram and set a manual threshold visually. In our example, we
 ```{r setManualThreshold, fig.cap="Histogram of the median intensities per gene with manual intensity filtering threshold (red line)."}
 man_threshold <- 4
 
-hist_res <- hist(palmieri_medians, 100, col="cornsilk", freq = FALSE, 
+hist_res <- hist(palmieri_medians, 100, col = "cornsilk", freq = FALSE, 
             main = "Histogram of the median intensities", border="antiquewhite4",
             xlab = "Median intensities")
 
-abline(v=man_threshold, col="coral4", lwd=2)
+abline(v = man_threshold, col="coral4", lwd = 2)
 
 ```
 
-When we are content with the manual threshold, we filter out all transcripts that don't have intensities over the threshold in at least as many arrays as the smallest experimental group, represented by `min(no_of_samples)`, which we define as `samples_cutoff`. We write a function `idx_man_threshold` that is applied to each row, i.e. to each transcript across all arrays. It evaluates whether the number of entries that is bigger than man_threshold (`sum(x > man_threshold)`) is bigger than the `samples_cutoff` and gives out TRUE or FALSE for each row, i.e. each transcript. 
-We than create a table of idx_man_threshold in order to summarize the results, in order to get an overview over how many genes are filtered out. 
+When we are content with the manual threshold, we filter out all transcripts 
+that don't have intensities greater than the threshold in at least 
+as many arrays as the smallest experimental group (4 `r min(no_of_samples)`,) which we 
+define as `samples_cutoff`. 
+
+A function `idx_man_threshold` is then applied to each row, i.e. to each transcript 
+across all arrays.
+It evaluates whether the number of arrays where the median intensity passes the
+threshold (`sum(x > man_threshold)`) is greater than the `samples_cutoff` and 
+returns out TRUE or FALSE for each row, i.e. each transcript.
+
+We than create a table of `idx_man_threshold` in order to summarize the results,
+in order to get an overview over how many genes are filtered out. 
 In the last step, we subset our expression set to `palmieri_manfiltered` and keep the TRUE elements of `idx_man_threshold`.
 
 ```{r filteringOfLowIntensity_transcripts}
