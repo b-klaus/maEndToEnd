@@ -105,12 +105,13 @@ analysis. Data import, preprocessing, differential expression and
 enrichment analysis are discussed.
 The data set used [@Palmieri_2015] is from a paper studying the differences in gene expression in inflamed-- and non--inflamed tissue. 
 14 Patients suffering from Ulcerative colitis (UC) and 15 patients with Crohn's disease (CD) were tested, and from each patient inflamed-- and non--inflamed colonic mucosa tissue was obtained via a biopsy. 
-This is a typical clinical data set consisting of 58 probes in total.
-Our aim is to analyze differential expression (DE) between the tissues. As a proof of concept, we compare our results to the ones found in the paper. 
+This is a typical clinical data set consisting of 58 arrays in total.
+Our aim is to analyze differential expression (DE) between the tissues. Our results
+show a substantial overlap with the results of the original paper.
 
 # Required packages and other preparations
 
-```{r, echo=FALSE, results="hide", warning=FALSE, eval=TRUE}
+```{r, echo=FALSE, results="hide", warning=FALSE, eval=FALSE}
 install.packages("devtools")
 library(devtools)
 source("https://bioconductor.org/biocLite.R")
@@ -276,7 +277,7 @@ various MAGE--TAB files) into a single convenient
 structure. An ExpressionSet can be manipulated (e.g., subsetted, copied),
 and is the input to or output of many Bioconductor functions.
 
-The data in an ExpressionSet consist of
+The data in an ExpressionSet consist of:
 
 * **assayData**: Expression data from microarray experiments.
 * **metaData**
@@ -295,7 +296,7 @@ row names of the `featureData` (as they represent the feature identifiers). This
 illustrated in Figure \@ref(fig:sumexp).
 
 
-```{r sumexp, fig.cap = "Structure of Bioconductor’s ExpressionSet class.", echo=FALSE, fig.show="asis", out.width="250px"}
+```{r sumexp, fig.cap = "Structure of Bioconductor’s ExpressionSet class.", echo=FALSE, fig.show="asis"}
 par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0, 150),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
@@ -322,7 +323,10 @@ The function ` exprs ` will return the expression data itself as a matrix.
 
 # Import of the raw microarray data 
 
-In the first step of the analysis, we create the Expression Set "raw_data", which contains array data, pheno data (from the SDRF file) as well as the information of the correct chip annotation package to use.
+In the first step of the analysis, we create the Expression Set object 
+`raw_data`, which contains array data, pheno data
+(from the SDRF file) as well as the information 
+of the chip annotation package used.
 
 
 The analysis of Affymetrix arrays starts with CEL files. These are the result
@@ -330,16 +334,21 @@ of the processing of the raw image files using the Affymetrix software and conta
 estimated probe intensity values. Each CEL file additionally contains some 
 metadata, such as a chip identifier. 
 
-We use the function `read.celfiles` from the `r Biocpkg("oligo") ` package [@oligo] to import the files. This automatically creates an ExpressionSet, fills the sections "array data" with the data from the CEL files and uses the correct chip annotation package, in this case
-`r Biocannopkg("pd.hugene.1.0.st.v1") `, as the 
-chip--type is also stored in the .CEL files. 
-Further, we specify our `AnnotatedDataFrame` created earlier from the SDRF file as `phenoData`. Thus, We have to be sure that we import the CEL files in the order that corresponds to the SDRF
-table --- to enforce this, we use the column `Array.Data.File` of the `SDRF` table as the `filenames` argument.
+We use the function `read.celfiles` from the `r Biocpkg("oligo") ` 
+package [@oligo] to import the files. This automatically creates an ExpressionSet,
+fills the sections "array data" with the data from the CEL files 
+and uses the correct chip annotation package, in this case
+`r Biocannopkg("pd.hugene.1.0.st.v1") ` (the 
+chip--type is also stored in the .CEL files). 
+
+Furthermore, we specify our `AnnotatedDataFrame` created earlier from the SDRF 
+file as `phenoData`. Thus, we have to make sure that we import the CEL files 
+in the order that corresponds to the SDRF table --- to enforce this, 
+we use the column `Array.Data.File` of the `SDRF` table as the `filenames` 
+argument.
 
 Finally, we check whether the object created is valid (e.g. sample names 
 match between the different tables).
-
-We collect the information about the CEL files and import them into the variable `raw_data`:
 
 
 ```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF", warning = FALSE }
@@ -352,7 +361,10 @@ validObject(raw_data)
 
 We now inspect the raw data a bit.
 
-The pData function of the Biobase package directly accesses the "data" subfolder in the phenoData tab in the ExpressionSet `raw_data`. With the `head()` function, we can view the first six lines of the table. We have a look at the columns included and retain only those columns that are related to the experimental factors of interest.
+The pData function of the Biobase package directly accesses the phenoData in the ExpressionSet `raw_data`. With the `head()` function, we can view the 
+first six lines of the table. We have a look at the columns included 
+and retain only those columns that are related to the experimental 
+factors of interest.
 
 ```{r inspectPhenoData, eval=TRUE }
 head(Biobase::pData(raw_data))
@@ -367,7 +379,7 @@ The columns of interest for us are the following:
   * disease of the individual, i.e. "Factor.Value.disease."
   * mucosa type, i.e. "Factor.Value.phenotype."
 
-We reassign the `Biobase::pData(raw_data)`function to the corresponding columns: 
+We now subselect the corresponding columns: 
 
 ```{r reassignpData, eval=TRUE}
 Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
