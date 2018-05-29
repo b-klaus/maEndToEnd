@@ -1078,14 +1078,25 @@ We get a p--value of 8e-06 and thus have found that the *CRAT* gene is different
 
 ## Contrasts and hypotheses tests
 
-We now fit the linear model across all genes and
+We now fit the linear model for all genes and
 define appropriate contrasts to test hypotheses of interest.
 
 We want to compare the inflamed to the the non--inflamed tissue.
 Thus, we create a contrast matrix consisting of only one contrast "I-nI": `r Biocpkg("limma")` 's function
 `makeContrasts` creates this matrix from a symbolic description of the contrast of
 interest.
-We now fit a linear model to our data and apply the `contrasts.fit()`function to it in order to find genes with significantly differential expression between non--inflamed and inflamed tissue. We apply the "empirical Bayes" method to it with the `eBayes()` function, so that it computes moderated \(t\)--statistics: As in microarray analysis, the number of arrays often is quite small, only a small sample number can be used to calculate expression values of a certain gene. This might lead to variance values that aren't representative for the population. "Empirical Bayes" assumes that expression variance should be the same for all genes, and therefore shrinks the gene-wise residual sample variances towards a common value, borrowing variance information from other genes. 
+We now fit a linear model to our data and apply the `contrasts.fit()` function 
+to it in order to find genes with significant differential expression between non--inflamed and inflamed tissue.
+
+We apply the "empirical Bayes" method to it via the `eBayes()` function, which
+computes computes moderated \(t\)--statistics: In microarray analysis, 
+the number of arrays often is quite small, variance estimation is difficult.
+Using a combination of the per--gene--variance and a prior variance we can improve the 
+variance estimate. Hence the term "moderation". "Empirical Bayes" 
+means that the prior is estimated from the data.
+
+The result of the `eBayes()` step is that the individual variances are
+shrunken towards the prior value. 
 
 ```{r createContrastMatrixAndFitModel, eval=TRUE, dependson="createDesign" }
 contrast_matrix_CD <- makeContrasts(I-nI, levels = design_palmieri_CD)
