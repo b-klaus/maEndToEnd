@@ -62,7 +62,7 @@ output_format = BiocWorkflowTools::f1000_article(keep_tex = TRUE)) -->
 ## This simplifies processing on overleaf
 on.bioc <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
 if (!on.bioc) {
-  knitr::opts_chunk$set(fig.path = "", out.width="250px")
+  knitr::opts_chunk$set(fig.path = "", out.width="350px")
 } 
 ## here, pdf specific adapations can be made
 
@@ -467,7 +467,7 @@ Until now, we have only performed a very basic quality control; for more elabora
 aims and an identification of possible outliers. We don't discuss this tool in detail
 here, but simply provide the code below, which creates a report for our raw data. 
 
-```{r arrayQualityMetricsRaw, eval = TRUE, warning=FALSE}
+```{r arrayQualityMetricsRaw, eval = FALSE}
 arrayQualityMetrics(expressionset = raw_data,
     outdir = "Report_for_Palmieri_raw",
     force = TRUE, do.logtransform = TRUE,
