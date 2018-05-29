@@ -856,7 +856,7 @@ fData(palmieri_final)<- left_join(fData(palmieri_final), anno_palmieri)
 
 
 # restore rownames after left_join
-rownames(fData(palmieri_final)) <-fData(palmieri_final)$PROBEID 
+rownames(fData(palmieri_final)) <- fData(palmieri_final)$PROBEID 
     
 validObject(palmieri_final)
 
@@ -1107,7 +1107,16 @@ palmieri_fit_UC <- eBayes(contrasts.fit(lmFit(palmieri_final[,disease == "UC"],
 Finally, we extract the number of differentially expressed genes. 
 Results can be extracted by use of the `topTable` function. We extract the results for both Crohn's disease and ulcerative colitis, and the results are sorted by their absolute \(t\)--statistics.
 As a diagnostic check, we also plot the p--value histogram: We expect a uniform distribution for the
- p--values that correspond to true null hypotheses, while a peak near zero shows an enrichment for low p--values corresponding to differentially expressed (DE) genes. Note that if the p--value distribution for a dataset looks a lot different than the ones in the histograms below, this might lead to quality loss in the subsequent analysis. Reasons for a divergent p--value--distribution might be batch effects or a lack of consideration of other blocking factors in the design matrix beforehand. Thus, try to include all blocking factors and run the analysis again. If the problem previals, good resources to understand this phenomenon and its implications is the article on false discovery rate estimation by Korbininan Strimmer [@Strimmer_2008] and chapter 1--6 of Efron's book on Large--Scale Inference [@Efron_2010].
+ p--values that correspond to true null hypotheses, while a peak near zero shows an enrichment for low p--values corresponding to differentially expressed (DE) genes.
+ 
+Note that if the p--value distribution for a dataset is very different 
+from the ones in the histograms below, this might lead to quality loss in the subsequent analysis. Reasons for a divergent p--value--distribution might be batch effects or a lack of consideration of other blocking factors in the design matrix. Thus, try to include possible blocking factors and batches and rerun the analysis. If this does not
+help, empirical Bayes / null estimation methods for multiple testing
+are useful. 
+
+A good starting point to learn about these methods is the article on 
+false discovery rate estimation by Korbininan Strimmer [@Strimmer_2008] 
+and chapter 1--6 of Efron's book on Large--Scale Inference [@Efron_2010].
 
 ```{r extractResultsCD, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for Crohn’s disease."}
 table_CD <- topTable(palmieri_fit_CD, number = Inf)
