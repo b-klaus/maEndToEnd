@@ -548,46 +548,80 @@ although strictly speaking RMA is merely a summarization method
 [@Irizarry_2003; @Bolstad_2003; @Irizarry_2003a].
 
 #Relative Log Expression data quality analysis
-Before calibrating and evaluating the data, we want to perform another means of quality control, namly Relative Log Expression (RLE), as described in the article by Gandolfo et al [@Gandolfo_2018]. To this goal, we first perform an RMA without normalization: 
+
+Before calibrating and evaluating the data, we want to perform another quality 
+control procedure, namly Relative Log Expression (RLE), as described in 
+the article by Gandolfo et al [@Gandolfo_2018]. To this end, we first perform an RMA without prior normalization: 
+
 ```{r RMAcalibrationForRLE, eval=TRUE}
 palmieri_eset <- oligo::rma(raw_data, target="core", normalize=FALSE)
 
 ```
+
 Further details on the RMA algorithm will be provided after RLE analysis, when the "full" RMA is carried through, including normalization. 
 
-The RLE is performed by calculating the median log2 intensity of one transcript across all arrays. We do this by calculating the row medians of `exprs(palmieri_eset)`, as the transcripts are represented by the rows and the single microarrays by the columns. Note that we don't have to apply the log2 manually, as the output data of the RMA function is in log2 scale by default. 
-We then substract this transcript median intensity from every transcript intensity, respectively, with the `sweep` function. 
-We bring the data into a form in which we can plot a boxplot for each array, as before. Note that on the y-axis, we now see for each microarray the values of variation of expression intensity from the median of the single transcripts. 
-Boxes with a larger extension in y scale therefore indicate an unusually high variation from the median in a lot of transcripts, suggesting decreased reliability of the data. Boxes that are shifted in y direction indicate a systematically higher or lower expression of the majority of transcripts in comparison to the other arrays, and thus also decreased data reliability. If shape and median of the single boxes vary too much from the others, it should be considered to remove the corresponding arrays. 
+The RLE is performed by calculating the median log2 intensity of every transcript 
+across all arrays. 
+
+We do this by calculating the row medians of `exprs(palmieri_eset)`, 
+as the transcripts are represented by the rows and the single microarrays by the 
+columns. 
+
+Note that we don't have to apply the log2 manually, as the output data of the RMA function is in log2 scale by default. 
+
+We then substract this transcript median intensity from every transcript intensity
+via the `sweep` function. 
+
+We then reshape the data into a format in which we can use to create a boxplot 
+for each array, as before. 
+
+Note that the y--axis now displays for each microarray the deviation of expression 
+intensity from the median expression of the respective single transcripts
+across arrays.
+
+Boxes with a larger extension therefore indicate an unusually high deviation 
+from the median in a lot of transcripts, suggesting that these arrays
+are different from most of the others in some way.
+
+Boxes that are shifted in y direction indicate a systematically higher or lower 
+expression of the majority of transcripts in comparison to most of the other 
+arrays. This could be caused by quality issues or batch effects. 
+
+Therefore, if shape and median of the single boxes vary too much from the bulk
+of the data, they should be insepected and potentially removed.
 
 ```{r boxplotDataForRLETidy, fig.cap="Boxplot for the RLE values"}
 
-
 row_medians_assayData <- 
   Biobase::rowMedians(as.matrix(Biobase::exprs(palmieri_eset)))
+
 RLE_data <- sweep(Biobase::exprs(palmieri_eset), 1, row_medians_assayData)
 
 RLE_data <- as.data.frame(RLE_data)
 RLE_data_gathered <- 
-  tidyr::gather(RLE_data, patient_probe, log2_expression_variation)
+  tidyr::gather(RLE_data, patient_array, log2_expression_deviation)
 
-ggplot2::ggplot(RLE_data_gathered, aes(patient_probe,
-                                       log2_expression_variation)) + 
+ggplot2::ggplot(RLE_data_gathered, aes(patient_array,
+                                       log2_expression_deviation)) + 
   geom_boxplot(outlier.shape=NA) + 
   ylim(c(-2, 2)) + 
   theme(axis.text.x= element_text(colour="aquamarine4", 
                                   angle=60, size=6.5, hjust=1, face="bold"))
 ```
 
-When looking at the boxplot in Figure \@ref(fig:boxplotDataForRLETidy), 5 arrays could be considered to be outliers: 2826_I, 2826_II, 3262_II, 3302_II and 3332_II are negatively y--shifted. We will keep these samples in mind for heatmap cluster analysis later on in the workflow. Arrays that are confirmed to be outliers by heatmap analysis can be considered to be removed for subsequent analysis.
+Inspecting the boxplot in Figure \@ref(fig:boxplotDataForRLETidy), 
+5 arrays could be considered to be outliers: 2826_I, 2826_II, 3262_II, 3302_II and 
+3332_II are negatively y--shifted. 
 
-#RMA calibration of the data
+We will keep these samples in mind for heatmap cluster analysis later on in the workflow. Arrays that are confirmed to be outliers by heatmap analysis could be considered as outliers and be removed for subsequent analysis.
 
-Now, we can apply the full RMA algorithm to our data in order to background-correct, normalize and summarize:
+# RMA calibration of the data
+
+Now, we can apply the full RMA algorithm to our data in order to 
+background--correct, normalize and summarize:
+
 ```{r RMAcalibrationWITHnormalization, eval=TRUE}
 palmieri_eset_norm <- oligo::rma(raw_data, target="core")
-rm(raw_data)
-gc()
 ```
 
 The parameter `target` defines the degree of summarization, the
