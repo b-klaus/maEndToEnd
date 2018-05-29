@@ -130,7 +130,7 @@ Our aim is to analyze differential expression (DE) between the tissues. As a pro
 # library(pd.hugene.1.0.st.v1)
 # library(reactome.db)
 
-install_github("Steffireise/maEndToEnd", ref="master")
+#install_github("Steffireise/maEndToEnd", ref="master")
 
 suppressPackageStartupMessages({
     library("maEndToEnd")
