@@ -536,8 +536,8 @@ RLE_data <- as.data.frame(RLE_data)
 RLE_data_gathered <- 
   tidyr::gather(RLE_data, patient_probe, log2_expression_variation)
 
-ggplot2::ggplot
-(RLE_data_gathered, aes(patient_probe, log2_expression_variation)) + 
+ggplot2::ggplot(RLE_data_gathered, aes(patient_probe,
+                                       log2_expression_variation)) + 
   geom_boxplot(outlier.shape=NA) + 
   ylim(c(-2, 2)) + 
   theme(axis.text.x= element_text(colour="aquamarine4", 
@@ -856,7 +856,7 @@ fData(palmieri_final)<- left_join(fData(palmieri_final), anno_palmieri)
 
 
 # restore rownames after left_join
-rownames(fData(palmieri_final)) <-fData(palmieri_final)$PROBEID 
+rownames(fData(palmieri_final)) <- fData(palmieri_final)$PROBEID 
     
 validObject(palmieri_final)
 
@@ -945,11 +945,10 @@ so that a joint fit might not be appropriate).
 individual <- 
   as.character(Biobase::pData(palmieri_final)$Characteristics.individual.)
 
-tissue <- 
-  str_replace_all
-(Biobase::pData(palmieri_final)$Factor.Value.phenotype., " ", "_")
-tissue <- 
-  ifelse(tissue == "non-inflamed_colonic_mucosa", "nI", "I")
+tissue <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.phenotype.,
+                  " ", "_")
+tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa",
+                 "nI", "I")
 
 disease <- 
   str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.disease., " ", "_")
@@ -1108,7 +1107,16 @@ palmieri_fit_UC <- eBayes(contrasts.fit(lmFit(palmieri_final[,disease == "UC"],
 Finally, we extract the number of differentially expressed genes. 
 Results can be extracted by use of the `topTable` function. We extract the results for both Crohn's disease and ulcerative colitis, and the results are sorted by their absolute \(t\)--statistics.
 As a diagnostic check, we also plot the p--value histogram: We expect a uniform distribution for the
- p--values that correspond to true null hypotheses, while a peak near zero shows an enrichment for low p--values corresponding to differentially expressed (DE) genes. Note that if the p--value distribution for a dataset looks a lot different than the ones in the histograms below, this might lead to quality loss in the subsequent analysis. Reasons for a divergent p--value--distribution might be batch effects or a lack of consideration of other blocking factors in the design matrix beforehand. Thus, try to include all blocking factors and run the analysis again. If the problem previals, good resources to understand this phenomenon and its implications is the article on false discovery rate estimation by Korbininan Strimmer [@Strimmer_2008] and chapter 1--6 of Efron's book on Large--Scale Inference [@Efron_2010].
+ p--values that correspond to true null hypotheses, while a peak near zero shows an enrichment for low p--values corresponding to differentially expressed (DE) genes.
+ 
+Note that if the p--value distribution for a dataset is very different 
+from the ones in the histograms below, this might lead to quality loss in the subsequent analysis. Reasons for a divergent p--value--distribution might be batch effects or a lack of consideration of other blocking factors in the design matrix. Thus, try to include possible blocking factors and batches and rerun the analysis. If this does not
+help, empirical Bayes / null estimation methods for multiple testing
+are useful. 
+
+A good starting point to learn about these methods is the article on 
+false discovery rate estimation by Korbininan Strimmer [@Strimmer_2008] 
+and chapter 1--6 of Efron's book on Large--Scale Inference [@Efron_2010].
 
 ```{r extractResultsCD, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for Crohn’s disease."}
 table_CD <- topTable(palmieri_fit_CD, number = Inf)
@@ -1128,26 +1136,71 @@ hist(table_UC$P.Value, col = brewer.pal(3, name = "Set2")[2],
      main = "inflamed vs non-inflamed - Ulcerative colitis", xlab = "p-values")
 
 ```
-## Comparison to the paper results
 
- When exploring the output of the topTable() function, we can see that there is a column called "P.Value" and one called "adj.P.Val". The latter describes the BH-corrected p-value that takes into account sample size and allows to control for the FDR (false discovery rate), while the former is just the "normal" p-value.
-A p--value of less than 0.001 was used in the original paper as a significance
-cutoff. However, it is highly recommended to use the adjusted p--value and thus control the FDR instead of using the "normal" p-value:
-The FDR describes the percentage of false positives among all positive test results, while the p-value describes the probability that a certain event occurs under the assumption that the null hypothesis H0 is true; in a setup where all samples fulfill H0, p is therefore the probability to get a false positive result and thus describes the rate of false positives among all samples. H0 in our case is that a gene is not differentially expressed between inflamed and non-inflamed tissue. Even if we didn't have any differential expression among all genes, we would still expect a percentage of p false positives. This means that the absolute number of false positives would increase with the sample size. This problem is called "multiple testing problem", and occures a lot with biological data. In order to avoid the multiple testing problem, one should control for the FDR instead of the p-value: this way, we don't get more positives merely because of increasing sample sizes, and the share of false positives among all positives doesn't increase but stays below the FDR.
+## Multiple testing and comparison to the paper results
 
-Nevertheless, in order to be able to compare our workflow results to the paper results, for now we also set a p-value cutoff at 0.001, as done in the paper.
+In the original paper, a p--value of 0.001 was used  as a significance
+cutoff. Using this we get `r nrow(subset(table_UC, P.Value < 0.001))`
+genes identified as differentially expressed for UC:
+
+
+```{r pCutForCD}
+nrow(subset(table_UC, P.Value < 0.001))
+```
+
+
+However, it is impossible
+to determine a precise bound on the number of false positive genes
+in this list. All that we can say using p--values is that we have at most `r nrow(table_UC)` (total number of tests) * 0.01
+= `r nrow(table_UC)* 0.01` false positive genes in our list. Therefore, 
+by choosing a p--value cutoff of 0.01, as much as
+`r round(nrow(table_UC)* 0.01 / nrow(subset(table_UC, P.Value < 0.001))*100, 2)`% 
+of our genes
+identified as differentially expressed might be false positives. 
+
+Thus, we can see that the "raw" p--values are very "liberal" when
+looking at many tests simultaneously. We therefore need error
+rates adapted to the multiple testing situation. By far the 
+most popular one in molecular biology is the **false discovery
+rate** or FDR for short. As we have seen, the FDR  of our genes list
+using a simple p--value cutoff might be quite high.
+
+On the other hand, we can see a clear peak in the p--value histogram 
+(Figure \@ref(fig:extractResultsUC)), caused by the differentially
+expressed genes. There we expect the actual FDR of our list 
+to be lower.
+
+The FDR at a given given cutoff is given by the "adjusted" p--value in
+the results table.
+
+```{r FDRforUC}
+tail(subset(table_UC, P.Value < 0.001))
+```
+
+The adjusted p--value for a raw p--value of 0.001 in 
+the table is `r max(subset(table_CD, P.Value < 0.001)$adj.P.Val)`,
+which is an order of magnitude lower than the rate we can infer 
+from p--values alone.
+
+So although this is not recommended in general,
+we also use a p-value cutoff at 0.001 in the following
+in order to be able to compare our workflow results to the paper results. 
 
 The paper results can be downloaded as excel files from
  -[http://links.lww.com/IBD/A795](http://links.lww.com/IBD/A795) and should be saved as an .xlsx file named `palmieri_DE_res.xlsx` in your working directory. 
- 
-The paper results are given as identified differentially expressed genes
-with a p--value less than 0.001. The corresponding FDRs are also listed in the results file and are 0.05 in Crohn's disease and 0.02 in ulcerative colitis. There are four tables in total, giving
+Note that while the paper uses p--value cutoffs, it also reports the
+corresponding FDRs (just as we did for the CD data here).
+
+For a p--value cutoff of 0.001. The corresponding FDRs are 0.05 in Crohn's disease and 0.02 in ulcerative colitis. There are four tables in total, giving
 the list of up and downregulated genes in CD and UC, respectively.
-We calculate the overlap between our results and the ones from the paper as the ratio between the genes that were found both in our analysis as well as in the paper and the genes that were only found in the paper. We also calculate the number of total genes we find in our workflow analysis.
+We calculate the overlap between our results and the ones from the paper as the ratio of the genes that were found in both analyses and the genes that were only found in the paper.
+
+We also calculate the total number of diffentially expressed
+genes that we find in our workflow analysis.
  
 ```{r compareDEgenes, dependson=c("extractResultsUC", "extractResultsCD")}
 
-fpath <- system.file("extdata", "palmieri_DE_res.xlsx", package="maEndToEnd")
+fpath <- system.file("extdata", "palmieri_DE_res.xlsx", package = "maEndToEnd")
 palmieri_DE_res <- sapply(1:4, function(i) read.xlsx(cols = 1, fpath, 
                                                      sheet = i, startRow = 4))
 
