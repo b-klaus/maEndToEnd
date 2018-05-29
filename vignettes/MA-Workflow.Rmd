@@ -105,33 +105,33 @@ analysis. Data import, preprocessing, differential expression and
 enrichment analysis are discussed.
 The data set used [@Palmieri_2015] is from a paper studying the differences in gene expression in inflamed-- and non--inflamed tissue. 
 14 Patients suffering from Ulcerative colitis (UC) and 15 patients with Crohn's disease (CD) were tested, and from each patient inflamed-- and non--inflamed colonic mucosa tissue was obtained via a biopsy. 
-This is a typical clinical data set consisting of 58 probes in total.
-Our aim is to analyze differential expression (DE) between the tissues. As a proof of concept, we compare our results to the ones found in the paper. 
+This is a typical clinical data set consisting of 58 arrays in total.
+Our aim is to analyze differential expression (DE) between the tissues. Our results
+show a substantial overlap with the results of the original paper.
 
 # Required packages and other preparations
 
-```{r, echo=FALSE, results="hide", warning=FALSE, eval=TRUE}
+```{r, echo=FALSE, results="hide", warning=FALSE, eval=FALSE}
+install.packages("devtools")
+library(devtools)
+source("https://bioconductor.org/biocLite.R")
+biocLite("DelayedArray")
+biocLite("DO.db")
+biocLite("GenomeInfoDbData")
+biocLite("GO.db")
+biocLite("hugene10sttranscriptcluster.db")
+biocLite("pd.hugene.1.0.st.v1")
+biocLite("reactome.db")
 
-# install.packages("devtools")
-# library(devtools)
-# source("https://bioconductor.org/biocLite.R")
-# biocLite("DelayedArray")
-# biocLite("DO.db")
-# biocLite("GenomeInfoDbData")
-# biocLite("GO.db")
-# biocLite("hugene10sttranscriptcluster.db")
-# biocLite("pd.hugene.1.0.st.v1")
-# biocLite("reactome.db")
-# 
-# library(DelayedArray)
-# library(DO.db)
-# library(GenomeInfoDbData)
-# library(GO.db)
-# library(hugene10sttranscriptcluster.db)
-# library(pd.hugene.1.0.st.v1)
-# library(reactome.db)
-# 
-# install_github("Steffireise/maEndToEnd", ref="master")
+library(DelayedArray)
+library(DO.db)
+library(GenomeInfoDbData)
+library(GO.db)
+library(hugene10sttranscriptcluster.db)
+library(pd.hugene.1.0.st.v1)
+library(reactome.db)
+
+install_github("Steffireise/maEndToEnd", ref="master")
 
 suppressPackageStartupMessages({
     library("maEndToEnd")
@@ -277,7 +277,7 @@ various MAGE--TAB files) into a single convenient
 structure. An ExpressionSet can be manipulated (e.g., subsetted, copied),
 and is the input to or output of many Bioconductor functions.
 
-The data in an ExpressionSet consist of
+The data in an ExpressionSet consist of:
 
 * **assayData**: Expression data from microarray experiments.
 * **metaData**
@@ -296,7 +296,7 @@ row names of the `featureData` (as they represent the feature identifiers). This
 illustrated in Figure \@ref(fig:sumexp).
 
 
-```{r sumexp, fig.cap = "Structure of Bioconductor’s ExpressionSet class.", echo=FALSE, fig.show="asis", out.width="250px"}
+```{r sumexp, fig.cap = "Structure of Bioconductor’s ExpressionSet class.", echo=FALSE, fig.show="asis"}
 par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0, 150),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
@@ -323,7 +323,10 @@ The function ` exprs ` will return the expression data itself as a matrix.
 
 # Import of the raw microarray data 
 
-In the first step of the analysis, we create the Expression Set "raw_data", which contains array data, pheno data (from the SDRF file) as well as the information of the correct chip annotation package to use.
+In the first step of the analysis, we create the Expression Set object 
+`raw_data`, which contains array data, pheno data
+(from the SDRF file) as well as the information 
+of the chip annotation package used.
 
 
 The analysis of Affymetrix arrays starts with CEL files. These are the result
@@ -331,16 +334,21 @@ of the processing of the raw image files using the Affymetrix software and conta
 estimated probe intensity values. Each CEL file additionally contains some 
 metadata, such as a chip identifier. 
 
-We use the function `read.celfiles` from the `r Biocpkg("oligo") ` package [@oligo] to import the files. This automatically creates an ExpressionSet, fills the sections "array data" with the data from the CEL files and uses the correct chip annotation package, in this case
-`r Biocannopkg("pd.hugene.1.0.st.v1") `, as the 
-chip--type is also stored in the .CEL files. 
-Further, we specify our `AnnotatedDataFrame` created earlier from the SDRF file as `phenoData`. Thus, We have to be sure that we import the CEL files in the order that corresponds to the SDRF
-table --- to enforce this, we use the column `Array.Data.File` of the `SDRF` table as the `filenames` argument.
+We use the function `read.celfiles` from the `r Biocpkg("oligo") ` 
+package [@oligo] to import the files. This automatically creates an ExpressionSet,
+fills the sections "array data" with the data from the CEL files 
+and uses the correct chip annotation package, in this case
+`r Biocannopkg("pd.hugene.1.0.st.v1") ` (the 
+chip--type is also stored in the .CEL files). 
+
+Furthermore, we specify our `AnnotatedDataFrame` created earlier from the SDRF 
+file as `phenoData`. Thus, we have to make sure that we import the CEL files 
+in the order that corresponds to the SDRF table --- to enforce this, 
+we use the column `Array.Data.File` of the `SDRF` table as the `filenames` 
+argument.
 
 Finally, we check whether the object created is valid (e.g. sample names 
 match between the different tables).
-
-We collect the information about the CEL files and import them into the variable `raw_data`:
 
 
 ```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF", warning = FALSE }
@@ -353,7 +361,10 @@ validObject(raw_data)
 
 We now inspect the raw data a bit.
 
-The pData function of the Biobase package directly accesses the "data" subfolder in the phenoData tab in the ExpressionSet `raw_data`. With the `head()` function, we can view the first six lines of the table. We have a look at the columns included and retain only those columns that are related to the experimental factors of interest.
+The pData function of the Biobase package directly accesses the phenoData in the ExpressionSet `raw_data`. With the `head()` function, we can view the 
+first six lines of the table. We have a look at the columns included 
+and retain only those columns that are related to the experimental 
+factors of interest.
 
 ```{r inspectPhenoData, eval=TRUE }
 head(Biobase::pData(raw_data))
@@ -368,7 +379,7 @@ The columns of interest for us are the following:
   * disease of the individual, i.e. "Factor.Value.disease."
   * mucosa type, i.e. "Factor.Value.phenotype."
 
-We reassign the `Biobase::pData(raw_data)`function to the corresponding columns: 
+We now subselect the corresponding columns: 
 
 ```{r reassignpData, eval=TRUE}
 Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
@@ -382,16 +393,28 @@ Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
 
 The first step after the initial data import is the quality control of the data.
 Here we check for outliers and try to see whether the data clusters as expected, 
-e.g. by the experimental conditions. The expression intensity values are in the assayData subfolder "exprs" and can be accessed by the `exprs(raw_data)` function. The rows represent the microarray probes, i.e. the single DNA locations on the chip, while the columns represent one microarray, i.e. a sample of inflamed- and non-inflamed tissue of every patient, respectively. 
+e.g. by the experimental conditions. The expression intensity values are in the assayData sub--object "exprs" and can be accessed by the `exprs(raw_data)` function. The rows represent the microarray probes, i.e. the single DNA locations on the chip, while the columns represent one microarray, i.e. a sample of inflamed- and non-inflamed tissue of every patient, respectively. 
 
 ```{r inspectAssayData, eval=TRUE}
 
-head(Biobase::exprs(raw_data))
+Biobase::exprs(raw_data)[1:5, 1:5]
 
 ```
-For quality analysis, we take the log2 of `Biobase::exprs(raw_data)`, as expression data is always analyzed on a logarithmic scale.
-We then perform a principal component analysis (PCA) and plot it (see Figure \@ref(fig:qualityControlRawDataPCA)). Every point in the plot represents one sample, with the colour indicating the mucosa type (inflamed vs non-inflamed) and the shape indicating the disease (UC or CD).
-We also plot a boxplot graph with boxes for the probe intensities on individual microarrays (Figure \@ref(fig:qualityControlRawDataBox)). Note that the `oligo::boxplot` function, i.e. the boxplot function of the oligo package, can take whole expression sets as argument. It accesses the expression data and performs a log2-transformation by default. We therefore can use `raw_data` as argument here.
+
+
+For quality control, we take the the log2 of `Biobase::exprs(raw_data)`, 
+as expression data is commonly analyzed on a logarithmic scale.
+
+We then perform a principal component analysis (PCA) and plot it (see Figure 
+\@ref(fig:qualityControlRawDataPCA)). Every point in the plot represents one sample, 
+with the colour indicating the mucosa type (inflamed vs non-inflamed) and the shape 
+indicating the disease (UC or CD).
+
+We also represent the probe intensities  via a boxplot graph with one box per
+individual microarray. (Figure \@ref(fig:qualityControlRawDataBox)). Note that the 
+`oligo::boxplot` function, i.e. the boxplot function of the oligo package, can take  
+expression sets as argument. It accesses the expression data and performs a 
+log2-transformation by default. We therefore can use `raw_data` as argument here.
 
 
 ```{r qualityControlRawDataPCA, fig.cap="PCA plot of the log–transformed raw data."}
@@ -415,7 +438,7 @@ dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
        size = I(2), 
        xlab = paste0 ("PC1, VarExp: ", percentVar[1], "%"),
        ylab = paste0 ("PC2, VarExp: ", percentVar[2], "%"),
-       asp = sd_ratio) #check if the ratio is right in the graph
+       asp = sd_ratio) 
      + scale_colour_brewer(palette = "Set2"))
 
 ```
@@ -427,11 +450,22 @@ oligo::boxplot(raw_data, target="core",
 ```
 
 
-The PCA (see Figure \@ref(fig:qualityControlRawDataPCA)) (performed on the log--intensity scale) plot of the raw data shows that the first principal component differentiates between the diseases. This means that the expression data mainly differs between the diseases. This might hinder our analysis, as we want to analyze the differential expression between inflamed- and non-inflamed tissue, independently of the disease a person has. When looking at the boxplot (Figure \@ref(fig:qualityControlRawDataBox)), we see that the intensity distributions of the individual arrays are quite different, indicating the need for an appropriate normalization, which we will discuss next.
+The PCA  plot (Figure \@ref(fig:qualityControlRawDataPCA), performed on 
+the log--intensity scale)  of the raw data shows that the 
+first principal component differentiates between the diseases. This means that 
+major the disease type is a major driver of gene expression differences.
 
-Until now, we have only performed a very basic quality control; for more elaborate quality control plots, we could use the package `r Biocpkg("arrayQualityMetrics")` [@AQM]. The package produces an html report, containing the quality control plots together with a description of their
+This might hinder our analysis, as  we want to analyze the differential expression between inflamed-- and non--inflamed 
+tissues, independently of the disease a person suffers from. 
+
+When looking at the boxplot (Figure 
+\@ref(fig:qualityControlRawDataBox)), we see that the intensity distributions of the 
+individual arrays are quite different, indicating the need for an appropriate 
+normalization, which we will discuss next.
+
+Until now, we have only performed a very basic quality control; for more elaborate quality control plots, one can use the package `r Biocpkg("arrayQualityMetrics")` [@AQM]. The package produces an html report, containing the quality control plots together with a description of their
 aims and an identification of possible outliers. We don't discuss this tool in detail
-here, but the code below can be used to create a report for our raw data. 
+here, but simply provide the code below, which creates a report for our raw data. 
 
 ```{r arrayQualityMetricsRaw, eval = FALSE}
 arrayQualityMetrics(expressionset = raw_data,
@@ -1079,14 +1113,25 @@ We get a p--value of 8e-06 and thus have found that the *CRAT* gene is different
 
 ## Contrasts and hypotheses tests
 
-We now fit the linear model across all genes and
+We now fit the linear model for all genes and
 define appropriate contrasts to test hypotheses of interest.
 
 We want to compare the inflamed to the the non--inflamed tissue.
 Thus, we create a contrast matrix consisting of only one contrast "I-nI": `r Biocpkg("limma")` 's function
 `makeContrasts` creates this matrix from a symbolic description of the contrast of
 interest.
-We now fit a linear model to our data and apply the `contrasts.fit()`function to it in order to find genes with significantly differential expression between non--inflamed and inflamed tissue. We apply the "empirical Bayes" method to it with the `eBayes()` function, so that it computes moderated \(t\)--statistics: As in microarray analysis, the number of arrays often is quite small, only a small sample number can be used to calculate expression values of a certain gene. This might lead to variance values that aren't representative for the population. "Empirical Bayes" assumes that expression variance should be the same for all genes, and therefore shrinks the gene-wise residual sample variances towards a common value, borrowing variance information from other genes. 
+We now fit a linear model to our data and apply the `contrasts.fit()` function 
+to it in order to find genes with significant differential expression between non--inflamed and inflamed tissue.
+
+We apply the "empirical Bayes" method to it via the `eBayes()` function, which
+computes computes moderated \(t\)--statistics: In microarray analysis, 
+the number of arrays often is quite small, variance estimation is difficult.
+Using a combination of the per--gene--variance and a prior variance we can improve the 
+variance estimate. Hence the term "moderation". "Empirical Bayes" 
+means that the prior is estimated from the data.
+
+The result of the `eBayes()` step is that the individual variances are
+shrunken towards the prior value. 
 
 ```{r createContrastMatrixAndFitModel, eval=TRUE, dependson="createDesign" }
 contrast_matrix_CD <- makeContrasts(I-nI, levels = design_palmieri_CD)
