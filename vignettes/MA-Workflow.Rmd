@@ -989,7 +989,7 @@ clusters.
 
 # Linear models
 
-In order to analyse which genes are differentially expressed in inflamed-- and non--inflamed tissue, we have to fit a linear model to our expression data.
+In order to analyse which genes are differentially expressed between inflamed-- and non--inflamed tissue, we have to fit a linear model to our expression data.
 Linear models are the "workhorse" for the analysis of experimental
 data. They can be used to analyse almost arbitrarily complex designs, however
 they also take a while to learn and understand and a thorough description
@@ -1003,15 +1003,15 @@ the concepts better. The Khan Academy offers nice (and free) [online courses](ht
 ## Linear models for microarrays
 
 We now apply linear models to microarrays. Specifically, we discuss
-how to use the `r Biocpkg("limma") ` for differential expression analysis.
+how to use the `r Biocpkg("limma") ` package for differential expression analysis.
 The package is designed to analyze complex experiments involving comparisons between
 many experimental groups simultaneously while remaining reasonably easy to use
 for simple experiments. The main idea is to fit a linear model to the expression 
-data for each gene. Empirical Bayes and other shrinkage methods are used to borrow information
-across genes for the residual variance estimation leading to "moderated" \(t\)--statistics, 
-and stabilizing the analysis for experiments 
-with just a small number of arrays [@Smyth_2004]. Conceptually, the final per gene variance
-is a mix of the median variance of all genes and the per gene variance.
+data for each gene. Empirical Bayes and other methods are used to borrow information
+across genes for the residual variance estimation leading to "moderated" 
+\(t\)--statistics, and stabilizing the analysis for experiments 
+with just a small number of arrays [@Smyth_2004]. Conceptually, the final per gene 
+variance is a mix of the median variance of all genes and the per gene variance.
 
 Typical experimental designs are disussed in chapter 9 of `r Biocpkg("limma") `
 "User Guide", which can be found on the Bioconductor landing page 
@@ -1026,11 +1026,17 @@ The original paper is interested in changes in transcription that occur
 between inflamed and adjacent non--inflamed mucosal areas of the colon.
 This is studied in both inflammatory bowel disease types.
 
-For building our linear model, we have to think about which variables we are interested in. As we want to find differential expression in non--inflamed-- vs inflamed tissue, those two are the only variables we would have to include. 
-However, since we have two arrays per individual patient, we have a "Paired Samples" design
-(see section 9.4 of the user guide). 
-Thus, the first factor we need is a blocking factor for the individuals that will absorb differences between
-them. Therefore, we block on patients, which means that the patient IDs become variables of the linear model.
+For building our linear model, we have to think about 
+which variables we want to consider. As we want to find differential expression 
+between non--inflamed and inflamed tissue, those two are the only two variables 
+we would have to consider.
+
+However, since we have two arrays per individual patient, we have a "Paired Samples" design (see section 9.4 of the `r Biocpkg("limma") ` user guide). 
+
+Thus, the first factor we need is a blocking factor for the individuals 
+that will absorb differences in expression between
+them. Therefore, we block on patients, which means that the 
+patient IDs become variables of the linear model.
 
 Then we create factors that give us the grouping for the diseases and
 the tissue types (non-inflamed and inflamed). We furthermore simplify the names of the
@@ -1040,8 +1046,8 @@ Finally, we create two design matrices,
 one for each of the two diseases as we will analyze them separately 
 in order to follow the analysis strategy of the original paper 
 closely (one could also fit a joint model to 
-the complete data set; however, the two diseases might behave very differently 
-so that a joint fit might not be appropriate).
+the complete data set; however, the two diseases might show very different
+characteristics so that a joint fit might not be appropriate).
 
 ```{r createDesign, eval=TRUE, dependson="excludeMultipleMappings" }
 individual <- 
@@ -1049,6 +1055,7 @@ individual <-
 
 tissue <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.phenotype.,
                   " ", "_")
+
 tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa",
                  "nI", "I")
 
@@ -1079,21 +1086,38 @@ head(design_palmieri_UC[, 1:6])
 
 ```
 
-In the design matrix, the rows represent the patient probe, and the columns are the variables we include into our linear model. For example, the first two rows of the design matrix `design_palmieri_CD` 
+In the design matrix, the rows represent the patient array, 
+and the columns are the variables we include into our linear model. 
+For example, the first two rows of the design matrix `design_palmieri_CD` 
 correspond to the two arrays for individual "164". 
-The design matrix has the entries 0 and 1 and thus tells us which variables are "active" for which sample: 
-it can be seen as a switch that turns the single variables "on" (with a 1 at the corresponding position) or "off" (with a 0 at the corresponding position) for each row, i. e. each patient probe. If we have a closer look at the single rows, we see that for each sample, there are two "ones" assigned: one to one of the variable "nI" or "I" corresponding to the tissue the probe came from, and one to the corresponding patient--specific variable.
+
+The design matrix has the entries 0 and 1 and thus tells us 
+which variables are "active" for which sample: 
+
+It can be seen as a switch that turns the single variables "on" (with a 1 at the 
+corresponding position) or "off" (with a 0 at the corresponding position) for each row, 
+i. e. each patient array. If we have a closer look at the single rows, we see that for 
+each sample, there are two "ones" assigned: one to one of the variable "nI" or "I" 
+corresponding to the tissue the probe came from, and one to the corresponding 
+patient--specific variable.
+
 Note that in the linear model, individual 164 serves as the baseline for all other individuals and thus isn't included in the sample variables.
 
-Before heading on to find all differentially expressed genes for both diseases, we will first have a look on how this works in principle for one gene. We will fit the linear model for one gene and run a t--test in order to see whether the gene is differentially expressed or not.
+Before heading on to find all differentially expressed genes for both diseases, we will 
+first have a look on how this works in principle for one gene. We will fit the linear 
+model for one gene and run a t--test in order to see whether the gene is differentially 
+expressed or not.
 
-## Analysis of differential expression on the basis of one gene
+## Analysis of differential expression based on a single gene
 
-For linear model fitting and subsequent testing for differential expression by t-test, we will pick the gene with the PROBEID 8164535. It is the *CRAT* gene and will be named as such in the following code. 
+For linear model fitting and subsequent testing for differential expression 
+by t--test, we will pick the gene with the PROBEID 8164535. It the gene symbol 
+*CRAT* and will be named as such in the following code. 
 
 ### Illustration of the fitted linear model on the *CRAT* gene
 
-Before fitting the linear model, we have a look at the expression intensities of this gene for each patient in non--inflamed and inflamed tissue, respectively: 
+Before fitting the linear model, we have a look at the expression intensities
+of this gene for each patient in non--inflamed and inflamed tissue, respectively: 
 
 
 ```{r visualizeExpressionChanges, fig.cap="Visualization of expression changes"}
@@ -1102,9 +1126,9 @@ tissue_CD <- tissue[disease == "CD"]
 crat_expr <- Biobase::exprs(palmieri_final)["8164535", disease == "CD"]
 crat_data <- as.data.frame(crat_expr)
 colnames(crat_data)[1] <- "org_value"
-crat_data <- mutate(crat_data, individual=i_CD, tissue_CD)
+crat_data <- mutate(crat_data, individual = i_CD, tissue_CD)
 
-crat_data$tissue_CD<- factor(crat_data$tissue_CD, levels = c("nI", "I"))
+crat_data$tissue_CD <- factor(crat_data$tissue_CD, levels = c("nI", "I"))
 
 ggplot(data = crat_data, aes(x = tissue_CD, y = org_value, 
                              group = individual, color = individual)) +
@@ -1113,9 +1137,21 @@ ggplot(data = crat_data, aes(x = tissue_CD, y = org_value,
 
 ```
 
-We see that overall, this gene is expressed lower in inflamed tissue ((see Figure \@ref(fig:visualizeExpressionChanges)). We also see that the absolute expression intensities vary a lot between patients However, we have already taken care of this problem by introducing blocking factors on the individuals, which allows us to fit one line to each individual; if we hadn't blocked for individuals, the linear model would fit one single line to all of these lines, resulting in a very high variance.
+We see that overall, this gene is expressed less in inflamed tissue (Figure 
+\@ref(fig:visualizeExpressionChanges)). We also see that the absolute expression 
+intensities vary a lot between patients. However, we have already taken care of this 
+problem by introducing blocking factors based on the individuals, which allows 
+us to compare the tissues within each individual as represented by
+the single lines.
 
-We now generate the variable coefficients by fitting a linear model. We get a vector `crat_coef` with one entry for each variable.
+If we hadn't blocked for individuals, the linear model would 
+treat them interchangably and a graphical depiction would only
+include a single line. Since the individuals haver very different
+baseline expression levels, this would lead to a very variance of
+the estimated fold changes.
+
+We now compute the variable coefficients by fitting a linear model. 
+We get a vector `crat_coef` with one entry for each variable.
 
 ```{r obtainFitCRAT}
 
@@ -1127,9 +1163,18 @@ crat_coef
 ```
 
 
-In order to now obtain the expression values fitted by the model, we multiply the design matrix with this vector of coefficients `crat_coef`. Recall that for every row in the design matrix (i.e. every patient sample) only the variables with a 1 in the design matrix are taken into account for calculating the fitted expression value. 
-This means that as output of the multiplication, we get a vector `crat_fitted` whose entries are the sum of relevant variable coefficients for each sample, respectively.
-For example, the fitted value for patient sample `2114_I.CEL` is 6.97: it is the sum of the respective activated variable coefficients "nI" (7.1917 ) and "i_CD2114" (- 0.2215). 
+In order to now obtain the expression values fitted by the model, 
+we multiply the design matrix with this vector of coefficients `crat_coef`.
+
+Recall that for every row in the design matrix (i.e. every patient sample) only the 
+variables with a 1 in the design matrix are taken into account for calculating the 
+fitted expression value. 
+
+This means that as output of the multiplication, we get a vector `crat_fitted` whose 
+entries are the sum of relevant variable coefficients for each sample, respectively.
+
+For example, the fitted value for patient sample `2114_I.CEL` is 6.97: it is the sum of the respective activated variable coefficients "nI" (7.1917 ) and "i_CD2114" 
+(- 0.2215). 
 
 ```{r 2obtainFitCRAT}
 crat_fitted <- design_palmieri_CD %*% crat_coef
@@ -1153,30 +1198,53 @@ ggplot(data = crat_data, aes(x = tissue_CD, y = fitted_value,
 ```
 
 
-Note that the differences of the fitted expression values between inflamed-- and non--inflamed samples of one patient always is the same for all patients and is determined by the difference between the variable coefficients of `I` (6.77) and `nI` (7.19), which is - 0.425 ((see Figure \@ref(fig:3obtainFitCRAT)). This is the case because the same sample variable is activated by the design matrix for both samples from one patient, and thus only corrects the fitted expression values in y--direction towards the original ones measured from the patients. 
-This "difference" between non--inflamed and inflamed tissue of - 0.425 actually is a log fold change, as our expression data is on the log scale. - 0.425 therefore is our log fold change. 
+Note that the differences of the fitted expression values between inflamed-- and non--inflamed samples of one patient is the same for all patients and is determined by the difference between the variable coefficients of `I` (6.77) and `nI` (7.19), which is - 0.425 ((see Figure \@ref(fig:3obtainFitCRAT)). 
+
+This is the case because the same blocking variable is activated by the design 
+matrix for both samples from a single patient, leading to a comparison within
+patients only. These blocking variables correct the fitted tissue specific 
+expression values towards the expression levels of the individual patients. 
+
+The "difference" between non--inflamed and inflamed tissue of - 0.425 actually 
+is a log fold change, as our expression data is on the log scale. - 0.425 
+therefore is our log fold change for the CRAT gene.
 
 ### Differential expression analysis of the CRAT gene
 
-In order to test whether the gene is differentially expressed or not, a \(t\)--test with the null hypothesis that there is no difference in the expression between non--inflamed and inflamed tissue is carried through. A look at the formula of the \(t\)--test shows us that the \(t\)--value depends on the variance of the sample: 
+In order to test whether the gene is differentially expressed or not, 
+a \(t\)--test with the null hypothesis that there is no difference in the expression between non--inflamed and inflamed tissue is carried out. Our 
+blocking design is conceptually similar to a paired t--test for 
+which the statistic is given by:
 
-$$
- t = \frac{\bar{x} - \mu}{s/\sqrt{n}}
-$$
 
-We thus have made our \(t\)--test more sensible by reducing the variance by blocking on individuals.
+\[
+ t = \frac{\bar{d} }{s/\sqrt{n}}
+\]
+
+Where, \(\bar{d}\) is the mean difference between the individuals. 
+The paired t-test has lower variance \(s^2\)  and thus higher power
+compared to a standard t--test as long as the expression values 
+for the same individual are correlated ([see the article on] wikipedia(https://en.wikipedia.org/wiki/Paired_difference_test)).
+
+We thus have improved the linear--model \(t\)--test  
+by reducing the variance via blocking on individuals.
 
 We now conduct the \(t\)--test on the linear model in order to find out whether the difference between non--inflamed-- and inflamed tissue differs significantly from 0: 
 
 ```{r tTest}
-crat_noninflamed <- na.exclude(crat_data$org_value[tissue=="nI"])
-crat_inflamed <- na.exclude(crat_data$org_value[tissue=="I"])
-res_t <- t.test(crat_noninflamed ,crat_inflamed ,paired=TRUE)
+crat_noninflamed <- na.exclude(crat_data$org_value[tissue == "nI"])
+crat_inflamed <- na.exclude(crat_data$org_value[tissue == "I"])
+res_t <- t.test(crat_noninflamed ,crat_inflamed , paired = TRUE)
 res_t
 
 ```
 
-We get a p--value of 8e-06 and thus have found that the *CRAT* gene is differentially expressed between non--inflamed and inflamed tissue. Note that the p--value isn't exactly the same one as below when analyzing the differential expression of all genes. The reason is a variance correction called "empirical Bayes" which we will implement later, leading to slightly different p--values. The method will be explained more in detail when applied.
+We get a low p--value of `r res_t$p.value` and thus have found that the *CRAT* gene is differentially expressed between non--inflamed and inflamed tissue.
+
+Note that the p--value isn't exactly the same one as below when analyzing the 
+differential expression of all genes. The reason is a variance moderation performed
+by `r Biocpkg("limma")` 
+which we will implement later.
 
 ## Contrasts and hypotheses tests
 
