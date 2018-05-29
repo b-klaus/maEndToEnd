@@ -393,16 +393,28 @@ Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
 
 The first step after the initial data import is the quality control of the data.
 Here we check for outliers and try to see whether the data clusters as expected, 
-e.g. by the experimental conditions. The expression intensity values are in the assayData subfolder "exprs" and can be accessed by the `exprs(raw_data)` function. The rows represent the microarray probes, i.e. the single DNA locations on the chip, while the columns represent one microarray, i.e. a sample of inflamed- and non-inflamed tissue of every patient, respectively. 
+e.g. by the experimental conditions. The expression intensity values are in the assayData sub--object "exprs" and can be accessed by the `exprs(raw_data)` function. The rows represent the microarray probes, i.e. the single DNA locations on the chip, while the columns represent one microarray, i.e. a sample of inflamed- and non-inflamed tissue of every patient, respectively. 
 
 ```{r inspectAssayData, eval=TRUE}
 
-head(Biobase::exprs(raw_data))
+Biobase::exprs(raw_data)[1:5, 1:5]
 
 ```
-For quality analysis, we take the log2 of `Biobase::exprs(raw_data)`, as expression data is always analyzed on a logarithmic scale.
-We then perform a principal component analysis (PCA) and plot it (see Figure \@ref(fig:qualityControlRawDataPCA)). Every point in the plot represents one sample, with the colour indicating the mucosa type (inflamed vs non-inflamed) and the shape indicating the disease (UC or CD).
-We also plot a boxplot graph with boxes for the probe intensities on individual microarrays (Figure \@ref(fig:qualityControlRawDataBox)). Note that the `oligo::boxplot` function, i.e. the boxplot function of the oligo package, can take whole expression sets as argument. It accesses the expression data and performs a log2-transformation by default. We therefore can use `raw_data` as argument here.
+
+
+For quality control, we take the the log2 of `Biobase::exprs(raw_data)`, 
+as expression data is commonly analyzed on a logarithmic scale.
+
+We then perform a principal component analysis (PCA) and plot it (see Figure 
+\@ref(fig:qualityControlRawDataPCA)). Every point in the plot represents one sample, 
+with the colour indicating the mucosa type (inflamed vs non-inflamed) and the shape 
+indicating the disease (UC or CD).
+
+We also represent the probe intensities  via a boxplot graph with one box per
+individual microarray. (Figure \@ref(fig:qualityControlRawDataBox)). Note that the 
+`oligo::boxplot` function, i.e. the boxplot function of the oligo package, can take  
+expression sets as argument. It accesses the expression data and performs a 
+log2-transformation by default. We therefore can use `raw_data` as argument here.
 
 
 ```{r qualityControlRawDataPCA, fig.cap="PCA plot of the log–transformed raw data."}
@@ -426,7 +438,7 @@ dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
        size = I(2), 
        xlab = paste0 ("PC1, VarExp: ", percentVar[1], "%"),
        ylab = paste0 ("PC2, VarExp: ", percentVar[2], "%"),
-       asp = sd_ratio) #check if the ratio is right in the graph
+       asp = sd_ratio) 
      + scale_colour_brewer(palette = "Set2"))
 
 ```
@@ -438,13 +450,24 @@ oligo::boxplot(raw_data, target="core",
 ```
 
 
-The PCA (see Figure \@ref(fig:qualityControlRawDataPCA)) (performed on the log--intensity scale) plot of the raw data shows that the first principal component differentiates between the diseases. This means that the expression data mainly differs between the diseases. This might hinder our analysis, as we want to analyze the differential expression between inflamed- and non-inflamed tissue, independently of the disease a person has. When looking at the boxplot (Figure \@ref(fig:qualityControlRawDataBox)), we see that the intensity distributions of the individual arrays are quite different, indicating the need for an appropriate normalization, which we will discuss next.
+The PCA  plot (Figure \@ref(fig:qualityControlRawDataPCA), performed on 
+the log--intensity scale)  of the raw data shows that the 
+first principal component differentiates between the diseases. This means that 
+major the disease type is a major driver of gene expression differences.
 
-Until now, we have only performed a very basic quality control; for more elaborate quality control plots, we could use the package `r Biocpkg("arrayQualityMetrics")` [@AQM]. The package produces an html report, containing the quality control plots together with a description of their
+This might hinder our analysis, as  we want to analyze the differential expression between inflamed-- and non--inflamed 
+tissues, independently of the disease a person suffers from. 
+
+When looking at the boxplot (Figure 
+\@ref(fig:qualityControlRawDataBox)), we see that the intensity distributions of the 
+individual arrays are quite different, indicating the need for an appropriate 
+normalization, which we will discuss next.
+
+Until now, we have only performed a very basic quality control; for more elaborate quality control plots, one can use the package `r Biocpkg("arrayQualityMetrics")` [@AQM]. The package produces an html report, containing the quality control plots together with a description of their
 aims and an identification of possible outliers. We don't discuss this tool in detail
-here, but the code below can be used to create a report for our raw data. 
+here, but simply provide the code below, which creates a report for our raw data. 
 
-```{r arrayQualityMetricsRaw, eval = TRUE}
+```{r arrayQualityMetricsRaw, eval = TRUE, warning=FALSE}
 arrayQualityMetrics(expressionset = raw_data,
     outdir = "Report_for_Palmieri_raw",
     force = TRUE, do.logtransform = TRUE,
