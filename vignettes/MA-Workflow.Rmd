@@ -62,7 +62,7 @@ output_format = BiocWorkflowTools::f1000_article(keep_tex = TRUE)) -->
 ## This simplifies processing on overleaf
 on.bioc <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
 if (!on.bioc) {
-  knitr::opts_chunk$set(fig.path = "")
+  knitr::opts_chunk$set(fig.path = "", out.width="250px")
 } 
 ## here, pdf specific adapations can be made
 
@@ -111,26 +111,26 @@ Our aim is to analyze differential expression (DE) between the tissues. As a pro
 # Required packages and other preparations
 
 ```{r, echo=FALSE, results="hide", warning=FALSE, eval=TRUE}
-# install.packages("devtools")
-# library(devtools)
-# source("https://bioconductor.org/biocLite.R")
-# biocLite("DelayedArray")
-# biocLite("DO.db")
-# biocLite("GenomeInfoDbData")
-# biocLite("GO.db")
-# biocLite("hugene10sttranscriptcluster.db")
-# biocLite("pd.hugene.1.0.st.v1")
-# biocLite("reactome.db")
-# 
-# library(DelayedArray)
-# library(DO.db)
-# library(GenomeInfoDbData)
-# library(GO.db)
-# library(hugene10sttranscriptcluster.db)
-# library(pd.hugene.1.0.st.v1)
-# library(reactome.db)
+install.packages("devtools")
+library(devtools)
+source("https://bioconductor.org/biocLite.R")
+biocLite("DelayedArray")
+biocLite("DO.db")
+biocLite("GenomeInfoDbData")
+biocLite("GO.db")
+biocLite("hugene10sttranscriptcluster.db")
+biocLite("pd.hugene.1.0.st.v1")
+biocLite("reactome.db")
 
-#install_github("Steffireise/maEndToEnd", ref="master")
+library(DelayedArray)
+library(DO.db)
+library(GenomeInfoDbData)
+library(GO.db)
+library(hugene10sttranscriptcluster.db)
+library(pd.hugene.1.0.st.v1)
+library(reactome.db)
+
+install_github("Steffireise/maEndToEnd", ref="master")
 
 suppressPackageStartupMessages({
     library("maEndToEnd")
