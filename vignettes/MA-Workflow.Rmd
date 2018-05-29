@@ -467,7 +467,7 @@ Until now, we have only performed a very basic quality control; for more elabora
 aims and an identification of possible outliers. We don't discuss this tool in detail
 here, but simply provide the code below, which creates a report for our raw data. 
 
-```{r arrayQualityMetricsRaw, eval = FALSE}
+```{r arrayQualityMetricsRaw, eval = TRUE, warning=FALSE}
 arrayQualityMetrics(expressionset = raw_data,
     outdir = "Report_for_Palmieri_raw",
     force = TRUE, do.logtransform = TRUE,
