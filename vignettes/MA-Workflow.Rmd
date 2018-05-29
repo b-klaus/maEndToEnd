@@ -643,8 +643,8 @@ about it.
 
 An alternative to quantile normalization would be the `r Biocpkg("vsn") ` algorithm,
 that performs background correction and normalization by robustly
-shifting and scaling intensity values within arrays [@vsn] before log--transforming
-them. This is less "severe" than quantile normalization. 
+shifting and scaling intensity values within arrays  before log--transforming
+them. This is less "severe" than quantile normalization [@vsn]. 
 
 ## Some mathematical background on normalization (calibration) and background correction
 
@@ -706,7 +706,10 @@ dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
 
 ```
 
-In comparison to the first PCA analysis before RMA, we see that now the first principal component clusters between tissues types (see Figure \@ref(fig:PCAMetricsCalibrated). This indicates that now differential expression between the tissue types can be analyzed quite well.
+In comparison to the first PCA analysis before RMA, we see that now the first principal 
+component separates between the tissues types (Figure \@ref(fig:PCAMetricsCalibrated)).
+This indicates that now differential expression between the tissue types is the
+dominant source of variation.
 
 ### Heatmap clustering analysis
 
@@ -716,33 +719,23 @@ default. The default distance is the Euclidean one. However this can be
 changed and we choose the Manhattan distance here (it uses absolute distances along rectangular paths instead of squared distances of the direct path), as it is more robust. We set the diagonal of the distance matrix to ` NA ` in order to increase the contrast of the color coding. Those diagonal entries do not contain information since the distance of a sample to itself is always equal to zero.
 
 ```{r rownamesForHeatmap, fig.height = 8.5, eval = TRUE, echo=TRUE}
-phenotype_names <- c()
-disease_names <- c()
+phenotype_names <- ifelse(str_detect(pData
+                                    (palmieri_eset_norm)$Factor.Value.phenotype.,
+                             "non"), "non-infl.", "infl.")
 
-for (i in 1:length(Biobase::pData(palmieri_eset_norm)$Factor.Value.phenotype.)){
-  if(grepl 
-     ("non", 
-       toString(Biobase::pData(palmieri_eset_norm)$Factor.Value.phenotype.[i])))
-    {phenotype_name="non-infl."}
-  else {phenotype_name = "infl."}
-  phenotype_names <- c(phenotype_names, phenotype_name)
-  
-  if (grepl 
-      ("Crohn", 
-        toString(Biobase::pData(palmieri_eset_norm)$Factor.Value.disease.[i])))
-    {disease_name="CD"}
-  else {disease_name="UC"}
-  disease_names <- c(disease_names, disease_name)
-}
+disease_names <- ifelse(str_detect(pData
+                                    (palmieri_eset_norm)$Factor.Value.phenotype.,
+                             "Chron"), "CD.", "UC")
 
 row_names_dataframe <- 
-  data.frame("Phenotype"=phenotype_names, "Disease"=disease_names)
+  data.frame("Phenotype" = phenotype_names, "Disease" = disease_names)
 row_names_for_heatmap <- 
-  paste(row_names_dataframe$Phenotype, row_names_dataframe$Disease, sep="   ")
+  paste(row_names_dataframe$Phenotype, row_names_dataframe$Disease, sep = "   ")
 
 ```
 
 ```{r clusteringHeatmap, fig.cap = "Heatmap of the sample to sample distances for the calibrated data.", fig.height = 8.5, eval = TRUE }
+
 dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 colnames(dists) <- NULL
 diag(dists) <- NA
