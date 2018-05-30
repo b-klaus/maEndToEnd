@@ -1232,7 +1232,7 @@ res_t
 
 ```
 
-We get a low p--value of `r round(res_t$p.value, 6)` and thus can conclude
+We get a low p--value of 8e-06 and thus can conclude
 that the *CRAT* gene is differentially expressed between 
 non--inflamed and inflamed tissue.
 
