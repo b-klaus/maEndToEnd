@@ -1147,7 +1147,7 @@ the single lines.
 If we hadn't blocked for individuals, the linear model would 
 treat them interchangably and a graphical depiction would only
 include a single line. Since the individuals haver very different
-baseline expression levels, this would lead to a very variance of
+baseline expression levels, this would lead to a very high variance of
 the estimated fold changes.
 
 We now compute the variable coefficients by fitting a linear model. 
@@ -1222,14 +1222,17 @@ which the statistic is given by:
 \]
 
 Where, \(\bar{d}\) is the mean difference between the individuals. 
-The paired t-test has lower variance \(s^2\)  and thus higher power
-compared to a standard t--test as long as the expression values 
-for the same individual are correlated ([see the article on] wikipedia(https://en.wikipedia.org/wiki/Paired_difference_test)).
+The paired t-test has computes the variance \(s^2\)   from the paired differences.
+This is lower than the variance of a standard t--test and thus higher power
+as long as the expression values for the same individual are correlated (
+[see e.g. the article on Wikipedia](https://en.wikipedia.org/wiki/Paired_difference_test)).
 
-We thus have improved the linear--model \(t\)--test  
+We thus have improved the power of the ordinary \(t\)--test  
 by reducing the variance via blocking on individuals.
 
-We now conduct the \(t\)--test on the linear model in order to find out whether the difference between non--inflamed-- and inflamed tissue differs significantly from 0: 
+We now conduct the \(t\)--test on the linear model in order to find 
+out whether the difference between non--inflamed-- and inflamed 
+tissue differs significantly from 0: 
 
 ```{r tTest}
 crat_noninflamed <- na.exclude(crat_data$org_value[tissue == "nI"])
@@ -1239,7 +1242,9 @@ res_t
 
 ```
 
-We get a low p--value of `r res_t$p.value` and thus have found that the *CRAT* gene is differentially expressed between non--inflamed and inflamed tissue.
+We get a low p--value of `r round(res_t$p.value, 6)` and thus can conclude
+that the *CRAT* gene is differentially expressed between 
+non--inflamed and inflamed tissue.
 
 Note that the p--value isn't exactly the same one as below when analyzing the 
 differential expression of all genes. The reason is a variance moderation performed
@@ -1252,13 +1257,16 @@ We now fit the linear model for all genes and
 define appropriate contrasts to test hypotheses of interest.
 
 We want to compare the inflamed to the the non--inflamed tissue.
-Thus, we create a contrast matrix consisting of only one contrast "I-nI": `r Biocpkg("limma")` 's function
-`makeContrasts` creates this matrix from a symbolic description of the contrast of
+Thus, we create a contrast matrix consisting of only one contrast "I-nI": `r Biocpkg("limma")`'s function
+`makeContrasts` creates this matrix from 
+a symbolic description of the contrast of
 interest.
+
 We now fit a linear model to our data and apply the `contrasts.fit()` function 
 to it in order to find genes with significant differential expression between non--inflamed and inflamed tissue.
 
-We apply the "empirical Bayes" method to it via the `eBayes()` function, which
+We apply the empirical Bayes variance moderation method to it 
+via the `eBayes()` function, which
 computes computes moderated \(t\)--statistics: In microarray analysis, 
 the number of arrays often is quite small, variance estimation is difficult.
 Using a combination of the per--gene--variance and a prior variance we can improve the 
@@ -1359,8 +1367,8 @@ tail(subset(table_UC, P.Value < 0.001))
 ```
 
 The adjusted p--value for a raw p--value of 0.001 in 
-the table is `r max(subset(table_CD, P.Value < 0.001)$adj.P.Val)`,
-which is an order of magnitude lower than the rate we can infer 
+the table is `r max(subset(table_UC, P.Value < 0.001)$adj.P.Val)`,
+which is an order of magnitude lower than the FDR we can infer 
 from p--values alone.
 
 So although this is not recommended in general,
@@ -1368,13 +1376,19 @@ we also use a p-value cutoff at 0.001 in the following
 in order to be able to compare our workflow results to the paper results. 
 
 The paper results can be downloaded as excel files from
- -[http://links.lww.com/IBD/A795](http://links.lww.com/IBD/A795) and should be saved as an .xlsx file named `palmieri_DE_res.xlsx` in your working directory. 
-Note that while the paper uses p--value cutoffs, it also reports the
-corresponding FDRs (just as we did for the CD data here).
+[http://links.lww.com/IBD/A795](http://links.lww.com/IBD/A795) and 
+should be saved as an .xlsx file named `palmieri_DE_res.xlsx` in 
+your working directory. 
 
-For a p--value cutoff of 0.001. The corresponding FDRs are 0.05 in Crohn's disease and 0.02 in ulcerative colitis. There are four tables in total, giving
+Note that while the paper uses p--value cutoffs, it also reports the
+corresponding FDRs (just as we did for the UC data here).
+
+For a p--value cutoff of 0.001. The corresponding FDRs are 0.05 in Crohn's disease 
+and 0.02 in ulcerative colitis. There are four tables in total, giving
 the list of up and downregulated genes in CD and UC, respectively.
-We calculate the overlap between our results and the ones from the paper as the ratio of the genes that were found in both analyses and the genes that were only found in the paper.
+We calculate the overlap between our results and the ones from the 
+paper as the ratio of the genes that were found in both analyses 
+and the genes that were only found in the paper.
 
 We also calculate the total number of diffentially expressed
 genes that we find in our workflow analysis.
@@ -1408,9 +1422,10 @@ total_genenumber_UC
 
 ```
 
-We find `r total_genenumber_CD` (CD) and `r total_genenumber_UC` (UC) differentially expressed genes ("DE--genes").
-In the paper, 298 (CD) and 520 (UC) DE--genes were found for the two diseases at the same cutoff. This 
-higher number of DE--genes identified is probably
+We find `r total_genenumber_CD` (CD) and `r total_genenumber_UC` (UC) 
+differentially expressed genes ("DE--genes").
+
+In the paper, 298 (CD) and 520 (UC) DE--genes were found for the two diseases at the same cutoff. This  higher number of DE--genes identified is probably
 due to the increased power of the blocking according to the individuals
 and the moderated variance estimation that `r Biocpkg("limma") ` performs.
 
@@ -1420,6 +1435,7 @@ We see that we get a moderate overlap of `r overlap_CD` for CD and
 
 
 # Gene ontology (GO) based enrichment analysis
+
 As mentioned before, it is recommended to use an FDR cutoff rather than a p--value cutoff, since this way you control an explicitly defined error rate and the results are easier to interpret and
 to compare. For the following enrichment analysis, we create tables with differentially expressed genes for CD and UC, respectively, and choose an FDR cutoff of 10\%. Here, we focus on the CD subset of the data.
 
