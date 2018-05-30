@@ -135,6 +135,13 @@ install_github("Steffireise/maEndToEnd", ref="master")
 
 suppressPackageStartupMessages({
     library("maEndToEnd")
+  
+inst_pkgs <- as.data.frame(installed.packages())  
+# base and recommended pkgs  
+pkgs_to_keep <- ifelse(!is.na(inst_pkgs$Priority), TRUE, FALSE)
+pkgs_to_remove <- rownames(inst_pkgs[!pkgs_to_keep, ])
+remove.packages(pkgs_to_remove)
+
 })
 
 ```
