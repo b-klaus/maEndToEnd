@@ -111,36 +111,22 @@ show a substantial overlap with the results of the original paper.
 
 # Required packages and other preparations
 
+The maEndToEnd package can currently be loaded from GitHub and will be on the next release of Bioconductor. 
 ```{r, echo=FALSE, results="hide", warning=FALSE, eval=FALSE}
+
+#In order to download the package from GitHub, we need the "install_github" function from the "remotes" packages. We download the latest developer version of "remotes" from GitHub as well with the devtool::install_github function; note that this is necessary as the current "remotes" version on CRAN doesn't currently allow us to correctly download the "maEndToEnd" package: 
+
 install.packages("devtools")
 library(devtools)
-source("https://bioconductor.org/biocLite.R")
-biocLite("DelayedArray")
-biocLite("DO.db")
-biocLite("GenomeInfoDbData")
-biocLite("GO.db")
-biocLite("hugene10sttranscriptcluster.db")
-biocLite("pd.hugene.1.0.st.v1")
-biocLite("reactome.db")
 
-library(DelayedArray)
-library(DO.db)
-library(GenomeInfoDbData)
-library(GO.db)
-library(hugene10sttranscriptcluster.db)
-library(pd.hugene.1.0.st.v1)
-library(reactome.db)
+devtools::install_github("r-lib/remotes")
+library(remotes)
+packageVersion("remotes") #has to be 1.1.1.9000 or above
 
-install_github("Steffireise/maEndToEnd", ref="master")
+remotes::install_github("Steffireise/maEndToEnd", ref="master")
 
 suppressPackageStartupMessages({
     library("maEndToEnd")
-  
-inst_pkgs <- as.data.frame(installed.packages())  
-# base and recommended pkgs  
-pkgs_to_keep <- ifelse(!is.na(inst_pkgs$Priority), TRUE, FALSE)
-pkgs_to_remove <- rownames(inst_pkgs[!pkgs_to_keep, ])
-remove.packages(pkgs_to_remove)
 
 })
 
@@ -237,7 +223,7 @@ samples, e.g. the experimental group(s) they belong to.
 ## Download of the raw data and the annotation data 
 
 With the code below, we download the raw data from
-[ArrayExpress](https://www.ebi.ac.uk/arrayexpress/) [@Kolesnikov_2014] by using the getAE-function.
+[ArrayExpress](https://www.ebi.ac.uk/arrayexpress/) [@Kolesnikov_2014] by using the getAE--function.
 The data are saved in the `raw_data_dir` created above. The names of the downloaded files are returned as a list.
 
 
@@ -400,7 +386,7 @@ Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
 
 The first step after the initial data import is the quality control of the data.
 Here we check for outliers and try to see whether the data clusters as expected, 
-e.g. by the experimental conditions. The expression intensity values are in the assayData sub--object "exprs" and can be accessed by the `exprs(raw_data)` function. The rows represent the microarray probes, i.e. the single DNA locations on the chip, while the columns represent one microarray, i.e. a sample of inflamed- and non-inflamed tissue of every patient, respectively. 
+e.g. by the experimental conditions. The expression intensity values are in the assayData sub--object "exprs" and can be accessed by the `exprs(raw_data)` function. The rows represent the microarray probes, i.e. the single DNA locations on the chip, while the columns represent one microarray, i.e. a sample of inflamed-- and non--inflamed tissue of every patient, respectively. 
 
 ```{r inspectAssayData, eval=TRUE}
 
@@ -412,16 +398,16 @@ Biobase::exprs(raw_data)[1:5, 1:5]
 For quality control, we take the the log2 of `Biobase::exprs(raw_data)`, 
 as expression data is commonly analyzed on a logarithmic scale.
 
-We then perform a principal component analysis (PCA) and plot it (see Figure 
+We then perform a principal component analysis (PCA) and plot it (Figure 
 \@ref(fig:qualityControlRawDataPCA)). Every point in the plot represents one sample, 
-with the colour indicating the mucosa type (inflamed vs non-inflamed) and the shape 
+with the colour indicating the mucosa type (inflamed vs non--inflamed) and the shape 
 indicating the disease (UC or CD).
 
-We also represent the probe intensities  via a boxplot graph with one box per
+We also represent the probe intensities via a boxplot graph with one box per
 individual microarray. (Figure \@ref(fig:qualityControlRawDataBox)). Note that the 
-`oligo::boxplot` function, i.e. the boxplot function of the oligo package, can take  
+`oligo::boxplot` function, i.e. the boxplot function of the oligo package, can take 
 expression sets as argument. It accesses the expression data and performs a 
-log2-transformation by default. We therefore can use `raw_data` as argument here.
+log2--transformation by default. We therefore can use `raw_data` as argument here.
 
 
 ```{r qualityControlRawDataPCA, fig.cap="PCA plot of the log–transformed raw data."}
@@ -457,12 +443,12 @@ oligo::boxplot(raw_data, target="core",
 ```
 
 
-The PCA  plot (Figure \@ref(fig:qualityControlRawDataPCA), performed on 
-the log--intensity scale)  of the raw data shows that the 
+The PCA plot (Figure \@ref(fig:qualityControlRawDataPCA), performed on 
+the log--intensity scale) of the raw data shows that the 
 first principal component differentiates between the diseases. This means that 
-major the disease type is a major driver of gene expression differences.
+the disease type is a major driver of gene expression differences.
 
-This might hinder our analysis, as  we want to analyze the differential expression between inflamed-- and non--inflamed 
+This might hinder our analysis, as we want to analyze the differential expression between inflamed-- and non--inflamed 
 tissues, independently of the disease a person suffers from. 
 
 When looking at the boxplot (Figure 
@@ -488,7 +474,7 @@ arrayQualityMetrics(expressionset = raw_data,
 
 After the initial import and quality assessment, the next step in processing of
 microarray data is background adjustment. This is essential because a part of the
-measured probe intensities are due to non-specific hybridization and the noise 
+measured probe intensities are due to non--specific hybridization and the noise 
 in the optical detection system. Therefore, observed intensities need to be adjusted to 
 give accurate measurements of specific hybridization.
 
@@ -557,7 +543,7 @@ although strictly speaking RMA is merely a summarization method
 #Relative Log Expression data quality analysis
 
 Before calibrating and evaluating the data, we want to perform another quality 
-control procedure, namly Relative Log Expression (RLE), as described in 
+control procedure, namely Relative Log Expression (RLE), as described in 
 the article by Gandolfo et al [@Gandolfo_2018]. To this end, we first perform an RMA without prior normalization: 
 
 ```{r RMAcalibrationForRLE, eval=TRUE}
@@ -650,7 +636,7 @@ about it.
 
 An alternative to quantile normalization would be the `r Biocpkg("vsn") ` algorithm,
 that performs background correction and normalization by robustly
-shifting and scaling intensity values within arrays  before log--transforming
+shifting and scaling intensity values within arrays before log--transforming
 them. This is less "severe" than quantile normalization [@vsn]. 
 
 ## Some mathematical background on normalization (calibration) and background correction
@@ -663,7 +649,7 @@ $$
 $$
     
 where B is a random quantity due to background noise, usually composed of
-optical effects and non-specific binding, \(\alpha\) is a gain factor, and \(S\)
+optical effects and non--specific binding, \(\alpha\) is a gain factor, and \(S\)
 is the amount of measured specific binding. The signal \(S\) is considered a
 random variable as well and accounts for measurement error and probe effects.
 The measurement error is typically assumed to be multiplicative so we can write:
@@ -673,7 +659,7 @@ $$
 $$
     
 Here \(\theta\) represents the logarithm of the true abundance,
-\(\varphi\) is a probe-specific effect, and $\varepsilon$ accounts for the 
+\(\varphi\) is a probe--specific effect, and $\varepsilon$ accounts for the 
 nonspecific error.
 This is the additive--multiplicative--error model for microarray data used by RMA
 and also the `r Biocpkg("vsn") ` algorithm [@vsn]. The algorithms differ 
@@ -778,7 +764,7 @@ pheatmap(dists, col = (hmcol), legend = TRUE,
 
 ```
 
-The outliers that could be found here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II (see Figure \@ref(fig:alternativeHeatmapWithPatientProbesAsLabels)). 
+The outliers that could be found here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II (Figure \@ref(fig:alternativeHeatmapWithPatientProbesAsLabels)). 
 2826_II, 3262_II and 3332_II were found to be outliers in both RLE and heatmap and could therefore considered to be removed; however, to stay as close as possible to the
 original paper, we continue with the complete set of samples.
 Note again that more elaborate metrics to identify and remove outliers 
@@ -791,14 +777,14 @@ We now filter out lowly expressed genes. Microarray data commonly show a large n
 of probes in the background intensity range. These probes also do not 
 change much across arrays. Hence they combine a low variance with a low intensity.
 Thus, they could end up being detected as differentially expressed although they are 
-barely above the "detection" limit  and are not very informative in general. 
+barely above the "detection" limit and are not very informative in general. 
 
 We will perform a "soft" intensity based filtering here, since this 
 is recommended by `r Biocpkg("limma")`'s [@limma; @Smyth_2004] user guide 
 (a package we will use below for the differential 
 expression analysis). 
 
-However, note that  a variance based filter might exclude a similar set of 
+However, note that a variance based filter might exclude a similar set of 
 probes in practice. 
 We calculate the row--wise medians from the expression data, as they represent the transcript medians, and assign them to `palmieri_medians`. From this we create
 a histogram: 
@@ -849,9 +835,9 @@ A function `idx_man_threshold` is then applied to each row, i.e. to each transcr
 across all arrays.
 It evaluates whether the number of arrays where the median intensity passes the
 threshold (`sum(x > man_threshold)`) is greater than the `samples_cutoff` and 
-returns out TRUE or FALSE for each row, i.e. each transcript.
+returns TRUE or FALSE for each row, i.e. each transcript.
 
-We than create a table of `idx_man_threshold` in order to summarize the results,
+We then create a table of `idx_man_threshold` in order to summarize the results,
 in order to get an overview over how many genes are filtered out. 
 In the last step, we subset our expression set to `palmieri_manfiltered` and keep the TRUE elements of `idx_man_threshold`.
 
@@ -951,11 +937,11 @@ the row names are named as the row names of the assay data by default, which are
 Therefore, we generate a column PROBEID in `fData(palmieri_final)` and 
 assign the row names of `fData(palmieri_final)` to it. Then, we left--join `fData(palmieri_final)`with `anno_palmieri`, which already contains 
 the columns "SYMBOL" and "GENENAME".
-A left-join keeps the rows and columns of the first argument 
+A left--join keeps the rows and columns of the first argument 
 and adds the corresponding column entries of the second argument.
 
 By left--joining with `anno_palmieri`, we thus add the "SYMBOL" and "GENENAME" 
-columns from `anno_palmieri for only the PROBEIDs that are in 
+columns from `anno_palmieri` for only the PROBEIDs that are in 
 `fData(palmieri_final)` and thus get the feature Data for the filtered probes.
 
 
@@ -1046,7 +1032,7 @@ them. Therefore, we block on patients, which means that the
 patient IDs become variables of the linear model.
 
 Then we create factors that give us the grouping for the diseases and
-the tissue types (non-inflamed and inflamed). We furthermore simplify the names of the
+the tissue types (non--inflamed and inflamed). We furthermore simplify the names of the
 diseases to UC and DC and the names of the tissue types to nI and I.
 
 Finally, we create two design matrices, 
@@ -1118,7 +1104,7 @@ expressed or not.
 ## Analysis of differential expression based on a single gene
 
 For linear model fitting and subsequent testing for differential expression 
-by t--test, we will pick the gene with the PROBEID 8164535. It the gene symbol 
+by t--test, we will pick the gene with the PROBEID 8164535. It has the gene symbol 
 *CRAT* and will be named as such in the following code. 
 
 ### Illustration of the fitted linear model on the *CRAT* gene
@@ -1180,8 +1166,7 @@ fitted expression value.
 This means that as output of the multiplication, we get a vector `crat_fitted` whose 
 entries are the sum of relevant variable coefficients for each sample, respectively.
 
-For example, the fitted value for patient sample `2114_I.CEL` is 6.97: it is the sum of the respective activated variable coefficients "nI" (7.1917 ) and "i_CD2114" 
-(- 0.2215). 
+For example, the fitted value for patient sample `2114_I.CEL` is `r crat_coef["nI"] + crat_coef["i_CD2114"]`: it is the sum of the respective activated variable coefficients "nI" (`r crat_coef["nI"]`) and "i_CD2114" (`r crat_coef["i_CD2114"]`).
 
 ```{r 2obtainFitCRAT}
 crat_fitted <- design_palmieri_CD %*% crat_coef
@@ -1205,15 +1190,15 @@ ggplot(data = crat_data, aes(x = tissue_CD, y = fitted_value,
 ```
 
 
-Note that the differences of the fitted expression values between inflamed-- and non--inflamed samples of one patient is the same for all patients and is determined by the difference between the variable coefficients of `I` (6.77) and `nI` (7.19), which is - 0.425 ((see Figure \@ref(fig:3obtainFitCRAT)). 
+Note that the differences of the fitted expression values between inflamed-- and non--inflamed samples of one patient is the same for all patients and is determined by the difference between the variable coefficients of `I` (`r crat_coef["I"]`) and `nI` (`r crat_coef["nI"]`), which is  `r crat_coef["I"] - crat_coef["nI"]` (Figure \@ref(fig:3obtainFitCRAT)). 
 
 This is the case because the same blocking variable is activated by the design 
 matrix for both samples from a single patient, leading to a comparison within
 patients only. These blocking variables correct the fitted tissue specific 
 expression values towards the expression levels of the individual patients. 
 
-The "difference" between non--inflamed and inflamed tissue of - 0.425 actually 
-is a log fold change, as our expression data is on the log scale. - 0.425 
+The "difference" between non--inflamed and inflamed tissue of `r crat_coef["I"] - crat_coef["nI"]` actually 
+is a log fold change, as our expression data is on the log scale. `r crat_coef["I"] - crat_coef["nI"]`
 therefore is our log fold change for the CRAT gene.
 
 ### Differential expression analysis of the CRAT gene
@@ -1229,12 +1214,10 @@ which the statistic is given by:
 \]
 
 Where, \(\bar{d}\) is the mean difference between the individuals. 
-The paired t-test has computes the variance \(s^2\)   from the paired differences.
-This is lower than the variance of a standard t--test and thus higher power
-as long as the expression values for the same individual are correlated (
-[see e.g. the article on Wikipedia](https://en.wikipedia.org/wiki/Paired_difference_test)).
+The paired t--test computes the variance \(s^2\) from the paired differences.
+This is lower than the variance of a standard t--test and thus the paired t--test has higher power as long as the expression values for the same individual are correlated ([see e.g. the article on Wikipedia](https://en.wikipedia.org/wiki/Paired_difference_test)).
 
-We thus have improved the power of the ordinary \(t\)--test  
+We thus have improved the power of the ordinary \(t\)--test 
 by reducing the variance via blocking on individuals.
 
 We now conduct the \(t\)--test on the linear model in order to find 
@@ -1274,7 +1257,7 @@ to it in order to find genes with significant differential expression between no
 
 We apply the empirical Bayes variance moderation method to it 
 via the `eBayes()` function, which
-computes computes moderated \(t\)--statistics: In microarray analysis, 
+computes computes moderated \(t\)--statistics: As in microarray analysis, 
 the number of arrays often is quite small, variance estimation is difficult.
 Using a combination of the per--gene--variance and a prior variance we can improve the 
 variance estimate. Hence the term "moderation". "Empirical Bayes" 
@@ -1335,7 +1318,7 @@ hist(table_UC$P.Value, col = brewer.pal(3, name = "Set2")[2],
 
 ## Multiple testing and comparison to the paper results
 
-In the original paper, a p--value of 0.001 was used  as a significance
+In the original paper, a p--value of 0.001 was used as a significance
 cutoff. Using this we get `r nrow(subset(table_UC, P.Value < 0.001))`
 genes identified as differentially expressed for UC:
 
@@ -1358,7 +1341,7 @@ Thus, we can see that the "raw" p--values are very "liberal" when
 looking at many tests simultaneously. We therefore need error
 rates adapted to the multiple testing situation. By far the 
 most popular one in molecular biology is the **false discovery
-rate** or FDR for short. As we have seen, the FDR  of our genes list
+rate** or FDR for short. As we have seen, the FDR of our genes list
 using a simple p--value cutoff might be quite high.
 
 On the other hand, we can see a clear peak in the p--value histogram 
@@ -1379,7 +1362,7 @@ which is an order of magnitude lower than the FDR we can infer
 from p--values alone.
 
 So although this is not recommended in general,
-we also use a p-value cutoff at 0.001 in the following
+we also use a p--value cutoff at 0.001 in the following
 in order to be able to compare our workflow results to the paper results. 
 
 The paper results can be downloaded as excel files from
@@ -1390,7 +1373,7 @@ your working directory.
 Note that while the paper uses p--value cutoffs, it also reports the
 corresponding FDRs (just as we did for the UC data here).
 
-For a p--value cutoff of 0.001. The corresponding FDRs are 0.05 in Crohn's disease 
+For a p--value cutoff of 0.001, the corresponding FDRs are 0.05 in Crohn's disease 
 and 0.02 in ulcerative colitis. There are four tables in total, giving
 the list of up and downregulated genes in CD and UC, respectively.
 We calculate the overlap between our results and the ones from the 
@@ -1432,7 +1415,7 @@ total_genenumber_UC
 We find `r total_genenumber_CD` (CD) and `r total_genenumber_UC` (UC) 
 differentially expressed genes ("DE--genes").
 
-In the paper, 298 (CD) and 520 (UC) DE--genes were found for the two diseases at the same cutoff. This  higher number of DE--genes identified is probably
+In the paper, 298 (CD) and 520 (UC) DE--genes were found for the two diseases at the same cutoff. This higher number of DE--genes identified is probably
 due to the increased power of the blocking according to the individuals
 and the moderated variance estimation that `r Biocpkg("limma") ` performs.
 
@@ -1473,7 +1456,7 @@ For every differentially expressed gene, we try to find genes with similar
 expression with `genefinder`. The `genefinder` function returns two lists 
 for each gene: one with the indices of the 
 background genes found and one with the distances to the DE--genes. 
-We have to extract  the PROBEIDs, which correspond to the indices. 
+We have to extract the PROBEIDs, which correspond to the indices. 
 We do that by using the `sapply` 
 function, which gives us a single matrix with the DE--genes as column names and the 
 PROBEIDs of the corresponding background genes in the cells below. 
@@ -1486,7 +1469,7 @@ use the `setdiff` function. It returns all elements from the first argument
 `intersect` function, we verify that we were successful: it should return 0, as there 
 shouldn't be any intersect anymore between `back_genes`and `DE_genes_CD`. 
 
-We create a multidensity plot with mean expression on the x-axis and curves for all genes, foreground genes and background genes, respectively (see Figure \@ref(fig:multidensityPlot)). We want to see whether the background genes show a plot similar to the foreground genes so that the background is not biased for the gene enrichment analysis. 
+We create a multidensity plot with mean expression on the x--axis and curves for all genes, foreground genes and background genes, respectively (Figure \@ref(fig:multidensityPlot)). We want to see whether the background genes show a plot similar to the foreground genes so that the background is not biased for the gene enrichment analysis. 
 
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, message=FALSE}
 
@@ -1517,8 +1500,8 @@ multidensity(list(
 ```
 
 When comparing the "background gene" curve to the "foreground gene" curve, we see a 
-similar curve shape, indicating a sensible background matching (see Figure 
-\@ref(fig:multidensityPlot)). Note that the right-shift of the "foreground-gene" curve 
+similar curve shape, indicating a sensible background matching (Figure 
+\@ref(fig:multidensityPlot)). Note that the right--shift of the "foreground-gene" curve 
 in comparison to the "background-gene" curve indicates that DE--genes are generally very
 highly expressed, so that it wasn't possible to find background--genes with an equally 
 high expression.
@@ -1611,7 +1594,7 @@ We can now inspect the results. We look at the top 100 GO categories according
 to the "Fisher elim" algorithm. The function `GenTable` produces
 a table of significant GO categories, the function `printGenes`
 gives genes annotated to them; the significant ones are denoted with a "2" in the "raw 
-p-value" column, the non--significant ones with a "1". We therefore select `raw p-value == 2`. 
+p--value" column, the non--significant ones with a "1". We therefore select `raw p-value == 2`. 
 Note that we don't get the actual p--values here because our `all_genes` vector doesn't 
 contain this information; it only tells us whether a gene is differentially 
 expressed or not.
@@ -1648,7 +1631,7 @@ showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
 ```
 
 We can see that indeed GO categories related to inflammation, signalling and 
-immune response show up as significant (see Figure \@ref(fig:graphOfResults))
+immune response show up as significant (Figure \@ref(fig:graphOfResults))
 Gene set enrichment analysis has been a field of very extensive
 research in bioinformatics. For additional approaches see the `r Biocpkg("topGO") `
 vignette and the references therein and also in the [GeneSetEnrichment view](http://bioconductor.org/packages/release/BiocViews.html#___GeneSetEnrichment). 
@@ -1657,7 +1640,7 @@ vignette and the references therein and also in the [GeneSetEnrichment view](htt
 # A pathway enrichment analysis using reactome
 
 The package `r Biocpkg("ReactomePA") ` offers the possibility to test enrichment
-of specific pathways using the free, open-source, curated and peer reviewed 
+of specific pathways using the free, open--source, curated and peer reviewed 
 [Reactome](http://www.reactome.org/s) pathway database [@Croft_2013; @Fabregat_2015]. 
 The package requires entrez identifiers, so we convert our PROBEIDs (trancript cluster identifiers) 
 to entrez identifiers using the function `mapIDs` from the package `r Biocpkg("AnnotationDbi")`. 
@@ -1700,7 +1683,7 @@ Note that we trimmed pathway names to 20 characters.
 
 The `r Biocpkg("reactomePA")` package offers nice visualization capabilities.
 The top pathways can be displayed as a bar chart that displays all categories
-with a p--value below the specified cutoff (see Figure \@ref(fig:reactomeBar)).
+with a p--value below the specified cutoff (Figure \@ref(fig:reactomeBar)).
 
 ```{r reactomeBar, dependson="runReactomeEnrichment", fig.cap="Enriched Reactome pathways and their p–values as a bar chart."}
 barplot(reactome_enrich)
