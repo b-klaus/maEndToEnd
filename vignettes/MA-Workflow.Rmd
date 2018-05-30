@@ -1470,11 +1470,21 @@ is performed by a simple Fisher test on a 2x2 table. Note that this approach
 is very similar to commonly used web tools like GOrilla [@Eden_2009]. 
 
 For every differentially expressed gene, we try to find genes with similar
-expression with `genefinder`. The `genefinder` function gives out two lists for each gene for which background genes should be found: one with the indices of the background genes found and one with the distances to the DE--genes. We have to extract the PROBEIDs, which correspond to the indices. We do that by using the `sapply` function, which gives us a single table with the DE--genes as column names and the PROBEIDs of the corresponding background genes in the cells below. 
+expression with `genefinder`. The `genefinder` function returns two lists 
+for each gene: one with the indices of the 
+background genes found and one with the distances to the DE--genes. 
+We have to extract  the PROBEIDs, which correspond to the indices. 
+We do that by using the `sapply` 
+function, which gives us a single matrix with the DE--genes as column names and the 
+PROBEIDs of the corresponding background genes in the cells below. 
 
 We then create a vector `back_genes` containing all background gene PROBEIDs.
 
-In order to eliminate foreground genes, i.e. DE--genes, from the `back_genes` set, we use the `setdiff` function. It returns all elements from the first argument (`back_genes`) that are not part of the second argument (`DE_genes_CD`). With the `intersect` function, we verify what we did: it should return 0, as there shouldn't be any intersect anymore between `back_genes`and `DE_genes_CD`. 
+In order to eliminate foreground genes, i.e. DE--genes, from the `back_genes` set, we 
+use the `setdiff` function. It returns all elements from the first argument 
+(`back_genes`) that are not part of the second argument (`DE_genes_CD`). With the 
+`intersect` function, we verify that we were successful: it should return 0, as there 
+shouldn't be any intersect anymore between `back_genes`and `DE_genes_CD`. 
 
 We create a multidensity plot with mean expression on the x-axis and curves for all genes, foreground genes and background genes, respectively (see Figure \@ref(fig:multidensityPlot)). We want to see whether the background genes show a plot similar to the foreground genes so that the background is not biased for the gene enrichment analysis. 
 
@@ -1506,10 +1516,18 @@ multidensity(list(
 
 ```
 
-When comparing the "background gene" curve to the "foreground gene" curve, we see a similar curve form, indicating a sensible background matching (see Figure \@ref(fig:multidensityPlot)). Note that the right-shift of the "foreground-gene" curve in comparison to the "background-gene" curve indicates that DE--genes are generally very highly expressed, so that it wasn't possible to find background--genes with an equally high expression.
-The "all gene" curve has its maximum at the lowest mean expression of the three. This can be explained by a high number of lowly expressed genes among all samples. 
+When comparing the "background gene" curve to the "foreground gene" curve, we see a 
+similar curve shape, indicating a sensible background matching (see Figure 
+\@ref(fig:multidensityPlot)). Note that the right-shift of the "foreground-gene" curve 
+in comparison to the "background-gene" curve indicates that DE--genes are generally very
+highly expressed, so that it wasn't possible to find background--genes with an equally 
+high expression.
 
-For the actual testing of which GO gene sets are enriched in inflamed tissue, we use the `r Biocpkg("topGO")` package which implements a nice interface to Fisher testing and also has additional algorithms
+The "all gene" curve has its maximum at the lowest mean expression of the three. This can be explained by a high number of lowly expressed genes in all samples. 
+
+For the actual testing of which GO gene sets are enriched in inflamed tissue, 
+we use the `r Biocpkg("topGO")` package which implements a nice interface to Fisher 
+testing and also has additional algorithms
 taking the GO structure into account, by e.g. only reporting the most specific
 gene set in the hierarchy [@Alexa_2006].
 
@@ -1521,11 +1539,25 @@ to the BP category here.
 
 topGO requires a topGOdata object containing the necessary information for the analysis. We follow the steps described in the topGO vignettes: First, we will create a named vector `all_genes` with all genes to be analyzed, i.e. DE--genes and background genes: 
 
-  1. we create an `in_universe` vector by using the `%in%` matching function. We want to know which elements from `gene_IDs` are also contained in `DE_genes_CD` and `back_genes`, as the latter two are our gene universe we use for enrichment analysis. We get a vector `in_universe` with the length of `gene_IDs` that has the entry `TRUE` when the corresponding gene in `gene_IDs`could be also found in `DE_genes_CD` or `back_genes`, and `FALSE` otherwise.
+  1. we create an `in_universe` vector by using the `%in%` matching function. 
+  We want to know which elements from `gene_IDs` are also contained in 
+  `DE_genes_CD` and `back_genes`, as the latter two are our gene universe we use for 
+  enrichment 
+  analysis. We get a vector `in_universe` with the length of `gene_IDs` that has the 
+  entry `TRUE` when the corresponding gene in `gene_IDs`could be also found in 
+  `DE_genes_CD` or `back_genes`, and `FALSE` otherwise.
+  
   2. We do the same for our DE--genes and call this vector `inSelection`.
+  
   3. We create the `all_genes` vector:
-    a) First, we select all the elements from `inSelection` that are `TRUE` in `in_universe` by applying `all_genes <- inSelection[in_universe]`.
-    b) Then, we convert the elements in `all_genes` from `TRUE` and `FALSE` to 0 and 1 by converting the vector to an integer vector. This way, each element in the vector is a 0 if the corresponding gene is a background gene and a 1 if the corresponding gene is a DE--gene. Also, we convert the vector to a factor.
+    a) First, we select all the elements from `inSelection` 
+    that are `TRUE` in `in_universe` by applying
+    `all_genes <- inSelection[in_universe]`.
+    b) Then, we convert the elements in `all_genes` from `TRUE` and `FALSE` 
+    to 0 and 1 by converting the vector to an integer vector. 
+    This way, each element in the vector is a 0 if the corresponding gene is a
+    background gene and a 1 if the corresponding gene is a DE--gene. Also, we 
+    convert the vector to a factor.
     c) We name the vector elements with the corresponding `gene_IDs`.
 
 ```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=TRUE}
@@ -1578,7 +1610,11 @@ result_top_GO_classic <-
 We can now inspect the results. We look at the top 100 GO categories according
 to the "Fisher elim" algorithm. The function `GenTable` produces
 a table of significant GO categories, the function `printGenes`
-gives genes annotated to them; the significant ones are denoted with a "2" in the "raw p-value" column, the non--significant ones with a "1". We therefore select `raw p-value == 2`. Note that we don't get the actual p--values here because our `all_genes` vector doesn't contain this information; it only tells us whether a gene is differentially expressed or not.
+gives genes annotated to them; the significant ones are denoted with a "2" in the "raw 
+p-value" column, the non--significant ones with a "1". We therefore select `raw p-value == 2`. 
+Note that we don't get the actual p--values here because our `all_genes` vector doesn't 
+contain this information; it only tells us whether a gene is differentially 
+expressed or not.
 
 ```{r processtopGOResults, eval=TRUE, dependson="runtopGOTests"}
 res_top_GO <- GenTable(top_GO_data, Fisher.elim = result_top_GO_elim,
@@ -1612,7 +1648,7 @@ showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
 ```
 
 We can see that indeed GO categories related to inflammation, signalling and 
-immune response show up as significant ((see \@ref(fig:graphOfResults)))
+immune response show up as significant (see Figure \@ref(fig:graphOfResults))
 Gene set enrichment analysis has been a field of very extensive
 research in bioinformatics. For additional approaches see the `r Biocpkg("topGO") `
 vignette and the references therein and also in the [GeneSetEnrichment view](http://bioconductor.org/packages/release/BiocViews.html#___GeneSetEnrichment). 
@@ -1676,7 +1712,6 @@ a graph, where the color represents the p--value of the pathway and the
 edge--thickness (that is the line connecting two pathways) is proportional to the number of overlapping genes between two pathways.
 
 ```{r emapplot, dependson="runReactomeEnrichment", fig.width=6, fig.height = 7, fig.cap="Enriched Reactome pathways enrichment results as a graph."}
-#enrichMap(reactome_enrich, n = 10, vertex.label.font = 2) 
 
 emapplot(reactome_enrich, showCategory=10)
 
