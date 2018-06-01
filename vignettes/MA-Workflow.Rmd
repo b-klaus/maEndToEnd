@@ -97,6 +97,38 @@ opts_chunk$set(echo=TRUE,
 **Package version**: `r packageVersion("maEndToEnd")`
 </p>
 
+# Amendments from Version 1
+
+The individual workflow steps now contain more detailed discussions of the
+code. We also try to explain the statistics behind the individual steps 
+carefully and in a non--technical way.
+
+In general, the new version should be much more accessible to beginners in R / 
+Bioconductor with a working knowledge in statistics.
+
+Furthermore, we want to highlight the following specific changes:
+
+* The workflow has been wrapped into an R package "maEndToEnd" and the
+ package dependencies are now grouped by keywords.
+
+* Relative Log Expression (RLE) analysis has been implemented as another data 
+quality control step. Combined with clustering heatmaps, it can be used 
+as a basic tool to detect low quality arrays. 
+A section on how to interpret these two kind of plots has also  been added.
+
+* The method for intensity--based filtering of genes prior to the differential
+expression analysis has been changed. We now filter using a more intuitive, visually chosen cutoff instead of fitting a normal distribution and setting 
+the 5 % quantile as a threshold. 
+
+* The rather theoretical section on the mathematical background of linear regression models has been removed. 
+
+* Instead, we explain the principles of differential expression analysis using 
+a specific gene. We fit the linear model to this gene, explain its rationale
+and compare it to the standard t--test.
+
+* A section on the use of False Discovery Rate (FDR) control in multiple testing 
+problems has been added: We illustrate the benefits of FDR control using
+p--values from the data at hand.
 
 # Introduction
 
@@ -111,8 +143,10 @@ show a substantial overlap with the results of the original paper.
 
 # Required packages and other preparations
 
-The maEndToEnd package can currently be loaded from GitHub and will be on the next release of Bioconductor. 
-```{r, echo=FALSE, results="hide", warning=FALSE, eval=FALSE}
+The maEndToEnd package can currently be loaded from GitHub and will be submitted
+to Bioconductor soon.
+
+```{r, echo=TRUE, results="hide", warning=FALSE, eval=FALSE}
 
 #In order to download the package from GitHub, we need the "install_github" function from the "remotes" packages. We download the latest developer version of "remotes" from GitHub as well with the devtool::install_github function; note that this is necessary as the current "remotes" version on CRAN doesn't currently allow us to correctly download the "maEndToEnd" package: 
 
@@ -121,7 +155,7 @@ library(devtools)
 
 devtools::install_github("r-lib/remotes")
 library(remotes)
-packageVersion("remotes") #has to be 1.1.1.9000 or above
+packageVersion("remotes") #has to be 1.1.1.9000 or later
 
 remotes::install_github("Steffireise/maEndToEnd", ref="master")
 
@@ -1743,21 +1777,26 @@ sessionInfo()
 
 # Acknowledgements
 
-The author would like to thank Vladislava Milchevskaya, Julian Gehring and Mike Smith for 
-helpful comments on and small contributions to the workflow. 
+The authors would like to thank Vladislava Milchevskaya, Julian Gehring and Mike Smith 
+for helpful comments on and small contributions to the workflow. 
+
 This workflow draws a lot of inspiration from the Bioconductor 
 books [@Bioc2005; @useRbook2008] as well as Love et. al.'s workflow 
 for gene level analysis of RNA--Seq data [@Love_2015]. James W. MacDonald 
 provided valuable information on the evolution of Affymetrix arrays in some of 
-his posts of on the Biocondctor mailing list/support site. 
-The author would also like to thank him for some friendly personal 
+his posts of on the Biocondctor support site. 
+BK would also like to thank him for some friendly personal 
 correspondence about the annotation resources available
 for microarrays in Bioconductor.
 
-<!--
-Dan Tenenbaum provided helpful technical support on the bioconductor
-workflow system. 
--->
+
+
+# Author Contributions: 
+
+BK produced the first version of this article. BK implemented the main scaffold of the 
+workflow and designed the workflow steps. SR implemented additional workflow steps and 
+improved existing ones from version 1. BK and SR wrote the article.
+
 
 # References
 
