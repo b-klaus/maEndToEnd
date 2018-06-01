@@ -32,7 +32,7 @@ vignette: >
 <!-- Rscript --vanilla test_mem.R -->
 
 <!-- latest version from github -->
-<!-- devtools::install_github("Steffireise/maEndToEnd", ref = "first_changes_steffi") -->
+<!-- devtools::install_github("Steffireise/maEndToEnd", ref = "master") -->
 
 <!--Html rendering for Bioc Workflow using BiocStyle-->
 <!-- rmarkdown::render("MA-Workflow.Rmd") -->
