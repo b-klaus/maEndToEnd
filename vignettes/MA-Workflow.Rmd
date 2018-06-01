@@ -199,15 +199,11 @@ suppressPackageStartupMessages({
     library(BiocStyle)
     library(dplyr)
 
-#Others:
-  library(LSD)
+#Helpers:
   library(stringr)
   library(matrixStats)
   library(genefilter)
   library(biomaRt)
-  library(mvtnorm)
-  library(DAAG)
-  library(multcomp)
   library(openxlsx)
   library(devtools)
 

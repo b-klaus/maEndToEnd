@@ -1,8 +1,9 @@
 Package: maEndToEnd
 Title: An end to end workflow for differential gene expression using Affymetrix microarrays
-Version: 1.0.3
+Version: 0.99.0
 Date: 2017-09-05
 Authors@R: person(role=c("aut", "cre"), "Bernd", "Klaus", email = "bernd.klaus@embl.de")
+Authors@R: person(role=c("aut"), "Stefanie", "Reisenauer", email = "Stefanie.Reisenauer@embl.de")
 Description: In this article, we walk through an end--to--end Affymetrix microarray differential
     expression workflow using Bioconductor packages. This workflow is directly 
     applicable to current "Gene" type arrays, e.g. the HuGene or MoGene arrays
@@ -24,7 +25,6 @@ Depends: R (>= 3.5.0),
     geneplotter,
     ggplot2,
     dplyr,
-    LSD,
     gplots,
     RColorBrewer,
     ArrayExpress,
@@ -34,14 +34,10 @@ Depends: R (>= 3.5.0),
     GO.db,
     topGO,
     genefilter,
-    biomaRt,
     GenomeInfoDbData,
     pd.hugene.1.0.st.v1,
     hugene10sttranscriptcluster.db,
     pheatmap,
-    mvtnorm,
-    DAAG,
-    multcomp,
     limma,
     DO.db,
     reactome.db,
@@ -52,7 +48,7 @@ Depends: R (>= 3.5.0),
     RCurl,
     tidyr,
     Rgraphviz
-License: Artistic-2.0
+License: MIT
 Encoding: UTF-8
 LazyData: true
 VignetteBuilder: knitr
