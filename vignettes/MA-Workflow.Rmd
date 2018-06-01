@@ -101,7 +101,8 @@ opts_chunk$set(echo=TRUE,
 
 The individual workflow steps now contain more detailed discussions of the
 code. We also try to explain the statistics behind the individual steps 
-carefully and in a non--technical way.
+carefully and in a non--technical way. Where appropriate, we provide
+suitable references and weblinks.
 
 In general, the new version should be much more accessible to beginners in R / 
 Bioconductor with a working knowledge in statistics.
@@ -916,7 +917,7 @@ anno_palmieri <- subset(anno_palmieri, !is.na(SYMBOL))
 ```
 
 
-## Removing multiple mappings and building custom annotations
+## Removing multiple mappings 
 
 Many transcript--cluster identifiers will map to multiple gene symbols, i.e. 
 they can't be unambigously assigned.
@@ -994,6 +995,7 @@ validObject(palmieri_final)
 
 ```
 
+## Building custom annotations
 
 Alternatively, one can re--map the probes of the array
 to a current annotation. A workflow to do this for Illumina arrays is given in
@@ -1041,7 +1043,7 @@ data for each gene. Empirical Bayes and other methods are used to borrow informa
 across genes for the residual variance estimation leading to "moderated" 
 \(t\)--statistics, and stabilizing the analysis for experiments 
 with just a small number of arrays [@Smyth_2004]. Conceptually, the final per gene 
-variance is a mix of the median variance of all genes and the per gene variance.
+variance is a mix of a prior variance and the per gene variance.
 
 Typical experimental designs are disussed in chapter 9 of `r Biocpkg("limma") `
 "User Guide", which can be found on the Bioconductor landing page 
@@ -1057,8 +1059,10 @@ between inflamed and adjacent non--inflamed mucosal areas of the colon.
 This is studied in both inflammatory bowel disease types.
 
 For building our linear model, we have to think about 
-which variables we want to consider. As we want to find differential expression 
-between non--inflamed and inflamed tissue, those two are the only two variables 
+which experimental variables we want to consider.
+As we want to find differential expression 
+between non--inflamed and inflamed tissue, in principle, 
+those are the only two variables 
 we would have to consider.
 
 However, since we have two arrays per individual patient, we have a "Paired Samples" design (see section 9.4 of the `r Biocpkg("limma") ` user guide). 
@@ -1118,19 +1122,19 @@ head(design_palmieri_UC[, 1:6])
 ```
 
 In the design matrix, the rows represent the patient array, 
-and the columns are the variables we include into our linear model. 
+and the columns are the variables we include in our linear model. 
 For example, the first two rows of the design matrix `design_palmieri_CD` 
 correspond to the two arrays for individual "164". 
 
-The design matrix has the entries 0 and 1 and thus tells us 
+The design matrix entries are 0 or 1 and thus tells us 
 which variables are "active" for which sample: 
 
 It can be seen as a switch that turns the single variables "on" (with a 1 at the 
 corresponding position) or "off" (with a 0 at the corresponding position) for each row, 
-i. e. each patient array. If we have a closer look at the single rows, we see that for 
-each sample, there are two "ones" assigned: one to one of the variable "nI" or "I" 
-corresponding to the tissue the probe came from, and one to the corresponding 
-patient--specific variable.
+i. e. each patient array. If we take a closer look at the single rows, we see that for 
+each sample, there are two "ones" assigned: one to one of the variables "nI" or "I" 
+corresponding to the tissue the array came from, and one to the corresponding 
+patient--specific blocking variable.
 
 Note that in the linear model, individual 164 serves as the baseline for all other individuals and thus isn't included in the sample variables.
 
@@ -1228,16 +1232,20 @@ ggplot(data = crat_data, aes(x = tissue_CD, y = fitted_value,
 ```
 
 
-Note that the differences of the fitted expression values between inflamed-- and non--inflamed samples of one patient is the same for all patients and is determined by the difference between the variable coefficients of `I` (`r crat_coef["I"]`) and `nI` (`r crat_coef["nI"]`), which is  `r crat_coef["I"] - crat_coef["nI"]` (Figure \@ref(fig:3obtainFitCRAT)). 
+Note that the difference of the fitted expression values between inflamed-- and non--inflamed samples of one patient is the same for all patients and is determined by the difference between the variable coefficients of `I` (`r crat_coef["I"]`) and `nI` (`r crat_coef["nI"]`), which is  `r crat_coef["I"] - crat_coef["nI"]` (Figure \@ref(fig:3obtainFitCRAT)). 
 
 This is the case because the same blocking variable is activated by the design 
 matrix for both samples from a single patient, leading to a comparison within
 patients only. These blocking variables correct the fitted tissue specific 
-expression values towards the expression levels of the individual patients. 
+expression values towards the expression levels of the individual patients.
+Therefore final estimate is like a an average of all the within--individual
+differences.
 
-The "difference" between non--inflamed and inflamed tissue of `r crat_coef["I"] - crat_coef["nI"]` actually 
-is a log fold change, as our expression data is on the log scale. `r crat_coef["I"] - crat_coef["nI"]`
-therefore is our log fold change for the CRAT gene.
+The "difference" between non--inflamed and inflamed tissue of `r crat_coef["I"] - 
+crat_coef["nI"]`  
+is actually a log2 fold change, as our expression data is on the log2 scale. `r 
+crat_coef["I"] - crat_coef["nI"]`
+therefore is our log2 fold change for the CRAT gene.
 
 ### Differential expression analysis of the CRAT gene
 
@@ -1270,14 +1278,13 @@ res_t
 
 ```
 
-We get a low p--value of 8e-06 and thus can conclude
+We get a low p--value close to `r round(res_t$p.value, 4) ` and thus can conclude
 that the *CRAT* gene is differentially expressed between 
 non--inflamed and inflamed tissue.
 
 Note that the p--value isn't exactly the same one as below when analyzing the 
 differential expression of all genes. The reason is a variance moderation performed
-by `r Biocpkg("limma")` 
-which we will implement later.
+by `r Biocpkg("limma")` .
 
 ## Contrasts and hypotheses tests
 
@@ -1354,7 +1361,7 @@ hist(table_UC$P.Value, col = brewer.pal(3, name = "Set2")[2],
 
 ```
 
-## Multiple testing and comparison to the paper results
+## Multiple testing FDR, and comparison to the paper results
 
 In the original paper, a p--value of 0.001 was used as a significance
 cutoff. Using this we get `r nrow(subset(table_UC, P.Value < 0.001))`
@@ -1458,14 +1465,20 @@ due to the increased power of the blocking according to the individuals
 and the moderated variance estimation that `r Biocpkg("limma") ` performs.
 
 We see that we get a moderate overlap of `r overlap_CD` for CD and
-`r overlap_UC` for UC, showing us that roughly the same genes were found. 
+`r overlap_UC` for UC, showing that both analysis lead to
+somewhat comparable results. 
 
 
 
 # Gene ontology (GO) based enrichment analysis
 
-As mentioned before, it is recommended to use an FDR cutoff rather than a p--value cutoff, since this way you control an explicitly defined error rate and the results are easier to interpret and
-to compare. For the following enrichment analysis, we create tables with differentially expressed genes for CD and UC, respectively, and choose an FDR cutoff of 10\%. Here, we focus on the CD subset of the data.
+As just discussed, it is recommended to use an FDR cutoff in differential 
+expression analysis rather than a p--value cutoff, 
+since this way you control an explicitly defined error rate 
+and the results are easier to interpret and
+to compare. For the following enrichment analysis, we create tables with 
+differentially expressed genes for CD and UC, respectively, 
+and choose an FDR cutoff of 10\%. Here, we focus on the CD subset of the data.
 
 
 ```{r FDRcontrolledDEgenes, dependson=c("extractResultsUC", "extractResultsCD"), eval=TRUE}
@@ -1541,10 +1554,13 @@ When comparing the "background gene" curve to the "foreground gene" curve, we se
 similar curve shape, indicating a sensible background matching (Figure 
 \@ref(fig:multidensityPlot)). Note that the right--shift of the "foreground-gene" curve 
 in comparison to the "background-gene" curve indicates that DE--genes are generally very
-highly expressed, so that it wasn't possible to find background--genes with an equally 
-high expression.
+highly expressed, so that it wasn't possible to find background--genes with exactly
+equal overall expression distribution.
 
-The "all gene" curve has its maximum at the lowest mean expression of the three. This can be explained by a high number of lowly expressed genes in all samples. 
+The "all gene" curve has the leftmost curve maximum, 
+this can be explained by a high number of lowly expressed genes in all samples
+and shows that a background matching is sensible in order to avoid
+biases.
 
 For the actual testing of which GO gene sets are enriched in inflamed tissue, 
 we use the `r Biocpkg("topGO")` package which implements a nice interface to Fisher 
@@ -1568,12 +1584,12 @@ topGO requires a topGOdata object containing the necessary information for the a
   entry `TRUE` when the corresponding gene in `gene_IDs`could be also found in 
   `DE_genes_CD` or `back_genes`, and `FALSE` otherwise.
   
-  2. We do the same for our DE--genes and call this vector `inSelection`.
+  2. We do the same for our DE--genes and call this vector `in_selection`.
   
   3. We create the `all_genes` vector:
-    a) First, we select all the elements from `inSelection` 
+    a) First, we select all the elements from `in_selection` 
     that are `TRUE` in `in_universe` by applying
-    `all_genes <- inSelection[in_universe]`.
+    `all_genes <- in_selection[in_universe]`.
     b) Then, we convert the elements in `all_genes` from `TRUE` and `FALSE` 
     to 0 and 1 by converting the vector to an integer vector. 
     This way, each element in the vector is a 0 if the corresponding gene is a
@@ -1584,10 +1600,10 @@ topGO requires a topGOdata object containing the necessary information for the a
 ```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=TRUE}
 gene_IDs <- rownames(table_CD)
 in_universe <- gene_IDs %in% c(DE_genes_CD , back_genes)
-inSelection <- gene_IDs %in% DE_genes_CD 
+in_selection <- gene_IDs %in% DE_genes_CD 
 
-all_genes <- inSelection[in_universe]
-all_genes <- factor(as.integer(inSelection[in_universe]))
+all_genes <- in_selection[in_universe]
+all_genes <- factor(as.integer(in_selection[in_universe]))
 names(all_genes) <- gene_IDs[in_universe] 
 ```
 
@@ -1679,7 +1695,7 @@ vignette and the references therein and also in the [GeneSetEnrichment view](htt
 
 The package `r Biocpkg("ReactomePA") ` offers the possibility to test enrichment
 of specific pathways using the free, open--source, curated and peer reviewed 
-[Reactome](http://www.reactome.org/s) pathway database [@Croft_2013; @Fabregat_2015]. 
+[Reactome](http://www.reactome.org/) pathway database [@Croft_2013; @Fabregat_2017]. 
 The package requires entrez identifiers, so we convert our PROBEIDs (trancript cluster identifiers) 
 to entrez identifiers using the function `mapIDs` from the package `r Biocpkg("AnnotationDbi")`. 
 This will create a named vector that maps the PROBEIDs to the entrez ones, with the PROBEIDs as names and the entrez ids as vector elements.
@@ -1728,7 +1744,8 @@ barplot(reactome_enrich)
 
 ```
 
-The "enrichment map" displays the results of the enrichment analysis as 
+The "enrichment map" from the package `r Biocpkg("enrichplot")` 
+displays the results of the enrichment analysis as 
 a graph, where the color represents the p--value of the pathway and the
 edge--thickness (that is the line connecting two pathways) is proportional to the number of overlapping genes between two pathways.
 
@@ -1795,7 +1812,7 @@ for microarrays in Bioconductor.
 
 
 
-# Author Contributions: 
+# Author Contributions
 
 BK produced the first version of this article. BK implemented the main scaffold of the 
 workflow and designed the workflow steps. SR implemented additional workflow steps and 
