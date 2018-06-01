@@ -3,7 +3,7 @@ Title: An end to end workflow for differential gene expression using Affymetrix 
 Version: 0.99.0
 Date: 2017-09-05
 Authors@R: c(person(role=c("aut", "cre"), "Bernd", "Klaus", email = "bernd.klaus@embl.de"),
-person(role=c("aut"), "Stefanie", "Reisenauer", email = "Stefanie.Reisenauer@embl.de"))
+             person(role="aut", "Stefanie", "Reisenauer", email = "Stefanie.Reisenauer@embl.de"))
 Description: In this article, we walk through an end--to--end Affymetrix microarray differential
     expression workflow using Bioconductor packages. This workflow is directly 
     applicable to current "Gene" type arrays, e.g. the HuGene or MoGene arrays
