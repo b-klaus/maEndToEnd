@@ -115,7 +115,7 @@ Furthermore, we want to highlight the following specific changes:
 * Relative Log Expression (RLE) analysis has been implemented as another data 
 quality control step. Combined with clustering heatmaps, it can be used 
 as a basic tool to detect low quality arrays. 
-A section on how to interpret these two kind of plots has also  been added.
+A section on how to interpret these two kinds of plots has also  been added.
 
 * The method for intensity--based filtering of genes prior to the differential
 expression analysis has been changed. We now filter using a more intuitive, visually chosen cutoff instead of fitting a normal distribution and setting 
@@ -149,7 +149,11 @@ to Bioconductor soon.
 
 ```{r, echo=TRUE, results="hide", warning=FALSE, eval=FALSE}
 
-#In order to download the package from GitHub, we need the "install_github" function from the "remotes" packages. We download the latest developer version of "remotes" from GitHub as well with the devtool::install_github function; note that this is necessary as the current "remotes" version on CRAN doesn't currently allow us to correctly download the "maEndToEnd" package: 
+#In order to download the package from GitHub, we need the "install_github" 
+#function from the "remotes" packages. We download the latest developer 
+#version of "remotes" from GitHub as well with the devtool::install_github
+#function; note that this is necessary as the current "remotes" version on
+#CRAN doesn't currently allow us to correctly download the "maEndToEnd" package: 
 
 install.packages("devtools")
 library(devtools)
@@ -167,7 +171,7 @@ suppressPackageStartupMessages({
 
 ```
 
-```{r pkgList}
+```{r pkgList, results="hide"}
 #General Bioconductor packages
     library(Biobase)
     library(oligoClasses)
@@ -425,7 +429,7 @@ Biobase::exprs(raw_data)[1:5, 1:5]
 ```
 
 
-For quality control, we take the the log2 of `Biobase::exprs(raw_data)`, 
+For quality control, we take the log2 of `Biobase::exprs(raw_data)`, 
 as expression data is commonly analyzed on a logarithmic scale.
 
 We then perform a principal component analysis (PCA) and plot it (Figure 
@@ -866,7 +870,7 @@ abline(v = man_threshold, col = "coral4", lwd = 2)
 
 Once we are content with the manual threshold, we filter out all transcripts 
 that don't have intensities greater than the threshold in at least 
-as many arrays as the smallest experimental group (`r min(no_of_samples)`,) which we 
+as many arrays as the smallest experimental group (`r min(no_of_samples)`) which we 
 define as `samples_cutoff`. 
 
 A function `idx_man_threshold` is then applied to each row, i.e. to each transcript 
@@ -938,7 +942,12 @@ probes have been mapped to multiple genes.
 anno_grouped <- group_by(anno_palmieri, PROBEID)
 anno_summarized <- 
   dplyr::summarize(anno_grouped, no_of_matches = n_distinct(SYMBOL))
+
+head(anno_summarized)
+
 anno_filtered <- filter(anno_summarized, no_of_matches > 1)
+
+head(anno_filtered)
 
 probe_stats <- anno_filtered 
 
@@ -1126,7 +1135,7 @@ and the columns are the variables we include in our linear model.
 For example, the first two rows of the design matrix `design_palmieri_CD` 
 correspond to the two arrays for individual "164". 
 
-The design matrix entries are 0 or 1 and thus tells us 
+The design matrix entries are 0 or 1 and thus tell us 
 which variables are "active" for which sample: 
 
 It can be seen as a switch that turns the single variables "on" (with a 1 at the 
@@ -1238,7 +1247,7 @@ This is the case because the same blocking variable is activated by the design
 matrix for both samples from a single patient, leading to a comparison within
 patients only. These blocking variables correct the fitted tissue specific 
 expression values towards the expression levels of the individual patients.
-Therefore final estimate is like a an average of all the within--individual
+Therefore the final estimate is like an average of all the within--individual
 differences.
 
 The "difference" between non--inflamed and inflamed tissue of `r crat_coef["I"] - 
@@ -1448,7 +1457,6 @@ overlap_UC <- length(intersect(subset(table_UC, P.Value < 0.001)$SYMBOL,
 overlap_CD
 overlap_UC 
 
-#add total number of genes found with our method
 total_genenumber_CD <- length(subset(table_CD, P.Value < 0.001)$SYMBOL)
 total_genenumber_UC <- length(subset(table_UC, P.Value < 0.001)$SYMBOL)
 
@@ -1557,7 +1565,7 @@ in comparison to the "background-gene" curve indicates that DE--genes are genera
 highly expressed, so that it wasn't possible to find background--genes with exactly
 equal overall expression distribution.
 
-The "all gene" curve has the leftmost curve maximum, 
+The "all gene" curve has the leftmost curve maximum; 
 this can be explained by a high number of lowly expressed genes in all samples
 and shows that a background matching is sensible in order to avoid
 biases.
