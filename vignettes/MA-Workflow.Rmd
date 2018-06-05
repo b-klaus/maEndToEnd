@@ -171,7 +171,7 @@ suppressPackageStartupMessages({
 
 ```
 
-```{r pkgList, results="hide"}
+```{r pkgList, results="hide", warnings=FALSE}
 #General Bioconductor packages
     library(Biobase)
     library(oligoClasses)
@@ -257,7 +257,7 @@ samples, e.g. the experimental group(s) they belong to.
 ## Download of the raw data and the annotation data 
 
 With the code below, we download the raw data from
-[ArrayExpress](https://www.ebi.ac.uk/arrayexpress/) [@Kolesnikov_2014] by using the getAE--function.
+[ArrayExpress](https://www.ebi.ac.uk/arrayexpress/) [@Kolesnikov_2014] by using the `getAE`--function.
 The data are saved in the `raw_data_dir` created above. The names of the downloaded files are returned as a list.
 
 
@@ -362,21 +362,7 @@ estimated probe intensity values. Each CEL file additionally contains some
 metadata, such as a chip identifier. 
 
 We use the function `read.celfiles` from the `r Biocpkg("oligo") ` 
-package [@oligo] to import the files. This automatically creates an ExpressionSet,
-fills the sections "array data" with the data from the CEL files 
-and uses the correct chip annotation package, in this case
-`r Biocannopkg("pd.hugene.1.0.st.v1") ` (the 
-chip--type is also stored in the .CEL files). 
-
-Furthermore, we specify our `AnnotatedDataFrame` created earlier from the SDRF 
-file as `phenoData`. Thus, we have to make sure that we import the CEL files 
-in the order that corresponds to the SDRF table --- to enforce this, 
-we use the column `Array.Data.File` of the `SDRF` table as the `filenames` 
-argument.
-
-Finally, we check whether the object created is valid (e.g. sample names 
-match between the different tables).
-
+package [@oligo] to import the files:
 
 ```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF", warning = FALSE }
 raw_data <- oligo::read.celfiles(filenames = file.path(raw_data_dir, 
@@ -384,6 +370,22 @@ raw_data <- oligo::read.celfiles(filenames = file.path(raw_data_dir,
                          verbose = FALSE, phenoData = SDRF)
 stopifnot(validObject(raw_data))
 ```
+
+This automatically creates an ExpressionSet,
+fills the sections "array data" with the data from the CEL files 
+and uses the correct chip annotation package, in this case
+`r Biocannopkg("pd.hugene.1.0.st.v1") ` (the 
+chip--type is also stored in the .CEL files). 
+
+Furthermore, we specified our `AnnotatedDataFrame` "`SDRF`" created earlier from the SDRF 
+file as `phenoData`. Thus, we had to make sure that we import the CEL files 
+in the order that corresponds to the SDRF table --- to enforce this, 
+we used the column `Array.Data.File` of the `SDRF` table as the `filenames` 
+argument.
+
+Finally, we checked whether the object created is valid (e.g. sample names 
+match between the different tables).
+
 
 We now inspect the raw data a bit.
 
@@ -597,22 +599,8 @@ We then substract this transcript median intensity from every transcript intensi
 via the `sweep` function. 
 
 We then reshape the data into a format in which we can use to create a boxplot 
-for each array, as before. 
+for each array, as before:
 
-Note that the y--axis now displays for each microarray the deviation of expression 
-intensity from the median expression of the respective single transcripts
-across arrays.
-
-Boxes with a larger extension therefore indicate an unusually high deviation 
-from the median in a lot of transcripts, suggesting that these arrays
-are different from most of the others in some way.
-
-Boxes that are shifted in y--direction indicate a systematically higher or lower 
-expression of the majority of transcripts in comparison to most of the other 
-arrays. This could be caused by quality issues or batch effects. 
-
-Therefore, if shape and median of the single boxes vary too much from the bulk
-of the data, they should be insepected and potentially removed.
 
 ```{r boxplotDataForRLETidy, fig.cap="Boxplot for the RLE values"}
 
@@ -634,7 +622,22 @@ ggplot2::ggplot(RLE_data_gathered, aes(patient_array,
                                   face = "bold"))
 ```
 
-Inspecting the boxplot in Figure \@ref(fig:boxplotDataForRLETidy), 
+Note that the y--axis now displays for each microarray the deviation of expression 
+intensity from the median expression of the respective single transcripts
+across arrays.
+
+Boxes with a larger extension therefore indicate an unusually high deviation 
+from the median in a lot of transcripts, suggesting that these arrays
+are different from most of the others in some way.
+
+Boxes that are shifted in y--direction indicate a systematically higher or lower 
+expression of the majority of transcripts in comparison to most of the other 
+arrays. This could be caused by quality issues or batch effects. 
+
+Therefore, if shape and median of the single boxes vary too much from the bulk
+of the data, they should be insepected and potentially removed.
+
+By inspecting the boxplot in Figure \@ref(fig:boxplotDataForRLETidy), 
 5 arrays could be considered as outliers: 2826_I, 2826_II, 3262_II, 3302_II and 
 3332_II are negatively y--shifted. 
 
@@ -736,7 +739,7 @@ ggplot(dataGG, aes(PC1, PC2)) +
 In comparison to the first PCA analysis before RMA (Figure \@ref(fig:qualityControlRawDataPCA)), we see that now the first principal 
 component separates between the tissues types (Figure \@ref(fig:PCAMetricsCalibrated)).
 This indicates that now differential expression between the tissue types is the
-dominant source of variation. Not that the second principal components
+dominant source of variation. Note that the second principal components
 separates the diseases.
 
 ### Heatmap clustering analysis
@@ -901,7 +904,7 @@ It evaluates whether the number of arrays where the median intensity passes the
 threshold (`sum(x > man_threshold)`) is greater than the `samples_cutoff` and 
 returns TRUE or FALSE for each row, i.e. each transcript.
 
-We then create a table of `idx_man_threshold` in order to summarize the results,
+We then create a table of `idx_man_threshold` to summarize the results,
 in order to get an overview over how many genes are filtered out. 
 In the last step, we subset our expression set to `palmieri_manfiltered` and keep the TRUE elements of `idx_man_threshold`.
 
@@ -921,15 +924,9 @@ palmieri_manfiltered <- subset(palmieri_eset_norm, idx_man_threshold)
 # Annotation of the transcript clusters
 
 Before we continue with the linear models for microarrays and differential
-expression, we describe how to add "feature data", i.e. annotation
+expression, we first add "feature data", i.e. annotation
 information to the transcript cluster identifiers stored in the featureData of
-our ExpressionSet. We use the function `select`
-from `r Biocpkg("AnnotationDbi") ` to query the gene symbols and associated
-short descriptions for the transcript clusters. For each cluster, we add the 
-gene symbol (`SYMBOL`) and a short description of the gene the cluster represents (`GENENAME`). 
-
-In a second step, we filter out the probes that don't map to a gene,
-i.e. that don't have a gene symbol assigned. 
+our ExpressionSet: 
 
 ```{r annotateData, eval=TRUE, dependson="intensityBasedFiltering", message = FALSE}
 
@@ -942,22 +939,21 @@ anno_palmieri <- subset(anno_palmieri, !is.na(SYMBOL))
 
 ```
 
+We used the function `select`
+from `r Biocpkg("AnnotationDbi") ` to query the gene symbols and associated
+short descriptions for the transcript clusters. For each cluster, we added the 
+gene symbol (`SYMBOL`) and a short description of the gene the cluster represents (`GENENAME`). 
+
+In a second step, we filtered out the probes that don't map to a gene,
+i.e. that don't have a gene symbol assigned. 
 
 ## Removing multiple mappings 
 
 Many transcript--cluster identifiers will map to multiple gene symbols, i.e. 
 they can't be unambigously assigned.
 
-We compute a summary table in the code below to see how many there are. 
-First, we group `anno_palmieri` for their PROBEID; that way, 
-the subsequent operations aren't carried through for each single row, but for each 
-group, i.e. each PROBEID.
-We then summarize the groups and indicate the number of different genes 
-assigned to a transcript cluster in the column `no_of_matches`. 
-Finally, we filter for PROBEIDs with multiple matches, i.e. `no_of_matches > 1`.
+We compute a summary table in the code below to see how many there are:
 
-With `dim(probe_stats)`, we can see how many 
-probes have been mapped to multiple genes.
 
 ```{r multipleMappings, dependson="annotateData"}
 
@@ -977,6 +973,15 @@ dim(probe_stats)
 
 ```
 
+First, we grouped `anno_palmieri` for their PROBEID; that way, 
+the subsequent operations aren't carried through for each single row, but for each 
+group, i.e. each PROBEID.
+We then summarized the groups and indicate the number of different genes 
+assigned to a transcript cluster in the column `no_of_matches`. 
+Finally, we filtered for PROBEIDs with multiple matches, i.e. `no_of_matches > 1`.
+
+With `dim(probe_stats)`, we could see how many 
+probes have been mapped to multiple genes.
 
 We have close to 2000 transcript clusters that map to multiple gene symbols.
 It is difficult to decide which mapping is "correct". Therefore,
@@ -995,27 +1000,30 @@ table(ids_to_exlude)
 palmieri_final <- subset(palmieri_manfiltered, !ids_to_exlude)
 
 validObject(palmieri_final)
-
 ```
 
 As we have just excluded probe IDs from the assay data, we now have 
-to also exclude them from the feature data `anno_palmieri`. Recall that 
-`fData` enables us to access the feature data of an expression set. Until now, no feature data whatsoever is stored in the `fData(palmieri_final)`. Only 
+to also exclude them from the feature data `anno_palmieri`:
+
+```{r recallAnnoPalmieri}
+head(anno_palmieri)
+
+```
+Recall that `fData` enables us to access the feature data of an expression set. Until now, no feature data whatsoever is stored in the `fData(palmieri_final)`. Only 
 the row names are named as the row names of the assay data by default, which are the PROBEIDs of the transcripts.
 
 Therefore, we generate a column PROBEID in `fData(palmieri_final)` and 
-assign the row names of `fData(palmieri_final)` to it. Then, we left--join `fData(palmieri_final)`with `anno_palmieri`, which already contains 
-the columns "SYMBOL" and "GENENAME".
-A left--join keeps the rows and columns of the first argument 
-and adds the corresponding column entries of the second argument.
-
-By left--joining with `anno_palmieri`, we thus add the "SYMBOL" and "GENENAME" 
-columns from `anno_palmieri` for only the PROBEIDs that are in 
-`fData(palmieri_final)` and thus get the feature Data for the filtered probes.
-
-
+assign the row names of `fData(palmieri_final)` to it:
 ```{r excludeMultipleMappingsFromFeatureData}
 fData(palmieri_final)$PROBEID <- rownames(fData(palmieri_final))
+
+```
+
+Then, we left--join `fData(palmieri_final)`with `anno_palmieri`, which already contains 
+the columns "SYMBOL" and "GENENAME".
+A left--join keeps the rows and columns of the first argument 
+and adds the corresponding column entries of the second argument:
+```{r excludeMultipleMappingsFromFeatureData2}
 fData(palmieri_final) <- left_join(fData(palmieri_final), anno_palmieri)
 
 
@@ -1025,6 +1033,11 @@ rownames(fData(palmieri_final)) <- fData(palmieri_final)$PROBEID
 validObject(palmieri_final)
 
 ```
+
+By left--joining with `anno_palmieri`, we thus add the "SYMBOL" and "GENENAME" 
+columns from `anno_palmieri` for only the PROBEIDs that are in 
+`fData(palmieri_final)` and thus get the feature Data for the filtered probes.
+
 
 ## Building custom annotations
 
@@ -1084,6 +1097,25 @@ our linear models and fit a linear model to each gene separately.
 
 ## A linear model for the data
 
+For the subsequent linear modelling of the data, we introduce the abbreviations "UC" and "CD" for the disease types, and "non_infl." and "infl." for the phenotypes, respectively: 
+
+```{r introductionOfAbbreviations}
+individual <- 
+  as.character(Biobase::pData(palmieri_final)$Characteristics.individual.)
+
+tissue <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.phenotype.,
+                  " ", "_")
+
+tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa",
+                 "nI", "I")
+
+disease <- 
+  str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.disease.,
+                  " ", "_")
+disease <- 
+  ifelse(disease == "Crohn's_disease", "CD", "UC")
+```
+
 The original paper is interested in changes in transcription that occur
 between inflamed and adjacent non--inflamed mucosal areas of the colon.
 This is studied in both inflammatory bowel disease types.
@@ -1102,9 +1134,8 @@ that will absorb differences in expression between
 them. Therefore, we block on patients, which means that the 
 patient IDs become variables of the linear model.
 
-Then we create factors that give us the grouping for the diseases and
-the tissue types (non--inflamed and inflamed). We furthermore simplify the names of the
-diseases to UC and DC and the names of the tissue types to nI and I.
+Then we create factors that give us the grouping for
+the tissue types (non--inflamed and inflamed).
 
 Finally, we create two design matrices, 
 one for each of the two diseases as we will analyze them separately 
@@ -1114,21 +1145,6 @@ the complete data set; however, the two diseases might show very different
 characteristics so that a joint fit might not be appropriate).
 
 ```{r createDesign, eval=TRUE, dependson="excludeMultipleMappings" }
-individual <- 
-  as.character(Biobase::pData(palmieri_final)$Characteristics.individual.)
-
-tissue <- str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.phenotype.,
-                  " ", "_")
-
-tissue <- ifelse(tissue == "non-inflamed_colonic_mucosa",
-                 "nI", "I")
-
-disease <- 
-  str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.disease.,
-                  " ", "_")
-disease <- 
-  ifelse(disease == "Crohn's_disease", "CD", "UC")
-
 
 i_CD <- individual[disease == "CD"]
 design_palmieri_CD <- model.matrix(~ 0 + tissue[disease == "CD"] + i_CD)
@@ -1231,7 +1247,16 @@ crat_coef
 
 
 In order to now obtain the expression values fitted by the model, 
-we multiply the design matrix with this vector of coefficients `crat_coef`.
+we multiply the design matrix with this vector of coefficients `crat_coef`:
+
+```{r 2obtainFitCRAT}
+crat_fitted <- design_palmieri_CD %*% crat_coef
+rownames(crat_fitted) <- names(crat_expr)
+colnames(crat_fitted) <- "fitted_value"
+
+crat_fitted
+
+```
 
 Recall that for every row in the design matrix (i.e. every patient sample) only the 
 variables with a 1 in the design matrix are taken into account for calculating the 
@@ -1242,14 +1267,6 @@ entries are the sum of relevant variable coefficients for each sample, respectiv
 
 For example, the fitted value for patient sample `2114_I.CEL` is `r crat_coef["nI"] + crat_coef["i_CD2114"]`: it is the sum of the respective activated variable coefficients "nI" (`r crat_coef["nI"]`) and "i_CD2114" (`r crat_coef["i_CD2114"]`).
 
-```{r 2obtainFitCRAT}
-crat_fitted <- design_palmieri_CD %*% crat_coef
-rownames(crat_fitted) <- names(crat_expr)
-colnames(crat_fitted) <- "fitted_value"
-
-crat_fitted
-
-```
 
 Let's visualize the difference between non--inflamed and inflamed tissue again after fitting: 
 
@@ -1330,18 +1347,9 @@ a symbolic description of the contrast of
 interest.
 
 We now fit a linear model to our data and apply the `contrasts.fit()` function 
-to it in order to find genes with significant differential expression between non--inflamed and inflamed tissue.
+to it in order to find genes with significant differential expression between non--inflamed and inflamed tissue:
 
-We apply the empirical Bayes variance moderation method to it 
-via the `eBayes()` function, which
-computes computes moderated \(t\)--statistics: As in microarray analysis, 
-the number of arrays often is quite small, variance estimation is difficult.
-Using a combination of the per--gene--variance and a prior variance we can improve the 
-variance estimate. Hence the term "moderation". "Empirical Bayes" 
-means that the prior is estimated from the data.
 
-The result of the `eBayes()` step is that the individual variances are
-shrunken towards the prior value. 
 
 ```{r createContrastMatrixAndFitModel, eval=TRUE, dependson="createDesign" }
 contrast_matrix_CD <- makeContrasts(I-nI, levels = design_palmieri_CD)
@@ -1357,6 +1365,17 @@ palmieri_fit_UC <- eBayes(contrasts.fit(lmFit(palmieri_final[,disease == "UC"],
                                 contrast_matrix_UC))
 
 ```
+
+We applied the empirical Bayes variance moderation method to it 
+via the `eBayes()` function, which
+computes moderated \(t\)--statistics: As in microarray analysis, 
+the number of arrays often is quite small, variance estimation is difficult.
+Using a combination of the per--gene--variance and a prior variance we can improve the 
+variance estimate. Hence the term "moderation". "Empirical Bayes" 
+means that the prior is estimated from the data.
+
+The result of the `eBayes()` step is that the individual variances are
+shrunken towards the prior value. 
 
 ## Extracting results
 
@@ -1535,23 +1554,38 @@ is performed by a simple Fisher test on a 2x2 table. Note that this approach
 is very similar to commonly used web tools like GOrilla [@Eden_2009]. 
 
 For every differentially expressed gene, we try to find genes with similar
-expression with `genefinder`. The `genefinder` function returns two lists 
+expression with `genefinder`. The `genefinder` function returns a list with two elements
 for each gene: one with the indices of the 
-background genes found and one with the distances to the DE--genes. 
+background genes found and one with the distances to the DE--genes:
+
+```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, message=FALSE}
+
+back_genes_idx <- genefilter::genefinder(palmieri_final, 
+                                         as.character(DE_genes_CD), 
+                       method = "manhattan", scale = "none")
+
+```
+
 We have to extract the PROBEIDs, which correspond to the indices. 
 We do that by using the `sapply` 
 function, which gives us a single matrix with the DE--genes as column names and the 
-PROBEIDs of the corresponding background genes in the cells below. 
+PROBEIDs of the corresponding background genes in the cells below:
 
-We then create a vector `back_genes` containing all background gene PROBEIDs.
+```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, message=FALSE}
+
+back_genes_idx <- sapply(back_genes_idx, function(x)x$indices)
+
+```
+
+We then create a vector `back_genes` containing all background gene PROBEIDs:
+
+
 
 In order to eliminate foreground genes, i.e. DE--genes, from the `back_genes` set, we 
 use the `setdiff` function. It returns all elements from the first argument 
 (`back_genes`) that are not part of the second argument (`DE_genes_CD`). With the 
 `intersect` function, we verify that we were successful: it should return 0, as there 
-shouldn't be any intersect anymore between `back_genes`and `DE_genes_CD`. 
-
-We create a multidensity plot with mean expression on the x--axis and curves for all genes, foreground genes and background genes, respectively (Figure \@ref(fig:multidensityPlot)). We want to see whether the background genes show a plot similar to the foreground genes so that the background is not biased for the gene enrichment analysis. 
+shouldn't be any intersect anymore between `back_genes`and `DE_genes_CD`:
 
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, message=FALSE}
 
@@ -1569,6 +1603,8 @@ intersect(back_genes, DE_genes_CD)
 length(back_genes)
 
 ```
+
+We create a multidensity plot with mean expression on the x--axis and curves for all genes, foreground genes and background genes, respectively (Figure \@ref(fig:multidensityPlot)). We want to see whether the background genes show a plot similar to the foreground genes so that the background is not biased for the gene enrichment analysis:
 
 ```{r multidensityPlot, fig.cap="Selecting a background set of genes for the gene ontology analysis."}
 multidensity(list(
@@ -1607,27 +1643,6 @@ to the BP category here.
 
 topGO requires a topGOdata object containing the necessary information for the analysis. We follow the steps described in the topGO vignettes: First, we will create a named vector `all_genes` with all genes to be analyzed, i.e. DE--genes and background genes: 
 
-  1. we create an `in_universe` vector by using the `%in%` matching function. 
-  We want to know which elements from `gene_IDs` are also contained in 
-  `DE_genes_CD` and `back_genes`, as the latter two are our gene universe we use for 
-  enrichment 
-  analysis. We get a vector `in_universe` with the length of `gene_IDs` that has the 
-  entry `TRUE` when the corresponding gene in `gene_IDs`could be also found in 
-  `DE_genes_CD` or `back_genes`, and `FALSE` otherwise.
-  
-  2. We do the same for our DE--genes and call this vector `in_selection`.
-  
-  3. We create the `all_genes` vector:
-    a) First, we select all the elements from `in_selection` 
-    that are `TRUE` in `in_universe` by applying
-    `all_genes <- in_selection[in_universe]`.
-    b) Then, we convert the elements in `all_genes` from `TRUE` and `FALSE` 
-    to 0 and 1 by converting the vector to an integer vector. 
-    This way, each element in the vector is a 0 if the corresponding gene is a
-    background gene and a 1 if the corresponding gene is a DE--gene. Also, we 
-    convert the vector to a factor.
-    c) We name the vector elements with the corresponding `gene_IDs`.
-
 ```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=TRUE}
 gene_IDs <- rownames(table_CD)
 in_universe <- gene_IDs %in% c(DE_genes_CD , back_genes)
@@ -1637,6 +1652,29 @@ all_genes <- in_selection[in_universe]
 all_genes <- factor(as.integer(in_selection[in_universe]))
 names(all_genes) <- gene_IDs[in_universe] 
 ```
+
+The following steps were carried through: 
+  1. we created an `in_universe` vector by using the `%in%` matching function. 
+  We want to know which elements from `gene_IDs` are also contained in 
+  `DE_genes_CD` and `back_genes`, as the latter two are our gene universe we use for 
+  enrichment 
+  analysis. We got a vector `in_universe` with the length of `gene_IDs` that has the 
+  entry `TRUE` when the corresponding gene in `gene_IDs`could be also found in 
+  `DE_genes_CD` or `back_genes`, and `FALSE` otherwise.
+  
+  2. We did the same for our DE--genes and call this vector `in_selection`.
+  
+  3. We created the `all_genes` vector:
+    a) First, we selected all the elements from `in_selection` 
+    that are `TRUE` in `in_universe` by applying
+    `all_genes <- in_selection[in_universe]`.
+    b) Then, we converted the elements in `all_genes` from `TRUE` and `FALSE` 
+    to 0 and 1 by converting the vector to an integer vector. 
+    This way, each element in the vector is a 0 if the corresponding gene is a
+    background gene and a 1 if the corresponding gene is a DE--gene. Also, we 
+    converted the vector to a factor.
+    c) We named the vector elements with the corresponding `gene_IDs`.
+
 
 We now initialize the `r Biocpkg("topGO") ` data set, using the GO annotations 
 contained in the annotation data base for the chip we are using. The `nodeSize`
