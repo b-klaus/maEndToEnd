@@ -136,8 +136,8 @@ p--values from the data at hand.
 In this article we introduce a complete workflow for a typical (Affymetrix) microarray
 analysis. Data import, preprocessing, differential expression and
 enrichment analysis are discussed.
-The data set used [@Palmieri_2015] is from a paper studying the differences in gene expression in inflamed-- and non--inflamed tissue. 
-14 Patients suffering from Ulcerative colitis (UC) and 15 patients with Crohn's disease (CD) were tested, and from each patient inflamed-- and non--inflamed colonic mucosa tissue was obtained via a biopsy. 
+The data set used [@Palmieri_2015] is from a paper studying the differences in gene expression in inflamed and non--inflamed tissue. 
+14 patients suffering from Ulcerative colitis (UC) and 15 patients with Crohn's disease (CD) were tested, and from each patient inflamed and non--inflamed colonic mucosa tissue was obtained via a biopsy. 
 This is a typical clinical data set consisting of 58 arrays in total.
 Our aim is to analyze differential expression (DE) between the tissues. Our results
 show a substantial overlap with the results of the original paper.
@@ -382,8 +382,7 @@ match between the different tables).
 raw_data <- oligo::read.celfiles(filenames = file.path(raw_data_dir, 
                                                 SDRF$Array.Data.File),
                          verbose = FALSE, phenoData = SDRF)
-validObject(raw_data)
-
+stopifnot(validObject(raw_data))
 ```
 
 We now inspect the raw data a bit.
@@ -395,7 +394,6 @@ factors of interest.
 
 ```{r inspectPhenoData, eval=TRUE }
 head(Biobase::pData(raw_data))
-stopifnot(validObject(raw_data))
 
 ```
 
@@ -420,7 +418,7 @@ Biobase::pData(raw_data) <- Biobase::pData(raw_data)[, c("Source.Name",
 
 The first step after the initial data import is the quality control of the data.
 Here we check for outliers and try to see whether the data clusters as expected, 
-e.g. by the experimental conditions. The expression intensity values are in the assayData sub--object "exprs" and can be accessed by the `exprs(raw_data)` function. The rows represent the microarray probes, i.e. the single DNA locations on the chip, while the columns represent one microarray, i.e. a sample of inflamed-- and non--inflamed tissue of every patient, respectively. 
+e.g. by the experimental conditions. The expression intensity values are in the assayData sub--object "exprs" and can be accessed by the `exprs(raw_data)` function. The rows represent the microarray probes, i.e. the single DNA locations on the chip, while the columns represent one microarray, i.e. a sample of inflamed and non--inflamed tissue of every patient, respectively. 
 
 ```{r inspectAssayData, eval=TRUE}
 
@@ -437,11 +435,6 @@ We then perform a principal component analysis (PCA) and plot it (Figure
 with the colour indicating the mucosa type (inflamed vs non--inflamed) and the shape 
 indicating the disease (UC or CD).
 
-We also represent the probe intensities via a boxplot graph with one box per
-individual microarray. (Figure \@ref(fig:qualityControlRawDataBox)). Note that the 
-`oligo::boxplot` function, i.e. the boxplot function of the oligo package, can take 
-expression sets as argument. It accesses the expression data and performs a 
-log2--transformation by default. We therefore can use `raw_data` as argument here.
 
 
 ```{r qualityControlRawDataPCA, fig.cap="PCA plot of the log–transformed raw data."}
@@ -458,32 +451,36 @@ dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
                     Individual = pData(raw_data)$
                       Characteristics.individual.)
 
-(qplot(PC1, PC2, data = dataGG, 
-       color =  Phenotype, 
-       shape = Disease,
-       main = "PCA plot of the raw data (log-transformed)", 
-       size = I(2), 
-       xlab = paste0 ("PC1, VarExp: ", percentVar[1], "%"),
-       ylab = paste0 ("PC2, VarExp: ", percentVar[2], "%"),
-       asp = sd_ratio) 
-     + scale_colour_brewer(palette = "Set2"))
+ggplot(dataGG, aes(PC1, PC2)) +
+      geom_point(aes(shape=Disease, colour=Phenotype)) +
+  ggtitle("PCA plot of the calibrated data") +
+  xlab(paste0("PC1, VarExp: ", percentVar[1], "%")) +
+  ylab(paste0("PC2, VarExp: ", percentVar[2], "%")) +
+  theme(plot.title = element_text(hjust = 0.5))+
+  coord_fixed(ratio=sd_ratio) +
+  scale_shape_manual(values=c(4,15)) + 
+  scale_color_manual(values=c("firebrick2", "springgreen3"))
 
 ```
+The PCA plot (Figure \@ref(fig:qualityControlRawDataPCA), performed on 
+the log--intensity scale) of the raw data shows that the 
+first principal component differentiates between the diseases. This means that 
+the disease type is a major driver of gene expression differences.
+
+This might hinder our analysis, as we want to analyze the differential expression between inflamed and non--inflamed 
+tissues, independently of the disease a person suffers from. 
+
+We also represent the probe intensities via a boxplot graph with one box per
+individual microarray. (Figure \@ref(fig:qualityControlRawDataBox)). Note that the 
+`oligo::boxplot` function, i.e. the boxplot function of the oligo package, can take 
+expression sets as argument. It accesses the expression data and performs a 
+log2--transformation by default. We therefore can use `raw_data` as argument here.
 
 ```{r qualityControlRawDataBox, fig.cap="Intensity boxplots of the log2–transformed raw data."}
 oligo::boxplot(raw_data, target="core", 
                main="Boxplot of log2-intensitites for the raw data")
 
 ```
-
-
-The PCA plot (Figure \@ref(fig:qualityControlRawDataPCA), performed on 
-the log--intensity scale) of the raw data shows that the 
-first principal component differentiates between the diseases. This means that 
-the disease type is a major driver of gene expression differences.
-
-This might hinder our analysis, as we want to analyze the differential expression between inflamed-- and non--inflamed 
-tissues, independently of the disease a person suffers from. 
 
 When looking at the boxplot (Figure 
 \@ref(fig:qualityControlRawDataBox)), we see that the intensity distributions of the 
@@ -724,19 +721,19 @@ dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
                     Phenotype = 
                      Biobase::pData(palmieri_eset_norm)$Factor.Value.phenotype.)
 
-(qplot(PC1, PC2, data = dataGG, 
-       color =  Phenotype, 
-       shape = Disease,
-       main = "PCA plot of the calibrated data", 
-       size = I(2), 
-       xlab = paste0("PC1, VarExp: ", percentVar[1], "%"),
-       ylab = paste0("PC2, VarExp: ", percentVar[2], "%"),
-       asp = sd_ratio)
-     + scale_colour_brewer(palette = "Set2"))
 
+ggplot(dataGG, aes(PC1, PC2)) +
+      geom_point(aes(shape=Disease, colour=Phenotype)) +
+  ggtitle("PCA plot of the calibrated data") +
+  xlab(paste0("PC1, VarExp: ", percentVar[1], "%")) +
+  ylab(paste0("PC2, VarExp: ", percentVar[2], "%")) +
+  theme(plot.title = element_text(hjust = 0.5))+
+  coord_fixed(ratio=sd_ratio) +
+  scale_shape_manual(values=c(4,15)) + 
+  scale_color_manual(values=c("firebrick2", "springgreen3"))
 ```
 
-In comparison to the first PCA analysis before RMA (Figure \@ref(fig:qualityControlRawDataPCA), we see that now the first principal 
+In comparison to the first PCA analysis before RMA (Figure \@ref(fig:qualityControlRawDataPCA)), we see that now the first principal 
 component separates between the tissues types (Figure \@ref(fig:PCAMetricsCalibrated)).
 This indicates that now differential expression between the tissue types is the
 dominant source of variation. Not that the second principal components
@@ -744,44 +741,69 @@ separates the diseases.
 
 ### Heatmap clustering analysis
 
-In order to display a heatmap of the sample--to--sample distances, we first compute the distances using the `dist` function. We need to transpose the expression values since
-the function computes the distances between the rows (i.e. genes in our case) by
-default. The default distance is the Euclidean one. However this can be
-changed and we choose the Manhattan distance here (it uses absolute distances along rectangular paths instead of squared distances of the direct path), as it is more robust. We set the diagonal of the distance matrix to ` NA ` in order to increase the contrast of the color coding. Those diagonal entries do not contain information since the distance of a sample to itself is always equal to zero.
+We want to plot a heatmap with the sample--to--sample distances with the sample names as row--names. Also, we want to see how well the samples cluster for phenotype (inflamed and non--inflamed tissue) and disease (UC and CD), respectively. We use row annotation for that: it means that these features get a colour code and will be displayed to the left of each row. 
 
 ```{r rownamesForHeatmap, fig.height = 8.5, fig.width = 7, eval = TRUE, echo=TRUE}
 phenotype_names <- ifelse(str_detect(pData
                                     (palmieri_eset_norm)$Factor.Value.phenotype.,
-                             "non"), "non-infl.", "infl.")
+                             "non"), "non_infl.", "infl.")
 
 disease_names <- ifelse(str_detect(pData
-                                    (palmieri_eset_norm)$Factor.Value.phenotype.,
-                             "Chron"), "CD.", "UC")
+                                    (palmieri_eset_norm)$Factor.Value.disease.,
+                             "Crohn"), "CD", "UC")
 
-row_names_dataframe <- 
-  data.frame("Phenotype" = phenotype_names, "Disease" = disease_names)
-row_names_for_heatmap <- 
-  paste(row_names_dataframe$Phenotype, row_names_dataframe$Disease, sep = "   ")
+annotation_for_heatmap <- 
+  data.frame(Phenotype = phenotype_names,  Disease = disease_names)
+
+row.names(annotation_for_heatmap) <- row.names(pData(palmieri_eset_norm))
 
 ```
 
+In order to map the sample--to--sample distances, we first compute the distances using the `dist` function. We need to transpose the expression values since
+the function computes the distances between the rows (i.e. genes in our case) by
+default. The default distance is the Euclidean one. However this can be
+changed and we choose the Manhattan distance here (it uses absolute distances along rectangular paths instead of squared distances of the direct path), as it is more robust. We set the diagonal of the distance matrix to ` NA ` in order to increase the contrast of the color coding. Those diagonal entries do not contain information since the distance of a sample to itself is always equal to zero.
+
+
 ```{r clusteringHeatmap, fig.cap = "Heatmap of the sample to sample distances for the calibrated data.", fig.height = 8.5, fig.width = 7, eval = TRUE }
 
-dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
+# dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
+# colnames(dists) <- NULL
+# diag(dists) <- NA
+# rownames(dists) <- row_names_for_heatmap
+# hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
+# 
+# pheatmap(dists, col = (hmcol), 
+#          legend = TRUE, 
+#          legend_breaks = c(min(dists, na.rm = TRUE), 
+#                          max(dists, na.rm = TRUE)), 
+#          legend_labels = (c("low difference", "high difference")),
+#          main = "Distance clustering heatmap for the calibrated samples")
+
+```
+
+```{r fusedHeatmap, fig.height = 8.5, fig.width = 7}
+
+rownames(dists) <- row.names(pData(palmieri_eset_norm))
+hmcol <- colorRampPalette(rev(RColorBrewer::brewer.pal(9, "YlOrRd")))(255)
 colnames(dists) <- NULL
 diag(dists) <- NA
-rownames(dists) <- row_names_for_heatmap
-hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
 
+ann_colors <- list(
+  Phenotype = c(non_infl.="chartreuse4", infl.= "burlywood3"),
+  Disease = c(CD = "blue4", UC="cadetblue2")
+                   )
 pheatmap(dists, col = (hmcol), 
+         annotation_row=annotation_for_heatmap,
+         annotation_colors = ann_colors,
          legend = TRUE, 
          legend_breaks = c(min(dists, na.rm = TRUE), 
                          max(dists, na.rm = TRUE)), 
          legend_labels = (c("low difference", "high difference")),
          main = "Distance clustering heatmap for the calibrated samples")
 
-```
 
+```
 On the heatmap plot (Figure \@ref(fig:clusteringHeatmap)) we also see that the samples do not cluster strongly by tissue, confirming the impression from the PCA plot 
 (Figure \@ref(fig:PCAMetricsCalibrated)) that the separation
 between the tissues is not perfect. The purple stripes in the heatmap might correspond
@@ -1030,14 +1052,13 @@ clusters.
 
 # Linear models
 
-In order to analyse which genes are differentially expressed between inflamed-- and non--inflamed tissue, we have to fit a linear model to our expression data.
+In order to analyse which genes are differentially expressed between inflamed and non--inflamed tissue, we have to fit a linear model to our expression data.
 Linear models are the "workhorse" for the analysis of experimental
 data. They can be used to analyse almost arbitrarily complex designs, however
 they also take a while to learn and understand and a thorough description
 is beyond the scope of this workflow.
 
-Mike Love's and Michael Irizzary's [genomics class](http://genomicsclass.github.io/book/)
-is a very good resource, especially its section on [interactions and contrasts](http://genomicsclass.github.io/book/pages/interactions_and_contrasts.html).
+Mike Love's and Michael Irizzary's [genomics class](http://genomicsclass.github.io/book/) [@Irizarry_2015] is a very good resource, especially its section on [interactions and contrasts](http://genomicsclass.github.io/book/pages/interactions_and_contrasts.html).
 It might also be helpful to learn a bit of linear algebra to understand
 the concepts better. The Khan Academy offers nice (and free) [online courses](https://www.khanacademy.org/math/linear-algebra).
 
@@ -1147,6 +1168,8 @@ patient--specific blocking variable.
 
 Note that in the linear model, individual 164 serves as the baseline for all other individuals and thus isn't included in the sample variables.
 
+Note that instead of blocking on individuals, it would also be possible to use a "mixed model design" with the `duplicateCorrelation()`function from the `r Biocpkg("limma")` package. It has advantages over the "fixed patient effect model" presented here in terms of applicability to more heterogenous patient groups; more information on it can be found in the [limma User's Guide](https://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf) (section 17.3.6). However, the "herein used and above explained is more intuitive and can be applied to standard microarray assay setups, and is therefore sufficient for this application.
+
 Before heading on to find all differentially expressed genes for both diseases, we will 
 first have a look on how this works in principle for one gene. We will fit the linear 
 model for one gene and run a t--test in order to see whether the gene is differentially 
@@ -1241,7 +1264,7 @@ ggplot(data = crat_data, aes(x = tissue_CD, y = fitted_value,
 ```
 
 
-Note that the difference of the fitted expression values between inflamed-- and non--inflamed samples of one patient is the same for all patients and is determined by the difference between the variable coefficients of `I` (`r crat_coef["I"]`) and `nI` (`r crat_coef["nI"]`), which is  `r crat_coef["I"] - crat_coef["nI"]` (Figure \@ref(fig:3obtainFitCRAT)). 
+Note that the difference of the fitted expression values between inflamed and non--inflamed samples of one patient is the same for all patients and is determined by the difference between the variable coefficients of `I` (`r crat_coef["I"]`) and `nI` (`r crat_coef["nI"]`), which is  `r crat_coef["I"] - crat_coef["nI"]` (Figure \@ref(fig:3obtainFitCRAT)). 
 
 This is the case because the same blocking variable is activated by the design 
 matrix for both samples from a single patient, leading to a comparison within
@@ -1276,7 +1299,7 @@ We thus have improved the power of the ordinary \(t\)--test
 by reducing the variance via blocking on individuals.
 
 We now conduct the \(t\)--test on the linear model in order to find 
-out whether the difference between non--inflamed-- and inflamed 
+out whether the difference between non--inflamed and inflamed 
 tissue differs significantly from 0: 
 
 ```{r tTest}
@@ -1349,7 +1372,7 @@ are useful.
 
 A good starting point to learn about these methods is the article on 
 false discovery rate estimation by Korbininan Strimmer [@Strimmer_2008] 
-and chapter 1--6 of Efron's book on Large--Scale Inference [@Efron_2010].
+and chapter 1--6 of Efron's book on Large--Scale Inference [@Efron_2010], as well as the blog--post on "How to interpret a p--value histogram" by David Robinson [@Robinson_2014]
 
 ```{r extractResultsCD, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for Crohn’s disease."}
 table_CD <- topTable(palmieri_fit_CD, number = Inf)
@@ -1395,7 +1418,7 @@ Thus, we can see that the "raw" p--values are very "liberal" when
 looking at many tests simultaneously. We therefore need error
 rates adapted to the multiple testing situation. By far the 
 most popular one in molecular biology is the **false discovery
-rate** or FDR for short. As we have seen, the FDR of our genes list
+rate** or FDR for short. It is the percentage of false positives among all positives. As we have seen, the FDR of our genes list
 using a simple p--value cutoff might be quite high.
 
 On the other hand, we can see a clear peak in the p--value histogram 
