@@ -460,7 +460,7 @@ ggplot(dataGG, aes(PC1, PC2)) +
   theme(plot.title = element_text(hjust = 0.5))+
   coord_fixed(ratio=sd_ratio) +
   scale_shape_manual(values=c(4,15)) + 
-  scale_color_manual(values=c("firebrick2", "springgreen3"))
+  scale_color_manual(values=c("darkorange2", "dodgerblue4"))
 
 ```
 The PCA plot (Figure \@ref(fig:qualityControlRawDataPCA), performed on 
@@ -555,9 +555,11 @@ The more recent "Gene" and "Exon" Affymetrix arrays are exon based and hence the
 are two levels of summarization to get to the gene level. The "probeset" summarization leads to the exon level. The gene/transcript level is given by "transcript clusters". Hence, the appropriate annotation package for our chip type is called
 `r Biocpkg("hugene10sttranscriptcluster.db") `.
 
-"Gene" arrays were created as affordable versions of the "Exon" arrays, by only taking the "good" probes from the Exon array. Initially on the Exon array, at least four probes were part of one "Exon". With the thinned out "Gene" array, many probesets were made up of three or fewer probes: 
+"Gene" arrays were created as affordable versions of the "Exon" arrays, by only taking the "good" probes from the Exon array. Initially on the Exon array, at least four probes were part of one "Exon". 
+With the thinned out "Gene" array, many probesets were made up of three or fewer probes. This is visualized in Figure \@ref(fig:DifferenceBetweenExonAndGeneTypeArrays): Single probesets are indicated by single colours; probesets representing one gene are indicated by a colour shade: e.g., all yellow probes belong to one Exon, and all yellow, orange and red probesets belong to one gene: 
 
-```{r DifferenceBetweenExonAndGeneTypeArrays, fig.width=7, fig.height=6, echo=FALSE}
+```{r DifferenceBetweenExonAndGeneTypeArrays, fig.width=7, fig.height=6, echo=FALSE, fig.cap="Visualization of the difference between "Exon" type array (left) and "Gene" type array (right)."}
+
 par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0, 20),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
@@ -593,8 +595,7 @@ grid.rect(x=dat$x,y=dat$y, height=0.1, width=0.1, hjust=0,vjust=0,vp=vp2,
 ```
 
 
-
-Thus, a summarization on the probeset / exon level 
+On the left side, we see plenty of probes for each Exon/ probeset (i.e. each colour): therefore, a summarization on the probeset/ exon level makes sense. In the gene type array, however, only a small proportion of the original probes per probeset is included. Thus, a summarization on the probeset / exon level 
 is not recommended for "Gene" arrays but nonetheless possible by using the 
 `r Biocannopkg("hugene10stprobeset.db") ` annotation package.
 
@@ -769,7 +770,7 @@ ggplot(dataGG, aes(PC1, PC2)) +
   theme(plot.title = element_text(hjust = 0.5))+
   coord_fixed(ratio=sd_ratio) +
   scale_shape_manual(values=c(4,15)) + 
-  scale_color_manual(values=c("firebrick2", "springgreen3"))
+  scale_color_manual(values=c("darkorange2", "dodgerblue4"))
 ```
 
 In comparison to the first PCA analysis before RMA (Figure \@ref(fig:qualityControlRawDataPCA)), we see that now the first principal 
@@ -804,24 +805,7 @@ default. The default distance is the Euclidean one. However this can be
 changed and we choose the Manhattan distance here (it uses absolute distances along rectangular paths instead of squared distances of the direct path), as it is more robust. We set the diagonal of the distance matrix to ` NA ` in order to increase the contrast of the color coding. Those diagonal entries do not contain information since the distance of a sample to itself is always equal to zero.
 
 
-```{r clusteringHeatmap, fig.cap = "Heatmap of the sample to sample distances for the calibrated data.", fig.height = 8.5, fig.width = 7, eval = TRUE }
-
-# dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
-# colnames(dists) <- NULL
-# diag(dists) <- NA
-# rownames(dists) <- row_names_for_heatmap
-# hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
-# 
-# pheatmap(dists, col = (hmcol), 
-#          legend = TRUE, 
-#          legend_breaks = c(min(dists, na.rm = TRUE), 
-#                          max(dists, na.rm = TRUE)), 
-#          legend_labels = (c("low difference", "high difference")),
-#          main = "Distance clustering heatmap for the calibrated samples")
-
-```
-
-```{r fusedHeatmap, fig.height = 8.5, fig.width = 7}
+```{r HeatmapWithAnnotation, fig.height = 8.5, fig.width = 7, fig.cap="Heatmap of the sample-to-sample distances"}
 
 rownames(dists) <- row.names(pData(palmieri_eset_norm))
 hmcol <- colorRampPalette(rev(RColorBrewer::brewer.pal(9, "YlOrRd")))(255)
@@ -836,6 +820,7 @@ pheatmap(dists, col = (hmcol),
          annotation_row=annotation_for_heatmap,
          annotation_colors = ann_colors,
          legend = TRUE, 
+         treeheight_row=0,
          legend_breaks = c(min(dists, na.rm = TRUE), 
                          max(dists, na.rm = TRUE)), 
          legend_labels = (c("low difference", "high difference")),
@@ -843,34 +828,16 @@ pheatmap(dists, col = (hmcol),
 
 
 ```
-On the heatmap plot (Figure \@ref(fig:clusteringHeatmap)) we also see that the samples do not cluster strongly by tissue, confirming the impression from the PCA plot 
-(Figure \@ref(fig:PCAMetricsCalibrated)) that the separation
-between the tissues is not perfect. The purple stripes in the heatmap might correspond
-to outliers that could potentially be removed. We produce the same heatmap again with the sample identifiers as row names in order to see whether the outliers in the heatmap are the same ones as the outliers in the RLE plot beforehand: 
-
-
-```{r alternativeHeatmapWithPatientProbesAsLabels, fig.cap="Heatmap with sample IDs", fig.height = 8.5, fig.width = 7, eval = TRUE}
-
-rownames(dists) <- row.names(pData(palmieri_eset_norm))
-hmcol <- colorRampPalette(brewer.pal(9, "PuOr"))(255)
-colnames(dists) <- NULL
-diag(dists) <- NA
-
-pheatmap(dists, col = (hmcol), legend = TRUE, 
-         legend_breaks = c(min(dists, na.rm = TRUE), 
-                         max(dists, na.rm = TRUE)), 
-         legend_labels = (c("low difference", "high difference")),
-         main = "Distance clustering heatmap for the calibrated samples")
-
-```
-
-The outliers that could be flagged here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II (Figure \@ref(fig:alternativeHeatmapWithPatientProbesAsLabels)). 
+On the heatmap plot (Figure \@ref(fig:clusteringHeatmap)) we also see that the samples do not cluster strongly by tissue, confirming the impression from the PCA plot
+(Figure \@ref(fig:PCAMetricsCalibrated)) that the separation 
+between the tissues is not perfect. The yellow stripes in the heatmap might correspond
+to outliers that could potentially be removed: the ones that could be flagged here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II (Figure \@ref(fig:alternativeHeatmapWithPatientProbesAsLabels)). 
 2826_II, 3262_II and 3332_II were found to be outliers in both RLE and heatmap 
 analysis and could therefore potentially be removed; however, in order 
 to stay as close as possible to the
 original paper, we continue with the complete set of samples.
 Note again that more elaborate metrics to identify and remove outliers 
-are provided by the `r Biocpkg("arrayQualityMetrics") ` package.
+are provided by the `r Biocpkg("arrayQualityMetrics")` package.
 
 
 # Filtering based on intensity 
@@ -1221,7 +1188,9 @@ patient--specific blocking variable.
 
 Note that in the linear model, individual 164 serves as the baseline for all other individuals and thus isn't included in the sample variables.
 
-Note that instead of blocking on individuals, it would also be possible to use a "mixed model design" with the `duplicateCorrelation()`function from the `r Biocpkg("limma")` package. It has advantages over the "fixed patient effect model" presented here in terms of applicability to more heterogenous patient groups; more information on it can be found in the [limma User's Guide](https://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf) (section 17.3.6). However, the "herein used and above explained is more intuitive and can be applied to standard microarray assay setups, and is therefore sufficient for this application.
+Note that instead of blocking on individuals, it would also be possible to use a "mixed model" approach with the `duplicateCorrelation()`function from the `r Biocpkg("limma")` package. It has advantages over the "fixed patient effect model" presented here in terms of applicability to more complicated experimental designs, where we want to 
+perform comparisons both within and between the patients (e.g. comparing between the two diseases; 
+"split--plot--designs"). More information on it can be found in the [limma User's Guide](https://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf) (section 17.3.6). However, the above explained is more intuitive and is therefore used here.
 
 Before heading on to find all differentially expressed genes for both diseases, we will first have a look at how this works in principle for one gene. We will fit the linear 
 model for one gene and run a t--test in order to see whether the gene is differentially 
@@ -1902,7 +1871,7 @@ sessionInfo()
 # Acknowledgements
 
 The authors would like to thank Vladislava Milchevskaya, Julian Gehring and Mike Smith 
-for helpful comments on and small contributions to the workflow. 
+for helpful comments on and small contributions to the workflow. They also would like to thank their proof--readers Frederik Ziebell, Holly Giles and Jennifer Huellein.
 
 This workflow draws a lot of inspiration from the Bioconductor 
 books [@Bioc2005; @useRbook2008] as well as Love et. al.'s workflow 
