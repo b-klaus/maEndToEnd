@@ -1,10 +1,3 @@
-CHANGES IN VERSION 1.0.2
+CHANGES IN VERSION 0.99.0
 -------------------------
-    * added a modified getAE function, as ArrayExpress like all 
-      the EBI services has changed to https 
-    * Small code / changes at 2 positions
-    * maEndToEnd is the only library call in the document
-    * the dbGetQuery error message should be related to the oligoClasses package
-      and be fixed in the current devel of Bioconductor (3.6.)
-    * added AnnotationDbi and RCurl to the dependencies
-
+    * new submission to  Bioc in June 18
