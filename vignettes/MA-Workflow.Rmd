@@ -199,8 +199,8 @@ suppressPackageStartupMessages({
     library(pheatmap)
      
 #Formatting/documentation packages
-    library(rmarkdown)
-    library(BiocStyle)
+   # library(rmarkdown)
+   # library(BiocStyle)
     library(dplyr)
     library(tidyr)
 
@@ -209,7 +209,7 @@ suppressPackageStartupMessages({
   library(matrixStats)
   library(genefilter)
   library(openxlsx)
-  library(devtools)
+#  library(devtools)
 
 ```
 
