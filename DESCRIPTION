@@ -15,7 +15,8 @@ Description: In this article, we walk through an end--to--end Affymetrix microar
     differential gene expression (DE) analysis, followed by some enrichment 
     analysis. As experimental designs can be complex, a self contained introduction 
     to linear models is also part of the workflow. 
-Depends: R (>= 3.5.0),
+Depends: R (>= 3.5.0)
+Imports:
     Biobase,
     oligoClasses,
     ArrayExpress,
@@ -32,16 +33,18 @@ Depends: R (>= 3.5.0),
     geneplotter,
     pheatmap,
     RColorBrewer,
-    rmarkdown,
-    BiocStyle,
     dplyr,
     tidyr,
     stringr,
     matrixStats,
     genefilter,
     openxlsx,
-    devtools,
-    Rgraphviz  
+    Rgraphviz 
+Suggests: 
+    BiocStyle
+    knitr
+    devtools
+    rmarkdown
 License: MIT
 Encoding: UTF-8
 LazyData: true
