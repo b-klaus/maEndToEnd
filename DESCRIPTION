@@ -50,7 +50,6 @@ Encoding: UTF-8
 LazyData: true
 VignetteBuilder: knitr
 biocViews: GeneExpressionWorkflow 
-Suggests: knitr, rmarkdown
 NeedsCompilation: no
 URL: https://www.bioconductor.org/help/workflows/
 Workflow: True
