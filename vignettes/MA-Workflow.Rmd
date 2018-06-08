@@ -558,7 +558,7 @@ are two levels of summarization to get to the gene level. The "probeset" summari
 "Gene" arrays were created as affordable versions of the "Exon" arrays, by only taking the "good" probes from the Exon array. Initially on the Exon array, at least four probes were part of one "Exon". 
 With the thinned out "Gene" array, many probesets were made up of three or fewer probes. This is visualized in Figure \@ref(fig:DifferenceBetweenExonAndGeneTypeArrays): Single probesets are indicated by single colours; probesets representing one gene are indicated by a colour shade: e.g., all yellow probes belong to one Exon, and all yellow, orange and red probesets belong to one gene: 
 
-```{r DifferenceBetweenExonAndGeneTypeArrays, fig.width=7, fig.height=6, echo=FALSE, fig.cap="Visualization of the difference between "Exon" type array (left) and "Gene" type array (right)."}
+```{r DifferenceBetweenExonAndGeneTypeArrays, fig.width=7, fig.height=6, echo=FALSE, fig.cap="Visualization of the difference between \"Exon\" type array (left) and \"Gene\" type array (right)."}
 
 par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0, 20),bty="n",
@@ -807,6 +807,8 @@ changed and we choose the Manhattan distance here (it uses absolute distances al
 
 ```{r HeatmapWithAnnotation, fig.height = 8.5, fig.width = 7, fig.cap="Heatmap of the sample-to-sample distances"}
 
+dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
+
 rownames(dists) <- row.names(pData(palmieri_eset_norm))
 hmcol <- colorRampPalette(rev(RColorBrewer::brewer.pal(9, "YlOrRd")))(255)
 colnames(dists) <- NULL
@@ -828,10 +830,10 @@ pheatmap(dists, col = (hmcol),
 
 
 ```
-On the heatmap plot (Figure \@ref(fig:clusteringHeatmap)) we also see that the samples do not cluster strongly by tissue, confirming the impression from the PCA plot
+On the heatmap plot (Figure \@ref(fig:HeatmapWithAnnotation)) we also see that the samples do not cluster strongly by tissue, confirming the impression from the PCA plot
 (Figure \@ref(fig:PCAMetricsCalibrated)) that the separation 
 between the tissues is not perfect. The yellow stripes in the heatmap might correspond
-to outliers that could potentially be removed: the ones that could be flagged here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II (Figure \@ref(fig:alternativeHeatmapWithPatientProbesAsLabels)). 
+to outliers that could potentially be removed: the ones that could be flagged here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II. 
 2826_II, 3262_II and 3332_II were found to be outliers in both RLE and heatmap 
 analysis and could therefore potentially be removed; however, in order 
 to stay as close as possible to the
@@ -1575,7 +1577,7 @@ We do that by using the `sapply`
 function, which gives us a single matrix with the DE--genes as column names and the 
 PROBEIDs of the corresponding background genes in the cells below:
 
-```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, message=FALSE}
+```{r GOAnalysisCreateBackgrounds2, eval=TRUE, warning=FALSE, message=FALSE}
 
 back_genes_idx <- sapply(back_genes_idx, function(x)x$indices)
 
@@ -1591,7 +1593,7 @@ use the `setdiff` function. It returns all elements from the first argument
 `intersect` function, we verify that we were successful: it should return 0, as there 
 shouldn't be any intersect anymore between `back_genes`and `DE_genes_CD`:
 
-```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, message=FALSE}
+```{r GOAnalysisCreateBackgrounds3, eval=TRUE, warning=FALSE, message=FALSE}
 
 back_genes_idx <- genefilter::genefinder(palmieri_final, 
                                          as.character(DE_genes_CD), 
