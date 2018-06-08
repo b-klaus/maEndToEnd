@@ -52,5 +52,3 @@ biocViews: GeneExpressionWorkflow
 NeedsCompilation: no
 URL: https://www.bioconductor.org/help/workflows/
 Workflow: True
-RoxygenNote: 6.0.1
-
