@@ -1881,7 +1881,7 @@ for helpful comments on and small contributions to the workflow. They also would
 
 This workflow draws a lot of inspiration from the Bioconductor 
 books [@Bioc2005; @useRbook2008] as well as Love et. al.'s workflow 
-for gene level analysis of RNA--Seq data [@Love_2015]. James W. MacDonald 
+for gene level analysis of RNA--Seq data [@Love_2016]. James W. MacDonald 
 provided valuable information on the evolution of Affymetrix arrays in some of 
 his posts of on the Biocondctor support site. 
 BK would also like to thank him for some friendly personal 
