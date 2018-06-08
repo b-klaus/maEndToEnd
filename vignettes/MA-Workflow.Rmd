@@ -24,10 +24,6 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8} 
 ---
-<!-- header-includes: -->
-<!--   - \usepackage{float} -->
-
-
 <!-- command to compile the vignette using Rscript to check the mem usage -->
 <!-- Rscript --vanilla test_mem.R -->
 
@@ -1333,7 +1329,8 @@ res_t
 
 ```
 
-We get a low p--value close to `r round(res_t$p.value, 4) ` and thus can conclude
+We get a low p--value close to `r round(res_t[["p.value"]], 4) `
+and thus can conclude
 that the *CRAT* gene is differentially expressed between 
 non--inflamed and inflamed tissue.
 
@@ -1760,7 +1757,7 @@ showSigOfNodes(top_GO_data, score(result_top_GO_elim), firstSigNodes = 3,
 ```
 
 We can see that indeed GO categories related to inflammation, signalling and 
-immune response show up as significant (Figure \@ref(fig:graphOfResults))
+immune response come up as significant (Figure \@ref(fig:graphOfResults))
 Gene set enrichment analysis has been a field of very extensive
 research in bioinformatics. For additional approaches see the `r Biocpkg("topGO") `
 vignette and the references therein and also in the [GeneSetEnrichment view](http://bioconductor.org/packages/release/BiocViews.html#___GeneSetEnrichment). 
