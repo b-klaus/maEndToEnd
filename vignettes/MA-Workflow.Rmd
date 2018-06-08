@@ -168,9 +168,7 @@ remotes::install_github("Steffireise/maEndToEnd", ref="master")
 
 suppressPackageStartupMessages({
     library("maEndToEnd")
-
 })
-
 ```
 
 ```{r pkgList, results="hide", warnings=FALSE}
@@ -212,7 +210,6 @@ suppressPackageStartupMessages({
     library(genefilter)
     library(openxlsx)
    #library(devtools)
-
 ```
 
 
@@ -228,7 +225,7 @@ to the subdirectory `rawDataMAWorkflow` of the current working directory:
 ```{r generateFolderForRawData}
 raw_data_dir <- file.path(getwd(), "rawDataMAWorkflow")
 
-if(!dir.exists(raw_data_dir)){
+if (!dir.exists(raw_data_dir)) {
     dir.create(raw_data_dir)
 }
 ```
@@ -313,8 +310,9 @@ The data in an ExpressionSet consist of:
     + **phenoData**: A description of the samples in the experiment
     + **featureData**: metadata about the features on the chip 
     or technology used for the experiment 
-    + further annotations for the features, for example gene annotations from biomedical databases (annotation).
-      
+    + further annotations for the features,
+    for example gene annotations from biomedical databases (annotation).
+
 * **experimentData**: A flexible structure to describe the experiment.
 
 The ExpressionSet class coordinates all of these data, so that one does not 
@@ -371,7 +369,7 @@ package [@oligo] to import the files:
 ```{r importCelfiles, results="hide", eval=TRUE, dependson="getSDRF", warning = FALSE }
 raw_data <- oligo::read.celfiles(filenames = file.path(raw_data_dir, 
                                                 SDRF$Array.Data.File),
-                                 verbose = FALSE, phenoData = SDRF)
+                                    verbose = FALSE, phenoData = SDRF)
 stopifnot(validObject(raw_data))
 ```
 
@@ -446,7 +444,6 @@ represents one sample, with the colour indicating the mucosa type
 
 
 ```{r qualityControlRawDataPCA, fig.cap="PCA plot of the log–transformed raw data."}
-
 exp_raw <- log2(Biobase::exprs(raw_data))
 PCA_raw <- prcomp(t(exp_raw), scale. = FALSE)
 
@@ -456,20 +453,19 @@ sd_ratio <- sqrt(percentVar[2] / percentVar[1])
 dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
                     Disease = pData(raw_data)$Factor.Value.disease.,
                     Phenotype = pData(raw_data)$Factor.Value.phenotype.,
-                    Individual = pData(raw_data)$
-                      Characteristics.individual.)
+                    Individual = pData(raw_data)$Characteristics.individual.)
 
 ggplot(dataGG, aes(PC1, PC2)) +
-      geom_point(aes(shape=Disease, colour=Phenotype)) +
+      geom_point(aes(shape = Disease, colour = Phenotype)) +
   ggtitle("PCA plot of the calibrated data") +
   xlab(paste0("PC1, VarExp: ", percentVar[1], "%")) +
   ylab(paste0("PC2, VarExp: ", percentVar[2], "%")) +
   theme(plot.title = element_text(hjust = 0.5))+
-  coord_fixed(ratio=sd_ratio) +
-  scale_shape_manual(values=c(4,15)) + 
-  scale_color_manual(values=c("darkorange2", "dodgerblue4"))
-
+  coord_fixed(ratio = sd_ratio) +
+  scale_shape_manual(values = c(4,15)) + 
+  scale_color_manual(values = c("darkorange2", "dodgerblue4"))
 ```
+
 The PCA plot (Figure \@ref(fig:qualityControlRawDataPCA), performed on 
 the log--intensity scale) of the raw data shows that the 
 first principal component differentiates between the diseases. This means that 
@@ -578,7 +574,6 @@ are indicated by a colour shade: e.g., all yellow probes belong to one Exon,
 and all yellow, orange and red probesets belong to one gene: 
 
 ```{r DifferenceBetweenExonAndGeneTypeArrays, fig.width=7, fig.height=6, echo=FALSE, fig.cap="Visualization of the difference between \"Exon\" type array (left) and \"Gene\" type array (right)."}
-
 par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0, 20),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
@@ -610,7 +605,6 @@ vp2 <- viewport(x = 0.5, y = 0.1, w = 0.12, h = 0.12,
 # plotting rectangles using x/y positions
 grid.rect(x=dat$x,y=dat$y, height=0.1, width=0.1, hjust=0,vjust=0,vp=vp2,
           gp=gpar(col=1, fill=as.character(dat$colours2)))
-
 ```
 
 
@@ -793,14 +787,14 @@ dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
 
 
 ggplot(dataGG, aes(PC1, PC2)) +
-      geom_point(aes(shape=Disease, colour=Phenotype)) +
+      geom_point(aes(shape = Disease, colour = Phenotype)) +
   ggtitle("PCA plot of the calibrated data") +
   xlab(paste0("PC1, VarExp: ", percentVar[1], "%")) +
   ylab(paste0("PC2, VarExp: ", percentVar[2], "%")) +
-  theme(plot.title = element_text(hjust = 0.5))+
-  coord_fixed(ratio=sd_ratio) +
-  scale_shape_manual(values=c(4,15)) + 
-  scale_color_manual(values=c("darkorange2", "dodgerblue4"))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  coord_fixed(ratio = sd_ratio) +
+  scale_shape_manual(values = c(4,15)) + 
+  scale_color_manual(values = c("darkorange2", "dodgerblue4"))
 ```
 
 In comparison to the first PCA analysis before RMA (Figure \@ref(fig:qualityControlRawDataPCA)), we see that now the first principal 
@@ -854,14 +848,14 @@ colnames(dists) <- NULL
 diag(dists) <- NA
 
 ann_colors <- list(
-  Phenotype = c(non_infl.="chartreuse4", infl.= "burlywood3"),
-  Disease = c(CD = "blue4", UC="cadetblue2")
+  Phenotype = c(non_infl. = "chartreuse4", infl. = "burlywood3"),
+  Disease = c(CD = "blue4", UC = "cadetblue2")
                    )
 pheatmap(dists, col = (hmcol), 
-         annotation_row=annotation_for_heatmap,
+         annotation_row = annotation_for_heatmap,
          annotation_colors = ann_colors,
          legend = TRUE, 
-         treeheight_row=0,
+         treeheight_row = 0,
          legend_breaks = c(min(dists, na.rm = TRUE), 
                          max(dists, na.rm = TRUE)), 
          legend_labels = (c("small distance", "large distance")),
@@ -928,7 +922,6 @@ hist_res <- hist(palmieri_medians, 100, col = "cornsilk", freq = FALSE,
             xlab = "Median intensities")
 
 abline(v = man_threshold, col = "coral4", lwd = 2)
-
 ```
 
 Transcripts that do not have intensities larger than the threshold in 
@@ -942,7 +935,6 @@ no_of_samples <-
   table(paste0(pData(palmieri_eset_norm)$Factor.Value.disease., "_", 
                   pData(palmieri_eset_norm)$Factor.Value.phenotype.))
 no_of_samples 
-
 ```
 
 
@@ -1084,7 +1076,6 @@ fData(palmieri_final) <- left_join(fData(palmieri_final), anno_palmieri)
 rownames(fData(palmieri_final)) <- fData(palmieri_final)$PROBEID 
     
 validObject(palmieri_final)
-
 ```
 
 By left--joining with `anno_palmieri`, we thus add the "SYMBOL" and "GENENAME" 
@@ -1208,7 +1199,6 @@ the complete data set; however, the two diseases might show very different
 characteristics so that a joint fit might not be appropriate).
 
 ```{r createDesign, eval=TRUE, dependson="excludeMultipleMappings" }
-
 i_CD <- individual[disease == "CD"]
 design_palmieri_CD <- model.matrix(~ 0 + tissue[disease == "CD"] + i_CD)
 colnames(design_palmieri_CD)[1:2] <- c("I", "nI")
@@ -1218,7 +1208,6 @@ i_UC <- individual[disease == "UC"]
 design_palmieri_UC <- model.matrix(~ 0 + tissue[disease == "UC"] + i_UC )
 colnames(design_palmieri_UC)[1:2] <- c("I", "nI")
 rownames(design_palmieri_UC) <- i_UC 
-
 ```
 
 We can inspect the design matrices:
@@ -1227,7 +1216,6 @@ We can inspect the design matrices:
 head(design_palmieri_CD[, 1:6])
 
 head(design_palmieri_UC[, 1:6])
-
 ```
 
 In the design matrix, the rows represent the patient array, 
@@ -1578,7 +1566,6 @@ We also calculate the total number of diffentially expressed
 genes that we find in our workflow analysis.
  
 ```{r compareDEgenes, dependson=c("extractResultsUC", "extractResultsCD")}
-
 fpath <- system.file("extdata", "palmieri_DE_res.xlsx", package = "maEndToEnd")
 palmieri_DE_res <- sapply(1:4, function(i) read.xlsx(cols = 1, fpath, 
                                                      sheet = i, startRow = 4))
@@ -1602,7 +1589,6 @@ total_genenumber_UC <- length(subset(table_UC, P.Value < 0.001)$SYMBOL)
 
 total_genenumber_CD
 total_genenumber_UC
-
 ```
 
 We find `r total_genenumber_CD` (CD) and `r total_genenumber_UC` (UC) 
@@ -1658,8 +1644,8 @@ background genes found and one with the distances to the DE--genes:
 
 ```{r GOAnalysisCreateBackgrounds, eval=TRUE, warning=FALSE, message=FALSE}
 back_genes_idx <- genefilter::genefinder(palmieri_final, 
-                                         as.character(DE_genes_CD), 
-                       method = "manhattan", scale = "none")
+                                        as.character(DE_genes_CD), 
+                                        method = "manhattan", scale = "none")
 ```
 
 We have to extract the PROBEIDs, which correspond to the indices. 
@@ -1683,12 +1669,6 @@ With the `intersect` function, we verify that we were successful:
 it should return 0, as there shouldn't be any intersect anymore between `back_genes`and `DE_genes_CD`:
 
 ```{r GOAnalysisCreateBackgrounds3, eval=TRUE, warning=FALSE, message=FALSE}
-back_genes_idx <- genefilter::genefinder(palmieri_final, 
-                                         as.character(DE_genes_CD), 
-                       method = "manhattan", scale = "none")
-
-back_genes_idx <- sapply(back_genes_idx, function(x)x$indices)
-
 back_genes <- featureNames(palmieri_final)[back_genes_idx]
 back_genes <- setdiff(back_genes, DE_genes_CD)
 
@@ -1745,7 +1725,7 @@ DE--genes and background genes:
 
 ```{r createFactorOfInterestingGenes, dependson="GOAnalysisCreateBackgrounds", eval=TRUE}
 gene_IDs <- rownames(table_CD)
-in_universe <- gene_IDs %in% c(DE_genes_CD , back_genes)
+in_universe <- gene_IDs %in% c(DE_genes_CD, back_genes)
 in_selection <- gene_IDs %in% DE_genes_CD 
 
 all_genes <- in_selection[in_universe]
@@ -1754,6 +1734,7 @@ names(all_genes) <- gene_IDs[in_universe]
 ```
 
 The following steps were carried through: 
+
   1. we created an `in_universe` vector by using the `%in%` matching function. 
   We want to know which elements from `gene_IDs` are also contained in 
   `DE_genes_CD` and `back_genes`, as the latter two are our gene universe 
@@ -1808,7 +1789,6 @@ result_top_GO_elim <-
   runTest(top_GO_data, algorithm = "elim", statistic = "Fisher")
 result_top_GO_classic <- 
   runTest(top_GO_data, algorithm = "classic", statistic = "Fisher")
-
 ```
 
 We can now inspect the results. We look at the top 100 GO categories according
@@ -1897,7 +1877,6 @@ reactome_enrich@result$Description <- paste0(str_sub(
                                     "...")
 
 head(summary(reactome_enrich))[1:6]
-
 ```
 
 Note that we trimmed pathway names to 20 characters.
