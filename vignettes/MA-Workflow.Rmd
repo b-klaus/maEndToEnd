@@ -488,7 +488,7 @@ Until now, we have only performed a very basic quality control; for more elabora
 aims and an identification of possible outliers. We do not discuss this tool in detail
 here, but simply provide the code below, which creates a report for our raw data. 
 
-```{r arrayQualityMetricsRaw, eval = TRUE, warning=FALSE}
+```{r arrayQualityMetricsRaw, eval = TRUE, warning=FALSE, message=FALSE}
 arrayQualityMetrics(expressionset = raw_data,
     outdir = "Report_for_Palmieri_raw",
     force = TRUE, do.logtransform = TRUE,
@@ -548,7 +548,7 @@ which represented a certain gene or transcript (note however, that a
 gene can be represented by multiple probesets).
 
 The more recent "Gene" and "Exon" Affymetrix arrays are exon based and hence there 
-are two levels of summarization to get to the gene level. The "probeset" summarization leads to the exon level. The gene/transcript level is given by "transcript clusters". Hence, the appropriate annotation package for our chip type is called
+are two levels of summarization to get to the gene level. The "probeset" summarization leads to the exon level. The gene / transcript level is given by "transcript clusters". Hence, the appropriate annotation package for our chip type is called
 `r Biocpkg("hugene10sttranscriptcluster.db") `.
 
 "Gene" arrays were created as affordable versions of the "Exon" arrays, by only taking the "good" probes from the Exon array. Initially on the Exon array, at least four probes were part of one "Exon". 
@@ -591,9 +591,13 @@ grid.rect(x=dat$x,y=dat$y, height=0.1, width=0.1, hjust=0,vjust=0,vp=vp2,
 ```
 
 
-On the left side, we see plenty of probes for each Exon/ probeset (i.e. each colour): therefore, a summarization on the probeset/ exon level makes sense. In the gene type array, however, only a small proportion of the original probes per probeset is included. Thus, a summarization on the probeset / exon level 
-is not recommended for "Gene" arrays but nonetheless possible by using the 
-`r Biocannopkg("hugene10stprobeset.db") ` annotation package.
+On the left side, we see plenty of probes for each Exon / probeset 
+(i.e. each colour): therefore, a summarization on the probeset / exon level 
+makes sense. In the gene type array, however, only a small proportion of the 
+original probes per probeset is included. Thus, a summarization on the 
+probeset / exon level  is not recommended for "Gene" arrays 
+but nonetheless possible by using the `r Biocannopkg("hugene10stprobeset.db") ` 
+annotation package.
 
 Note that furthermore, there are also no longer designated match/mismatch probes present on "Gene" and "Exon" type chips. The mismatch probe was initially intended as base--level for background correction, but hasn't prevailed due to more elaborate background correction techniques that do not require a mismatch probe. 
 
@@ -806,7 +810,7 @@ changed and we choose the Manhattan distance here (it uses absolute distances al
 dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 
 rownames(dists) <- row.names(pData(palmieri_eset_norm))
-hmcol <- colorRampPalette(rev(RColorBrewer::brewer.pal(9, "YlOrRd")))(255)
+hmcol <- colorRampPalette(RColorBrewer::brewer.pal(9, "YlOrRd"))(255)
 colnames(dists) <- NULL
 diag(dists) <- NA
 
@@ -821,7 +825,7 @@ pheatmap(dists, col = (hmcol),
          treeheight_row=0,
          legend_breaks = c(min(dists, na.rm = TRUE), 
                          max(dists, na.rm = TRUE)), 
-         legend_labels = (c("low difference", "high difference")),
+         legend_labels = (c("low distance", "high distance")),
          main = "Distance clustering heatmap for the calibrated samples")
 
 
@@ -1310,9 +1314,12 @@ which the statistic is given by:
  t = \frac{\bar{d} }{s/\sqrt{n}}
 \]
 
-Where, \(\bar{d}\) is the mean difference between the individuals. 
+Where, \(\bar{d}\) is the mean difference in expression values
+between the individuals. 
 The paired t--test computes the variance \(s^2\) from the paired differences.
-This is lower than the variance of a standard t--test and thus the paired t--test has higher power as long as the expression values for the same individual are correlated ([see e.g. the article on Wikipedia](https://en.wikipedia.org/wiki/Paired_difference_test)).
+This is lower than the variance of a standard t--test and thus the paired 
+t--test has higher power as long as the expression values 
+for the same individual are correlated ([see e.g. the article on Wikipedia](https://en.wikipedia.org/wiki/Paired_difference_test)).
 
 We thus have improved the power of the ordinary \(t\)--test 
 by reducing the variance via blocking on individuals.
@@ -1389,12 +1396,12 @@ As a diagnostic check, we also plot the p--value histogram: We expect a uniform 
  
 Note that if the p--value distribution for a dataset is very different 
 from the ones in the histograms below, this might lead to quality loss in the subsequent analysis. Reasons for a divergent p--value--distribution might be batch effects or a lack of consideration of other blocking factors in the design matrix. Thus, if the p--value is not as expected, try to include possible blocking factors and batches and rerun the analysis. If this does not
-help, empirical Bayes/ null estimation methods for multiple testing
+help, empirical Bayes / null estimation methods for multiple testing
 are useful. 
 
 A good starting point to learn about these methods is the article on 
 false discovery rate estimation by Korbininan Strimmer [@Strimmer_2008] 
-and chapter 1--6 of Efron's book on Large--Scale Inference [@Efron_2010], as well as the blog--post on "How to interpret a p--value histogram" by David Robinson [@Robinson_2014]
+and chapter 1--6 of Efron's book on Large--Scale Inference [@Efron_2010], as well as the blog--post on "How to interpret a p--value histogram" by David Robinson [@Robinson_2014].
 
 ```{r extractResultsCD, eval = TRUE, dependson="createContrastMatrixAndFitModel", message=FALSE, fig.cap="Histogram of the p–values for Crohn’s disease."}
 table_CD <- topTable(palmieri_fit_CD, number = Inf)
@@ -1699,7 +1706,7 @@ We run two common tests: an ordinary Fisher test for every GO category, and the
 GO and tries to "decorrelate" it in order to report the most specific significant 
 term in the hierarchy.
 
-The algorithm starts processing the nodes/GO categories
+The algorithm starts processing the nodes / GO categories
 from the highest (bottommost) level and then iteratively
 moves to nodes from a lower level. If a node is scored as significant,
 all of its genes are marked as removed in all ancestor nodes.
