@@ -18,7 +18,7 @@ output:
     toc_depth: 2
     code_folding: show
 csl: f1000-research.csl
-
+date: 07 June 2018
 vignette: >
   %\VignetteIndexEntry{An end to end workflow for differential gene expression using Affymetrix microarrays}
   %\VignetteEngine{knitr::rmarkdown}
@@ -195,17 +195,17 @@ suppressPackageStartupMessages({
     library(pheatmap)
      
 #Formatting/documentation packages
-    library(rmarkdown)
-    library(BiocStyle)
+   #library(rmarkdown)
+   #library(BiocStyle)
     library(dplyr)
     library(tidyr)
 
 #Helpers:
-  library(stringr)
-  library(matrixStats)
-  library(genefilter)
-  library(openxlsx)
-  library(devtools)
+    library(stringr)
+    library(matrixStats)
+    library(genefilter)
+    library(openxlsx)
+   #library(devtools)
 
 ```
 

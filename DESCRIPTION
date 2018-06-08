@@ -32,23 +32,23 @@ Depends: R (>= 3.5.0),
     geneplotter,
     pheatmap,
     RColorBrewer,
-    rmarkdown,
-    BiocStyle,
     dplyr,
     tidyr,
     stringr,
     matrixStats,
     genefilter,
     openxlsx,
-    devtools  
+    Rgraphviz 
+Suggests: 
+    BiocStyle,
+    knitr,
+    devtools,
+    rmarkdown
 License: MIT
 Encoding: UTF-8
 LazyData: true
 VignetteBuilder: knitr
 biocViews: GeneExpressionWorkflow 
-Suggests: knitr, rmarkdown
 NeedsCompilation: no
 URL: https://www.bioconductor.org/help/workflows/
 Workflow: True
-RoxygenNote: 6.0.1
-
