@@ -314,20 +314,35 @@ par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0, 150),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
 
-polygon(c(45,80,80,45),c(70,70,130,130),col=rgb(1,0,0,.5),border=NA)
-polygon(c(45,80,80,45),c(128,128,130,130),col=rgb(1,0,0,.5),border=NA)
-polygon(c(45,46.5, 46.5, 45),c(70,70,130,130),col=rgb(1,0,0,.5),border=NA)
-text(62.5,100,"assay(s)", cex = 1)
-text(62.5,90,"e.g. 'exprs'", cex = 1)
+polygon(c(50,85,85,50),c(70,70,130,130),col=rgb(1,0,0,.5),border=NA)
+polygon(c(55, 56, 56, 55),c(70,70,130,130),col=rgb(1,0,0,.5),border=NA)
+polygon(c(50,85,85,50),c(118,118,120,120),col=rgb(1,0,0,.5),border=NA)
+text(67.5,100,"assay(s)", cex = 1)
+text(67.5,90,"e.g. 'exprs'", cex = 1)
+
+polygon(c(45,49,49,45),c(70,70,130,130),col=rgb(0,.7,.5,1),border=NA)
+text(47,100, "microarray probes", srt=90, cex=1)
+
+polygon(c(50,85,85,50),c(131,131,140,140),col=rgb(.8,.2,.5),border=NA)
+text(67.5,135.5,"sample IDs", cex = 1)
+
 
 polygon(c(20,40,40,20),c(70,70,130,130),col=rgb(0,0,1,.5),border=NA)
-polygon(c(20,40,40,20),c(128,128,130,130),col=rgb(0,0,1,.5),border=NA)
+polygon(c(20,40,40,20),c(118,118,120,120),col=rgb(0,0,1,.5),border=NA)
 text(30,100,"featureData", cex = 1)
 
-polygon(c(45,60, 60, 45),c(60, 60, 0, 0),col=rgb(.5,0,.5,.5),border=NA)
-polygon(c(45,46.5, 46.5, 45),c(60, 60, 0, 0),col=rgb(.5,0,.5,.5),border=NA)
-text(52.5, 30,"phenoData", cex = 1, srt=90)
+polygon(c(15,19,19,15),c(70,70,130,130),col=rgb(0,.7,.5,1),border=NA)
+text(17,100, "microarray probes", srt=90, cex=1)
 
+polygon(c(20,40,40,20),c(131,131,140,140),col=rgb(0,.5,.7),border=NA)
+text(30,135.5,"features", cex = 1)
+
+polygon(c(50,65, 65, 50),c(55, 55, 0, 0),col=rgb(.5,0,.5,.5),border=NA)
+polygon(c(55, 56, 56, 55),c(55, 55, 0, 0),col=rgb(.5,0,.5,.5),border=NA)
+text(57.5, 30,"phenoData", cex = 1, srt=270)
+
+polygon(c(50,65, 65, 50),c(56,56,65,65),col=rgb(.8,.2,.5),border=NA)
+text(57.5,60.5,"sample IDs", cex = 1)
 ```
 
 You can use the functions ` pData ` and ` fData ` to extract
@@ -769,12 +784,12 @@ in the way that \(B\) is removed and an estimate of \(\theta\) is obtained.
 We now produce a clustering heatmap and another PCA plot using the 
 calibrated data. 
 
-### PCA analysis
+**PCA analysis**
 
 First, we perform a PCA analysis of the calibrated data analogously 
 to the one with the raw data:
 
-```{r PCAMetricsCalibrated, fig.cap = "PCA plot of the calibrated data.", eval = TRUE }
+```{r PCAMetricsCalibrated, fig.cap = "PCA plot of the calibrated, summarized data.", eval = TRUE }
 exp_palmieri <- Biobase::exprs(palmieri_eset_norm)
 PCA <- prcomp(t(exp_palmieri), scale = FALSE)
 
@@ -790,7 +805,7 @@ dataGG <- data.frame(PC1 = PCA$x[,1], PC2 = PCA$x[,2],
 
 ggplot(dataGG, aes(PC1, PC2)) +
       geom_point(aes(shape = Disease, colour = Phenotype)) +
-  ggtitle("PCA plot of the calibrated data") +
+  ggtitle("PCA plot of the calibrated, summarized data") +
   xlab(paste0("PC1, VarExp: ", percentVar[1], "%")) +
   ylab(paste0("PC2, VarExp: ", percentVar[2], "%")) +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -805,7 +820,7 @@ This indicates that now differential expression between the tissue types is the
 dominant source of variation. Note that the second principal component
 separates the diseases.
 
-### Heatmap clustering analysis
+**Heatmap clustering analysis**
 
 We want to plot a heatmap with the sample--to--sample distances with the 
 sample names as row--names. Also, we want to see how well the samples 
@@ -845,7 +860,7 @@ to itself is always equal to zero.
 dists <- as.matrix(dist(t(exp_palmieri), method = "manhattan"))
 
 rownames(dists) <- row.names(pData(palmieri_eset_norm))
-hmcol <- colorRampPalette(RColorBrewer::brewer.pal(9, "YlOrRd"))(255)
+hmcol <- rev(colorRampPalette(RColorBrewer::brewer.pal(9, "YlOrRd"))(255))
 colnames(dists) <- NULL
 diag(dists) <- NA
 
@@ -866,7 +881,7 @@ pheatmap(dists, col = (hmcol),
 On the heatmap plot (Figure \@ref(fig:HeatmapWithAnnotation)) we also see that 
 the samples do not cluster strongly by tissue, confirming the impression 
 from the PCA plot (Figure \@ref(fig:PCAMetricsCalibrated)) that the separation 
-between the tissues is not perfect. The red stripes in the heatmap might correspond
+between the tissues is not perfect. The yellow stripes in the heatmap might correspond
 to outliers that could potentially be removed: the ones that could be flagged 
 here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II. 
 2826_II, 3262_II and 3332_II were found to be outliers in both RLE and heatmap 
@@ -1013,7 +1028,7 @@ head(anno_filtered)
 
 probe_stats <- anno_filtered 
 
-dim(probe_stats)
+nrow(probe_stats)
 ```
 
 First, we grouped `anno_palmieri` by their PROBEID; that way, 
@@ -1264,7 +1279,7 @@ For linear model fitting and subsequent testing for differential expression
 by t--test, we will pick the gene with the PROBEID 8164535. It has the gene 
 symbol  *CRAT* and will be named as such in the following code. 
 
-### Illustration of the fitted linear model on the *CRAT* gene
+**Illustration of the fitted linear model on the *CRAT* gene**
 
 Before fitting the linear model, we have a look at the expression intensities
 of this gene for each patient in non--inflamed and inflamed tissue, 
@@ -1367,7 +1382,7 @@ The "difference" between non--inflamed and inflamed tissue of
 expression data is on the log2 scale. `r crat_coef["I"] - crat_coef["nI"]`
 therefore is our log2 fold change for the CRAT gene.
 
-### Differential expression analysis of the CRAT gene
+**Differential expression analysis of the CRAT gene**
 
 In order to test whether the gene is differentially expressed or not, 
 a \(t\)--test with the null hypothesis that there is no difference 
