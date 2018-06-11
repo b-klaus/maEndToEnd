@@ -334,7 +334,7 @@ You can use the functions ` pData ` and ` fData ` to extract
 the sample and feature annotation, respectively, from an ` ExpressionSet `.
 The function ` exprs ` will return the expression data itself as a matrix.
 
-# Import of annotation data and microarray expression data
+# Import of annotation data and microarray expression data as "ExpressionSet"
 
 We import the SDRF file with the `read.delim` function from the raw data 
 folder in order to obtain the sample annotation.
@@ -471,7 +471,6 @@ The PCA plot (Figure \@ref(fig:qualityControlRawDataPCA), performed on
 the log--intensity scale) of the raw data shows that the 
 first principal component differentiates between the diseases. This means that 
 the disease type is a major driver of gene expression differences.
-
 This might hinder our analysis, as we want to analyze the differential expression between inflamed and non--inflamed 
 tissues, independently of the disease a person suffers from. 
 
