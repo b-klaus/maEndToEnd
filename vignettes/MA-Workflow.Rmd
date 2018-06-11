@@ -232,28 +232,11 @@ if (!dir.exists(raw_data_dir)) {
 
 
 Each ArrayExpress data set has a landing page summarizing the data set, 
-and we use the `r Biocpkg("ArrayExpress") ` Bioconductor package to obtain 
+and we use the `getAE`function from the `r Biocpkg("ArrayExpress") ` Bioconductor package to obtain 
 the ftp links to the raw data files ([Data from Palmieri et. al. on ArrayEpress](https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-2967/)).
 
-## Information stored in ArrayExpress
 
-Each dataset at ArrayExpress is stored according to the MAGE--TAB 
-(MicroArray Gene Expression Tabular) specifications as a collection of
-tables bundled with the raw data. The MAGE--TAB format specifies up to five 
-different types of files, namely the
-Investigation Description Format (IDF), the Array Design Format (ADF),
-the Sample and Data Relationship Format (SDRF), the raw data files and
-the processed data files.
-
-Other than the raw data files, the IDF and the SDRF file are important for us. 
-The IDF file contains top level information
-about the experiment including title, description, submitter contact details 
-and protocols. The SDRF file contains essential information on the experimental 
-samples, e.g. the experimental group(s) they belong to. 
-
-## Download of the raw data and the annotation data 
-
-With the code below, we download the raw data from
+With the code below, we download the raw data (also including annotation data) from
 [ArrayExpress](https://www.ebi.ac.uk/arrayexpress/) [@Kolesnikov_2014] 
 by using the `getAE`--function. The data are saved in the `raw_data_dir`
 created above. The names of the downloaded files are returned as a list.
@@ -263,25 +246,29 @@ created above. The names of the downloaded files are returned as a list.
 anno_AE <- getAE("E-MTAB-2967", path=raw_data_dir, type="raw")
 ```
 
-We now import the SDRF file with the `read.delim` function from the raw data 
-folder in order to obtain the sample annotation.
+We will now have a closer look at the data we downloaded from ArrayExpress
 
-The raw data consists of one CEL file per sample (see below) and
-we use the CEL file names, thus the sample identifiers, as row names 
-for the imported SDRF data. 
+# Background information on the data
 
-These names are given in a column named `Array.Data.File` in the SDRF table. 
-We turn the SDRF table into an `AnnotatedDataFrame` 
-from the `r Biocpkg("Biobase")` package that we
-will need later to create an `ExpressionSet` for our data [@Bioc].
+## Information stored in ArrayExpress
 
-```{r getSDRF}
-sdrf_location <- file.path(raw_data_dir, "E-MTAB-2967.sdrf.txt")
-SDRF <- read.delim(sdrf_location)
+Each dataset at ArrayExpress is stored according to the MAGE--TAB 
+(MicroArray Gene Expression Tabular) specifications as a collection of
+tables bundled with the raw data. The MAGE--TAB format specifies up to five 
+different types of files:
 
-rownames(SDRF) <- SDRF$Array.Data.File
-SDRF <- AnnotatedDataFrame(SDRF)
-```
+
+* **Investigation Description Format (IDF)**
+* **Array Design Format (ADF)**
+* **Sample and Data Relationship Format (SDRF)**
+* **raw data files** 
+* **processed data files**
+
+Other than the raw data files, the IDF and the SDRF file are important for us. 
+The IDF file contains top level information
+about the experiment including title, description, submitter contact details 
+and protocols. The SDRF file contains essential information on the experimental 
+samples, e.g. the experimental group(s) they belong to. 
 
 Before we move on to the actual raw data import, we will briefly introduce the
 `ExpressionSet` class contained in the `r Biocpkg("Biobase")` package.
@@ -305,23 +292,20 @@ and is the input to or output of many Bioconductor functions.
 
 The data in an ExpressionSet consist of:
 
-* **assayData**: Expression data from microarray experiments.
+* **assayData**: Expression data from microarray experiments
+with microarray probes in rows and sample identifiers in columns
 * **metaData**
-    + **phenoData**: A description of the samples in the experiment
-    + **featureData**: metadata about the features on the chip 
-    or technology used for the experiment 
+    + **phenoData**: A description of the samples in the experiment with sample identifiers in rows and description elements in columns; holds the content of the SDRF file
+    + **featureData**: metadata about the features on the chip   
+    or technology used for the experiment with same rows as assayData by default and freely assignable columns
     + further annotations for the features,
     for example gene annotations from biomedical databases (annotation).
 
 * **experimentData**: A flexible structure to describe the experiment.
 
 The ExpressionSet class coordinates all of these data, so that one does not 
-have to worry about the details. However, some constraints have to be met. 
-In particular, the rownames of the `phenoData` (which holds the content of the
-SDRF file) have to match the column names of the assay data 
-(as they represent the sample
-identifiers), while the row names of the assay data have to match the 
-row names of the `featureData` (as they represent the feature identifiers). 
+have to worry about the details. However, one should keep in mind that the rownames of the `phenoData` have to match the column names of the assay data, while the row names of the assay data have to match the 
+row names of the `featureData`. 
 This is  illustrated in Figure \@ref(fig:sumexp).
 
 
@@ -350,9 +334,27 @@ You can use the functions ` pData ` and ` fData ` to extract
 the sample and feature annotation, respectively, from an ` ExpressionSet `.
 The function ` exprs ` will return the expression data itself as a matrix.
 
-# Import of the raw microarray data 
+# Import of annotation data and microarray expression data
 
-In the first step of the analysis, we create the Expression Set object 
+We import the SDRF file with the `read.delim` function from the raw data 
+folder in order to obtain the sample annotation.
+
+The sample names are given in the column Array.Data.File of the SDRF data table and will be used as rownames for the SDRF file.
+
+We turn the SDRF table into an `AnnotatedDataFrame` 
+from the `r Biocpkg("Biobase")` package that we
+will need later to create an `ExpressionSet` for our data [@Bioc].
+
+```{r getSDRF}
+sdrf_location <- file.path(raw_data_dir, "E-MTAB-2967.sdrf.txt")
+SDRF <- read.delim(sdrf_location)
+
+rownames(SDRF) <- SDRF$Array.Data.File
+SDRF <- AnnotatedDataFrame(SDRF)
+```
+
+
+We now create the Expression Set object 
 `raw_data`, which contains array data, pheno data
 (from the SDRF file) as well as the information 
 of the chip annotation package used.
@@ -360,7 +362,7 @@ of the chip annotation package used.
 
 The analysis of Affymetrix arrays starts with CEL files. These are the result
 of the processing of the raw image files using the Affymetrix software 
-and containestimated probe intensity values. Each CEL file additionally 
+and contain estimated probe intensity values. Each CEL file additionally 
 contains some metadata, such as a chip identifier. 
 
 We use the function `read.celfiles` from the `r Biocpkg("oligo") ` 
@@ -381,7 +383,7 @@ chip--type is also stored in the .CEL files).
 
 Furthermore, we specified our `AnnotatedDataFrame` "`SDRF`" 
 created earlier from the SDRF file as `phenoData`. Thus, 
-we had to make sure that we import the CEL files 
+we had to make sure to import the CEL files 
 in the order that corresponds to the SDRF table --- to enforce this, 
 we used the column `Array.Data.File` of the `SDRF` table as the `filenames` 
 argument.
@@ -389,10 +391,9 @@ argument.
 Finally, we checked whether the object created is valid (e.g. sample names 
 match between the different tables).
 
-
 We now have a first look on the raw data.
 
-The pData function of the Biobase package directly accesses the phenoData in the ExpressionSet `raw_data`. With the `head()` function, we can view the 
+The `pData` function of the Biobase package directly accesses the phenoData in the ExpressionSet `raw_data`. With the `head()` function, we can view the 
 first six lines of the table. We have a look at the columns included 
 and retain only those columns that are related to the experimental 
 factors of interest.
@@ -443,7 +444,7 @@ represents one sample, with the colour indicating the mucosa type
 
 
 
-```{r qualityControlRawDataPCA, fig.cap="PCA plot of the log–transformed raw data."}
+```{r qualityControlRawDataPCA, fig.cap="PCA plot of the log–transformed raw expression data."}
 exp_raw <- log2(Biobase::exprs(raw_data))
 PCA_raw <- prcomp(t(exp_raw), scale. = FALSE)
 
@@ -457,7 +458,7 @@ dataGG <- data.frame(PC1 = PCA_raw$x[,1], PC2 = PCA_raw$x[,2],
 
 ggplot(dataGG, aes(PC1, PC2)) +
       geom_point(aes(shape = Disease, colour = Phenotype)) +
-  ggtitle("PCA plot of the calibrated data") +
+  ggtitle("PCA plot of the log-transformed raw expression data") +
   xlab(paste0("PC1, VarExp: ", percentVar[1], "%")) +
   ylab(paste0("PC2, VarExp: ", percentVar[2], "%")) +
   theme(plot.title = element_text(hjust = 0.5))+
@@ -491,7 +492,7 @@ individual arrays are quite different, indicating the need for an appropriate
 normalization, which we will discuss next.
 
 Until now, we have only performed a very basic quality control; 
-for more elaborate quality control plots, one can use the package
+more elaborate quality control plots are available in the package
 `r Biocpkg("arrayQualityMetrics")` [@AQM]. The package produces an html report, 
 containing the quality control plots together with a description of their
 aims and an identification of possible outliers. We do not discuss this tool in 
@@ -518,7 +519,7 @@ give accurate measurements of specific hybridization.
 
 ## Across--array normalization (calibration)
 
-Without proper normalization across arrays, it is impossible 
+Normalization across arrays is needed in order to be able
 to compare measurements from different array hybridizations 
 due to many obscuring sources of variation.
 These include different efficiencies of
@@ -574,6 +575,8 @@ are indicated by a colour shade: e.g., all yellow probes belong to one Exon,
 and all yellow, orange and red probesets belong to one gene: 
 
 ```{r DifferenceBetweenExonAndGeneTypeArrays, fig.width=7, fig.height=6, echo=FALSE, fig.cap="Visualization of the difference between \"Exon\" type array (left) and \"Gene\" type array (right)."}
+library(grid)
+
 par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0, 20),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
@@ -864,7 +867,7 @@ pheatmap(dists, col = (hmcol),
 On the heatmap plot (Figure \@ref(fig:HeatmapWithAnnotation)) we also see that 
 the samples do not cluster strongly by tissue, confirming the impression 
 from the PCA plot (Figure \@ref(fig:PCAMetricsCalibrated)) that the separation 
-between the tissues is not perfect. The yellow stripes in the heatmap might correspond
+between the tissues is not perfect. The red stripes in the heatmap might correspond
 to outliers that could potentially be removed: the ones that could be flagged 
 here are 2826_II, 3262_II, 3271_I, 2978_II and 3332_II. 
 2826_II, 3262_II and 3332_II were found to be outliers in both RLE and heatmap 
