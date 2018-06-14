@@ -314,16 +314,16 @@ par(mar=c(0,0,0,0))
 plot(1,1,xlim=c(0,100),ylim=c(0, 150),bty="n",
      type="n",xlab="",ylab="",xaxt="n",yaxt="n")
 
-polygon(c(50,85,85,50),c(70,70,130,130),col=rgb(1,0,0,.5),border=NA)
+polygon(c(50,85,85,50),c(70,70,130,130),col="lightcoral",border=NA)
 polygon(c(55, 56, 56, 55),c(70,70,130,130),col=rgb(1,0,0,.5),border=NA)
 polygon(c(50,85,85,50),c(118,118,120,120),col=rgb(1,0,0,.5),border=NA)
 text(67.5,100,"assay(s)", cex = 1)
 text(67.5,90,"e.g. 'exprs'", cex = 1)
 
-polygon(c(45,49,49,45),c(70,70,130,130),col=rgb(0,.7,.5,1),border=NA)
+polygon(c(45,49,49,45),c(70,70,130,130),col="honeydew2",border=NA)
 text(47,100, "microarray probes", srt=90, cex=1)
 
-polygon(c(50,85,85,50),c(131,131,140,140),col=rgb(.8,.2,.5),border=NA)
+polygon(c(50,85,85,50),c(131,131,140,140),col="darkseagreen3",border=NA)
 text(67.5,135.5,"sample IDs", cex = 1)
 
 
@@ -331,17 +331,17 @@ polygon(c(20,40,40,20),c(70,70,130,130),col=rgb(0,0,1,.5),border=NA)
 polygon(c(20,40,40,20),c(118,118,120,120),col=rgb(0,0,1,.5),border=NA)
 text(30,100,"featureData", cex = 1)
 
-polygon(c(15,19,19,15),c(70,70,130,130),col=rgb(0,.7,.5,1),border=NA)
+polygon(c(15,19,19,15),c(70,70,130,130),col="honeydew2",border=NA)
 text(17,100, "microarray probes", srt=90, cex=1)
 
-polygon(c(20,40,40,20),c(131,131,140,140),col=rgb(0,.5,.7),border=NA)
+polygon(c(20,40,40,20),c(131,131,140,140),col="bisque3",border=NA)
 text(30,135.5,"features", cex = 1)
 
 polygon(c(50,65, 65, 50),c(55, 55, 0, 0),col=rgb(.5,0,.5,.5),border=NA)
 polygon(c(55, 56, 56, 55),c(55, 55, 0, 0),col=rgb(.5,0,.5,.5),border=NA)
 text(57.5, 30,"phenoData", cex = 1, srt=270)
 
-polygon(c(50,65, 65, 50),c(56,56,65,65),col=rgb(.8,.2,.5),border=NA)
+polygon(c(50,65, 65, 50),c(56,56,65,65),col="darkseagreen3",border=NA)
 text(57.5,60.5,"sample IDs", cex = 1)
 ```
 
@@ -1179,7 +1179,8 @@ disease <-
   str_replace_all(Biobase::pData(palmieri_final)$Factor.Value.disease.,
                   " ", "_")
 disease <- 
-  ifelse(disease == "Crohn's_disease", "CD", "UC")
+  ifelse(str_detect(Biobase::pData(palmieri_final)$Factor.Value.disease., 
+                    "Crohn"), "CD", "UC")
 ```
 
 The original paper is interested in changes in transcription that occur
