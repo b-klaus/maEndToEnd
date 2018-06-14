@@ -18,17 +18,14 @@ output:
     toc_depth: 2
     code_folding: show
 csl: f1000-research.csl
-date: 07 June 2018
+date: 14 June 2018
 vignette: >
   %\VignetteIndexEntry{An end to end workflow for differential gene expression using Affymetrix microarrays}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8} 
 ---
-<!-- command to compile the vignette using Rscript to check the mem usage -->
-<!-- Rscript --vanilla test_mem.R -->
-
 <!-- latest version from github -->
-<!-- devtools::install_github("Steffireise/maEndToEnd", ref = "master") -->
+<!-- devtools::install_github("b-klaus/maEndToEnd", ref = "master") -->
 
 <!--Html rendering for Bioc Workflow using BiocStyle-->
 <!-- rmarkdown::render("MA-Workflow.Rmd") -->
@@ -38,6 +35,9 @@ vignette: >
 <!-- also keeps .tex files for overleaf submission -->
 <!-- rmarkdown::render("MA-Workflow.Rmd",
 output_format = BiocWorkflowTools::f1000_article(keep_tex = TRUE)) -->
+
+<!-- command to compile the vignette using Rscript to check the mem usage -->
+<!-- Rscript --vanilla test_mem.R -->
 
 
 <!--  Conversions between f1000 / BioStyle by Leo Torres -->
@@ -58,12 +58,9 @@ output_format = BiocWorkflowTools::f1000_article(keep_tex = TRUE)) -->
 ## This simplifies processing on overleaf
 on.bioc <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
 if (!on.bioc) {
-  knitr::opts_chunk$set(fig.path = "", out.width="350px")
+  knitr::opts_chunk$set(fig.path = "", out.width = "350px")
 } 
 ## here, pdf specific adapations can be made
-
-
-suppressPackageStartupMessages({library("maEndToEnd")})
 
 ```
 
@@ -73,14 +70,14 @@ suppressPackageStartupMessages({library("maEndToEnd")})
 library(BiocStyle)
 library(knitr)
 options(digits = 4, width = 80)
-opts_chunk$set(echo=TRUE, 
-               tidy=FALSE, 
-               include=TRUE,
-               dev=c('png'),
+opts_chunk$set(echo = TRUE, 
+               tidy = FALSE, 
+               include = TRUE,
+               dev = c('png'),
                fig.width = 6, fig.height = 3.5,
                comment = '  ', 
-               dpi = 300, cache=TRUE,
-               fig.pos= "H")
+               dpi = 300, cache = TRUE,
+               fig.pos = "H")
 
 ```
 
@@ -144,34 +141,63 @@ This is a typical clinical data set consisting of 58 arrays in total.
 Our aim is to analyze differential expression (DE) between the tissues. 
 Our results show a substantial overlap with the results of the original paper.
 
-# Required packages and other preparations
+# Workflow package installation
 
-The maEndToEnd package can currently be loaded from GitHub and has been
-submitted to Bioconductor.
+The workflow is wrapped in a package called `maEndToEnd`. 
+
+The `maEndToEnd` package can currently be obtained from GitHub and has been
+submitted to Bioconductor (see here: <https://github.com/Bioconductor/Contributions/issues/765>).
+
+## Workflow package installation from Bioconductor
+
+Once the workflow packages has been published on Bioconductor,
+you will simply be able install it via the `biocLite` function.
+
+```{r installBioc, eval=FALSE}
+## try http:// if https:// URLs are not supported
+source("https://bioconductor.org/biocLite.R")
+biocLite("maEndToEnd")
+```
+
+
+## Workflow package installation from Github
 
 ```{r, echo=TRUE, results="hide", warning=FALSE, eval=FALSE}
 
 #In order to download the package from GitHub, we need the "install_github" 
-#function from the "remotes" packages. We download the latest developer 
-#version of "remotes" from GitHub as well with the devtool::install_github
+#function from the "remotes" package. We download the latest developer 
+#version of "remotes" from GitHub with the devtool::install_github
 #function; note that this is necessary as the current "remotes" version on
-#CRAN doesn't currently allow us to correctly download the "maEndToEnd" package: 
+#CRAN doesn't allow us to correctly download the "maEndToEnd" package: 
 
 install.packages("devtools")
 library(devtools)
 
 devtools::install_github("r-lib/remotes")
 library(remotes)
-packageVersion("remotes") #has to be 1.1.1.9000 or later
+packageVersion("remotes") # has to be 1.1.1.9000 or later
 
-remotes::install_github("Steffireise/maEndToEnd", ref="master")
+remotes::install_github("b-klaus/maEndToEnd", ref="master")
 
-suppressPackageStartupMessages({
-    library("maEndToEnd")
-})
 ```
 
-```{r pkgList, results="hide", warnings=FALSE}
+## Workflow package import
+
+Once the workflow package has been successfully installed, we can use 
+a call to `library()` in order to load it. This will also load
+all the other packages neccessary to run the workflow.
+
+```{r maEndToEndImport}
+suppressPackageStartupMessages({library("maEndToEnd")})
+```
+
+## List of packages required for the workflow
+
+Below, you find a list of packages that are required by the workflow.
+Some Helper/Styling packages have been commented here, as they are
+not strictly neccesary to execute the workflow.
+
+```{r pkgList, results="hide"}
 #General Bioconductor packages
     library(Biobase)
     library(oligoClasses)
@@ -210,6 +236,7 @@ suppressPackageStartupMessages({
     library(genefilter)
     library(openxlsx)
    #library(devtools)
+
 ```
 
 
@@ -219,15 +246,16 @@ The first step of the analysis is to download the raw data CEL files. These
 files are produced by the array scanner software and contain the measured probe intensities. The data we use have been deposited at [ArrayExpress](https://www.ebi.ac.uk/arrayexpress/)
 and have the accession code **E-MTAB-2967**.
 
-We will store these files in the directory **raw\_data\_dir** which defaults 
-to the subdirectory `rawDataMAWorkflow` of the current working directory:
+We will store these files in the directory **raw\_data\_dir** which defaults to 
+a temporary directory.
 
 ```{r generateFolderForRawData}
-raw_data_dir <- file.path(getwd(), "rawDataMAWorkflow")
+raw_data_dir <- tempdir()
 
 if (!dir.exists(raw_data_dir)) {
     dir.create(raw_data_dir)
 }
+
 ```
 
 
@@ -243,7 +271,7 @@ created above. The names of the downloaded files are returned as a list.
 
 
 ```{r getDataEBI, eval=TRUE, results='hide', message=FALSE}
-anno_AE <- getAE("E-MTAB-2967", path=raw_data_dir, type="raw")
+anno_AE <- getAE("E-MTAB-2967", path = raw_data_dir, type = "raw")
 ```
 
 We will now have a closer look at the data we downloaded from ArrayExpress
@@ -496,8 +524,8 @@ expression sets as argument. It accesses the expression data and performs a
 log2--transformation by default. We therefore can use `raw_data` as argument here.
 
 ```{r qualityControlRawDataBox, fig.cap="Intensity boxplots of the log2–transformed raw data."}
-oligo::boxplot(raw_data, target="core", 
-               main="Boxplot of log2-intensitites for the raw data")
+oligo::boxplot(raw_data, target = "core", 
+               main = "Boxplot of log2-intensitites for the raw data")
 ```
 
 When looking at the boxplot (Figure 
@@ -513,9 +541,9 @@ aims and an identification of possible outliers. We do not discuss this tool in
 detail here, but simply provide the code below, 
 which creates a report for our raw data. 
 
-```{r arrayQualityMetricsRaw, eval = TRUE, warning=FALSE, message=FALSE}
+```{r arrayQualityMetricsRaw, eval = TRUE, warning=FALSE}
 arrayQualityMetrics(expressionset = raw_data,
-    outdir = "Report_for_Palmieri_raw",
+    outdir = tempdir(),
     force = TRUE, do.logtransform = TRUE,
     intgroup = c("Factor.Value.disease.", "Factor.Value.phenotype."))
 ```
