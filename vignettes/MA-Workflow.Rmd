@@ -4,7 +4,7 @@ author:
   - name: Bernd Klaus
     affiliation: EMBL Heidelberg, Meyerhofstrasse 1, 69117 Heidelberg, Germany, bernd.klaus@embl.de
   - name: Stefanie Reisenauer
-    affiliation: EMBL Heidelberg, Meyerhofstrasse 1, 69117 Heidelberg, Germany, stefanie.reisenauer@embl.de
+    affiliation: EMBL Heidelberg, Meyerhofstrasse 1, 69117 Heidelberg, Germany, steffi.reisenauer@tum.de
 header-includes:
   - \usepackage{float}
 abstract: In this article, we walk through an end-to-end Affymetrix microarray differential expression workflow using Bioconductor packages. This workflow is directly applicable to current "Gene" type arrays, e.g. the HuGene or MoGene arrays, but can easily be adapted to similar platforms. The data analyzed here is a typical clinical microarray data set that compares inflamed and non-inflamed colon tissue in two disease subtypes. For each disease, the differential gene expression between inflamed- and non-inflamed colon tissue was analyzed. We will start from the raw data CEL files, show how to import them into a Bioconductor ExpressionSet, perform quality control and normalization and finally differential gene expression (DE) analysis, followed by some enrichment analysis.
@@ -18,7 +18,7 @@ output:
     toc_depth: 2
     code_folding: show
 csl: f1000-research.csl
-date: 14 June 2018
+date: 21 June 2018
 vignette: >
   %\VignetteIndexEntry{An end to end workflow for differential gene expression using Affymetrix microarrays}
   %\VignetteEngine{knitr::rmarkdown}
@@ -90,41 +90,6 @@ opts_chunk$set(echo = TRUE,
 **Package version**: `r packageVersion("maEndToEnd")`
 </p>
 
-# Amendments from Version 1
-
-The individual workflow steps now contain more detailed discussions of the
-code. We also try to explain the statistics behind the individual steps 
-carefully and in a non-technical way. Where appropriate, we provide
-suitable references and weblinks.
-
-In general, the new version should be much more accessible to beginners in R / 
-Bioconductor with a working knowledge in statistics.
-
-Furthermore, we want to highlight the following specific changes:
-
-* The workflow has been wrapped into an R package "maEndToEnd" and the
- package dependencies are now grouped by keywords.
-
-* Relative Log Expression (RLE) analysis has been implemented as another data 
-quality control step. Combined with clustering heatmaps, it can be used 
-as a basic tool to detect low quality arrays. 
-A section on how to interpret these two kinds of plots has also  been added.
-
-* The method for intensity-based filtering of genes prior to the differential
-expression analysis has been changed. We now filter using a more intuitive,
-visually chosen cutoff instead of fitting a normal distribution and setting 
-the 5 % quantile as a threshold. 
-
-* The rather theoretical section on the mathematical background of linear 
-regression models has been removed. 
-
-* Instead, we explain the principles of differential expression analysis using 
-a specific gene. We fit the linear model to this gene, explain its rationale
-and compare it to the standard t-test.
-
-* A section on the use of False Discovery Rate (FDR) control in multiple testing 
-problems has been added: We illustrate the benefits of FDR control using
-p-values from the data at hand.
 
 # Introduction
 
@@ -145,13 +110,12 @@ Our results show a substantial overlap with the results of the original paper.
 
 The workflow is wrapped in a package called `maEndToEnd`. 
 
-The `maEndToEnd` package can currently be obtained from GitHub and has been
-submitted to Bioconductor (see here: <https://github.com/Bioconductor/Contributions/issues/765>).
+The `maEndToEnd` package can currently be obtained from GitHub and is 
+available via the current development version of Bioconductor (3.8) (see here: <http://bioconductor.org/packages/devel/workflows/html/maEndToEnd.html>).
 
 ## Workflow package installation from Bioconductor
 
-Once the workflow packages has been published on Bioconductor,
-you will simply be able install it via the `biocLite` function.
+You can install the package via the `biocLite` function.
 
 ```{r installBioc, eval=FALSE}
 ## try http:// if https:// URLs are not supported
@@ -159,6 +123,12 @@ source("https://bioconductor.org/biocLite.R")
 biocLite("maEndToEnd")
 ```
 
+Currently, the workflow is available in the development version of Bioconductor
+(3.8), which will become the release version in October 2018.
+
+For details on how to use this version of Bioconductor see:
+
+<http://bioconductor.org/developers/how-to/useDevel/>
 
 ## Workflow package installation from Github
 
