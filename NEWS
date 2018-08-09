@@ -1,3 +1,7 @@
+CHANGES IN VERSION 1.99.2
+-------------------------
+    * changed installation instructions to BiocManager
+
 CHANGES IN VERSION 0.99.0
 -------------------------
     * new submission to  Bioc in June 18

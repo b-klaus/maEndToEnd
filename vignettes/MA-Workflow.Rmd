@@ -18,7 +18,7 @@ output:
     toc_depth: 2
     code_folding: show
 csl: f1000-research.csl
-date: 21 June 2018
+date: 09 August 2018
 vignette: >
   %\VignetteIndexEntry{An end to end workflow for differential gene expression using Affymetrix microarrays}
   %\VignetteEngine{knitr::rmarkdown}
@@ -115,12 +115,12 @@ available via the current development version of Bioconductor (3.8) (see here: <
 
 ## Workflow package installation from Bioconductor
 
-You can install the package via the `biocLite` function.
+You can install the package via the `r CRANpkg("BiocManager")`.
 
 ```{r installBioc, eval=FALSE}
-## try http:// if https:// URLs are not supported
-source("https://bioconductor.org/biocLite.R")
-biocLite("maEndToEnd")
+if (!require("BiocManager"))
+    install.packages("BiocManager")
+BiocManager::install("maEndToEnd", version = "devel")
 ```
 
 Currently, the workflow is available in the development version of Bioconductor
