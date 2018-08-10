@@ -85,7 +85,7 @@ opts_chunk$set(echo = TRUE,
 <p>
 **R version**: `r R.version.string`
 <br />
-**Bioconductor version**: `r BiocInstaller::biocVersion()`
+**Bioconductor version**: `r BiocManager::version()`
 <br />
 **Package version**: `r packageVersion("maEndToEnd")`
 </p>
