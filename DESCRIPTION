@@ -1,18 +1,10 @@
 Package: maEndToEnd
 Title: An end to end workflow for differential gene expression using Affymetrix microarrays
-Version: 1.99.4
+Version: 1.99.5
 Date: 2018-08-09
 Authors@R: c(person(role=c("aut", "cre"), "Bernd", "Klaus", email = "bernd.klaus@embl.de"),
              person(role="aut", "Stefanie", "Reisenauer", email = "steffi.reisenauer@tum.de"))
-Description: In this article, we walk through an end-to-end Affymetrix microarray differential 
-expression workflow using Bioconductor packages. This workflow is directly applicable to current 
-"Gene" type arrays, e.g. the HuGene or MoGene arrays, but can easily be adapted to similar platforms. 
-The data analyzed here is a typical clinical microarray data set that compares inflamed and non-
-inflamed colon tissue in two disease subtypes. For each disease, the differential gene expression 
-between inflamed- and non-inflamed colon tissue was analyzed. We will start from the raw data CEL 
-files, show how to import them into a Bioconductor ExpressionSet, perform quality control and 
-normalization and finally differential gene expression (DE) analysis, followed by some enrichment 
-analysis.
+Description: In this article, we walk through an end-to-end Affymetrix microarray differential expression workflow using Bioconductor packages. This workflow is directly applicable to current "Gene" type arrays, e.g. the HuGene or MoGene arrays, but can easily be adapted to similar platforms. The data analyzed here is a typical clinical microarray data set that compares inflamed and non-inflamed colon tissue in two disease subtypes. For each disease, the differential gene expression between inflamed- and non-inflamed colon tissue was analyzed. We will start from the raw data CEL files, show how to import them into a Bioconductor ExpressionSet, perform quality control and normalization and finally differential gene expression (DE) analysis, followed by some enrichment analysis.
 Depends: R (>= 3.5.0),
     Biobase,
     oligoClasses,
