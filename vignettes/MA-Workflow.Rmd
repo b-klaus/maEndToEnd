@@ -1131,7 +1131,7 @@ experimental data. They can be used to analyse almost arbitrarily
 complex designs, however they also take a while to learn and understand
 and a thorough description is beyond the scope of this workflow.
 
-Mike Love's and Michael Irizzary's [genomics class](http://genomicsclass.github.io/book/) [@Irizarry_2015] is a very good resource, especially the section on [interactions and contrasts](http://genomicsclass.github.io/book/pages/interactions_and_contrasts.html).
+Mike Love's and Rafael Irizzary's ["Biomedical Data Science"](http://genomicsclass.github.io/book/) [@Irizarry_2015] is a very good resource, especially the section on [interactions and contrasts](http://genomicsclass.github.io/book/pages/interactions_and_contrasts.html).
 It might also be helpful to learn some linear algebra to better understand
 the concepts here. The Khan Academy offers helpful (and free) [online courses](https://www.khanacademy.org/math/linear-algebra).
 
