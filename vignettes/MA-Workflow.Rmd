@@ -730,8 +730,7 @@ palmieri_eset_norm <- oligo::rma(raw_data, target = "core")
 
 The parameter `target` defines the degree of summarization, the
 default option of which is "core", using transcript clusters containing
-"safely" annotated genes. Other options for `target` include "extended"
-and "full". For summarization on the exon level (not recommended for Gene
+"safely" annotated genes. For summarization on the exon level (not recommended for Gene
 arrays), one can use "probeset" as the target option.
 Although other methods for background correction and normalization exist,
 RMA is usually a good default choice.
