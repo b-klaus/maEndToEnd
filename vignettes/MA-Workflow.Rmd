@@ -33,8 +33,7 @@ vignette: >
 
 <!-- pdf rendering using to F1000 template from Mike's BiocWorkflowTools  -->
 <!-- also keeps .tex files for overleaf submission -->
-<!-- rmarkdown::render("MA-Workflow.Rmd",
-output_format = BiocWorkflowTools::f1000_article(keep_tex = TRUE)) -->
+<!-- rmarkdown::render("MA-Workflow.Rmd", output_format = BiocWorkflowTools::f1000_article(keep_tex = TRUE)) -->
 
 <!-- command to compile the vignette using Rscript to check the mem usage -->
 <!-- Rscript --vanilla test_mem.R -->
@@ -56,14 +55,26 @@ output_format = BiocWorkflowTools::f1000_article(keep_tex = TRUE)) -->
 
 ## add figures to current directory if Rmd is converted to LaTeX
 ## This simplifies processing on overleaf
-on.bioc <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
-if (!on.bioc) {
-  knitr::opts_chunk$set(fig.path = "", out.width='.8\\linewidth')
-} 
+
+if (!is.null(knitr::opts_knit$get("rmarkdown.pandoc.to"))) {
+    
+    to_html <- knitr::opts_knit$get("rmarkdown.pandoc.to") != 'latex'
+        if (!to_html) {
+          knitr::opts_chunk$set(fig.path = "", out.width = '.8\\linewidth')
+        } 
+
+}
 ## here, pdf specific adapations can be made
+## however, the option "rmarkdown.pandoc.to" is only set by rmarkdown::render,
+## so it returns NULL if run interactively!
 
 ```
 
+```{r testAlternativeToChunkAbove, eval=FALSE, include=FALSE, echo=FALSE}
+# this does not work as it will only test the output formats
+# specified in the YAML header
+any(grepl("f1000", rmarkdown::all_output_formats(knitr::current_input()))) 
+```
 
 
 ```{r knitrOptions, include=FALSE}
@@ -648,7 +659,7 @@ This series of steps as a whole is commonly referred to as RMA algorithm,
 although strictly speaking RMA is merely a summarization method
 [@Irizarry_2003; @Bolstad_2003; @Irizarry_2003a].
 
-#Relative Log Expression data quality analysis
+# Relative Log Expression data quality analysis
 
 Before calibrating and evaluating the data, we want to perform another quality 
 control procedure, namely Relative Log Expression (RLE), as described in 
@@ -661,6 +672,8 @@ palmieri_eset <- oligo::rma(raw_data, target = "core", normalize = FALSE)
 
 Further details on the RMA algorithm will be provided after RLE analysis, when 
 the "full" RMA is carried out, including normalization. 
+
+## Computing the RLE
 
 The RLE is performed by calculating the median log2 intensity of every 
 transcript across all arrays. 
@@ -717,7 +730,13 @@ By inspecting the boxplot in Figure \@ref(fig:boxplotDataForRLETidy),
 five arrays could be considered as outliers:
 2826_I, 2826_II, 3262_II, 3302_II and 3332_II are negatively y-shifted. 
 
-We will keep these samples in mind for heatmap cluster analysis later on in the workflow. Arrays that are confirmed to be outliers by heatmap analysis could be removed for subsequent analysis.
+We will keep these samples in mind for heatmap cluster analysis later on in 
+the workflow. Arrays that are confirmed to be outliers by heatmap 
+analysis could be removed for subsequent analysis.
+
+## Simplified computations for RLE
+
+
 
 # RMA calibration of the data
 
