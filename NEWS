@@ -1,3 +1,9 @@
+CHANGES IN VERSION 1.99.6
+-------------------------
+    * some minor fixes to RLE section
+    * minor text edits as suggested by James McDonald at F1000
+    * modified to code chunk that checks for latex compilation
+
 CHANGES IN VERSION 1.99.2
 -------------------------
     * changed installation instructions to BiocManager

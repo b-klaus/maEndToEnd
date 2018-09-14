@@ -18,7 +18,7 @@ output:
     toc_depth: 2
     code_folding: show
 csl: f1000-research.csl
-date: 09 August 2018
+date: 14 September 2018
 vignette: >
   %\VignetteIndexEntry{An end to end workflow for differential gene expression using Affymetrix microarrays}
   %\VignetteEngine{knitr::rmarkdown}
@@ -688,7 +688,9 @@ as the output data of the RMA function is in log2 scale by default.
 We then substract this transcript median intensity from every 
 transcript intensity via the `sweep` function. 
 
-We then reshape the data into a format in which we can use to create a boxplot 
+## Plotting the RLE
+
+We finally reshape the data into a format in which we can use to create a boxplot 
 for each array, as before:
 
 
@@ -733,9 +735,6 @@ five arrays could be considered as outliers:
 We will keep these samples in mind for heatmap cluster analysis later on in 
 the workflow. Arrays that are confirmed to be outliers by heatmap 
 analysis could be removed for subsequent analysis.
-
-## Simplified computations for RLE
-
 
 
 # RMA calibration of the data
