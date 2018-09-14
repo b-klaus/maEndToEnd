@@ -1938,7 +1938,7 @@ reactome_enrich@result$Description <- paste0(str_sub(
                                     reactome_enrich@result$Description, 1, 20),
                                     "...")
 
-head(summary(reactome_enrich))[1:6]
+head(as.data.frame(reactome_enrich))[1:6]
 ```
 
 Note that we trimmed pathway names to 20 characters.
